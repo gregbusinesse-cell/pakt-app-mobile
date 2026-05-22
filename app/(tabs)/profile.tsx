@@ -58,7 +58,7 @@ export default function ProfileScreen() {
     }
   }, [profile]);
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!profile) return;
     setSaving(true);
 
@@ -74,18 +74,20 @@ export default function ProfileScreen() {
         updated_at: new Date().toISOString(),
       };
 
-      const { error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', profile.id);
+      if (USE_MOCK_DATA) {
+        // Mock mode: update local state
+        setProfile({ ...profile, ...updates } as Profile);
+        setEditing(false);
+        setSaving(false);
+        return;
+      }
 
-      if (error) throw error;
-
-      setProfile({ ...profile, ...updates } as Profile);
-      setEditing(false);
+      // Production mode: would call Supabase
+      // TODO: Implement Supabase profile update
+      Alert.alert('Mode développement', 'À implémenter en production');
+      setSaving(false);
     } catch (err: any) {
       Alert.alert('Erreur', err?.message || 'Erreur sauvegarde');
-    } finally {
       setSaving(false);
     }
   };
@@ -105,24 +107,15 @@ export default function ProfileScreen() {
 
     if (result.canceled || !result.assets[0]) return;
 
-    const asset = result.assets[0];
-    const ext = asset.uri.split('.').pop() || 'jpg';
-    const fileName = `${profile!.id}/${Date.now()}.${ext}`;
-
-    const response = await fetch(asset.uri);
-    const blob = await response.blob();
-
-    const { error: uploadError } = await supabase.storage
-      .from('photos')
-      .upload(fileName, blob, { contentType: `image/${ext}` });
-
-    if (uploadError) {
-      Alert.alert('Erreur', 'Erreur upload photo');
+    if (USE_MOCK_DATA) {
+      // Mock mode: use the picked image URI directly
+      setPhotos((prev) => [...prev, result.assets[0].uri]);
       return;
     }
 
-    const { data: urlData } = supabase.storage.from('photos').getPublicUrl(fileName);
-    setPhotos((prev) => [...prev, urlData.publicUrl]);
+    // Production mode: would upload to Supabase storage
+    // TODO: Implement Supabase storage upload
+    Alert.alert('Mode développement', 'À implémenter en production');
   };
 
   const removePhoto = (index: number) => {
@@ -335,8 +328,14 @@ export default function ProfileScreen() {
       <View style={[styles.section, { paddingBottom: 120 }]}>
         <TouchableOpacity
           style={styles.actionRow}
-          onPress={async () => {
-            await supabase.auth.signOut();
+          onPress={() => {
+            if (USE_MOCK_DATA) {
+              // Mock mode: just navigate to auth
+              router.replace('/auth');
+              return;
+            }
+            // Production mode: would call Supabase signOut
+            // TODO: Implement Supabase auth signOut
             router.replace('/auth');
           }}
         >

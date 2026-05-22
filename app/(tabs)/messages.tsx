@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,13 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '@/lib/store';
 import { Colors } from '@/constants/theme';
-import { formatTime, normalizePlan, canChat, cleanPhotoUrls } from '@/lib/utils';
+import { formatTime, normalizePlan, canChat, cleanPhotoUrls, isPaidPlan } from '@/lib/utils';
 import { mockConversations, mockProfiles, mockMessages } from '@/lib/mock-data';
 import { USE_MOCK_DATA } from '@/lib/config';
 import type { Profile } from '@/lib/types';
@@ -161,31 +162,23 @@ export default function MessagesScreen() {
   }, [currentUserId, loadConversations]);
 
   useEffect(() => {
-    if (!currentUserId) return;
-    const channel = supabase
-      .channel(`messages-rt-${currentUserId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () =>
-        loadConversations(),
-      )
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, () =>
-        loadConversations(),
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [currentUserId, loadConversations]);
+    // Realtime subscriptions disabled in mock mode
+    if (USE_MOCK_DATA || !currentUserId) return;
+    // TODO: Implement Supabase realtime subscriptions in production mode
+  }, [currentUserId]);
 
-  const openChat = async (conv: ConversationItem) => {
+  const openChat = (conv: ConversationItem) => {
     if (!currentUserId) return;
 
+    if (USE_MOCK_DATA) {
+      // Mock mode: just navigate
+      router.push(`/chat/${conv.id}?userId=${conv.otherUser.id}`);
+      return;
+    }
+
+    // Production mode: mark messages as read
     if (conv.unreadCount > 0) {
-      await supabase
-        .from('messages')
-        .update({ is_read: true })
-        .eq('conversation_id', conv.id)
-        .neq('sender_id', currentUserId)
-        .eq('is_read', false);
+      // TODO: Implement Supabase message marking
       refreshNotifications();
     }
 

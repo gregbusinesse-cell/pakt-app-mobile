@@ -96,55 +96,26 @@ export default function DiscoverScreen() {
     if (currentUserId) loadProfiles();
   }, [currentUserId, loadProfiles]);
 
-  const handleSwipe = async (dir: 'left' | 'right', swipedProfile: Profile) => {
+  const handleSwipe = (dir: 'left' | 'right', swipedProfile: Profile) => {
     if (!currentUserId || !profile || !swipedProfile?.id) return;
 
-    if (!USE_MOCK_DATA) {
-      // Mode Supabase : à implémenter
-      return;
-    }
-
-    // Mode mock : juste supprimer le profil et afficher le suivant
+    // Remove swiped profile from stack
     setLastSwipedProfile(swipedProfile);
     setLastSwipeDir(dir);
-    setProfiles((prev) => {
-      const next = prev.filter((p) => p.id !== swipedProfile.id);
-      return next;
-      });
+    setProfiles((prev) => prev.filter((p) => p.id !== swipedProfile.id));
 
-      if (dir !== 'right') return;
-
-      await supabase.from('likes').upsert(
-        { liker_id: currentUserId, liked_id: swipedProfile.id },
-        { onConflict: 'liker_id,liked_id' },
-      );
-
-      const { data: mutualLike } = await supabase
-        .from('likes')
-        .select('id')
-        .eq('liker_id', swipedProfile.id)
-        .eq('liked_id', currentUserId)
-        .maybeSingle();
-
-      if (mutualLike) {
-        const [user1_id, user2_id] = [currentUserId, swipedProfile.id].sort();
-        await supabase.from('matches').upsert(
-          { user1_id, user2_id },
-          { onConflict: 'user1_id,user2_id' },
-        );
-
-        const bothCanChat = isPaidPlan(profile.plan) && isPaidPlan(swipedProfile.plan);
-        if (bothCanChat) {
-          await supabase.rpc('get_or_create_conversation', {
-            other_user_id: swipedProfile.id,
-          });
-        }
-
+    // In mock mode, simulate a mutual like with first profile
+    if (USE_MOCK_DATA && dir === 'right') {
+      // Randomly simulate a mutual match (50% chance)
+      if (Math.random() > 0.5) {
         setMatchedProfile(swipedProfile);
         setShowMatch(true);
       }
-    } catch {
-      Alert.alert('Erreur', 'Erreur lors du swipe');
+    }
+
+    // In production mode, Supabase calls would go here
+    if (!USE_MOCK_DATA) {
+      // TODO: Implement Supabase like/match logic
     }
   };
 

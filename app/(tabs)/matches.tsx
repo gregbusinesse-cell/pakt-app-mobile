@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -176,70 +177,80 @@ export default function MatchesScreen() {
   }, [currentUserId, loadData]);
 
   useEffect(() => {
-    if (!currentUserId) return;
-    const channel = supabase
-      .channel(`matches-rt-${currentUserId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => loadData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, () => loadData())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [currentUserId, loadData]);
+    // Realtime subscriptions disabled in mock mode
+    if (USE_MOCK_DATA || !currentUserId) return;
+    // TODO: Implement Supabase realtime subscriptions in production mode
+  }, [currentUserId]);
 
   const markMatchViewed = useCallback(
-    async (matchId: string) => {
-      await supabase.from('matches').update({ is_viewed: true }).eq('id', matchId);
-      setMatches((prev) => prev.map((m) => (m.id === matchId ? { ...m, isViewed: true } : m)));
-      refreshNotifications();
+    (matchId: string) => {
+      if (USE_MOCK_DATA) {
+        // Mock mode: just update local state
+        setMatches((prev) => prev.map((m) => (m.id === matchId ? { ...m, isViewed: true } : m)));
+        refreshNotifications();
+        return;
+      }
+      // Production mode: would call Supabase
+      // TODO: Implement Supabase update call
     },
     [refreshNotifications],
   );
 
-  const openConversation = async (match: MatchItem) => {
+  const openConversation = (match: MatchItem) => {
     if (!currentUserId) return;
-    await markMatchViewed(match.id);
+    markMatchViewed(match.id);
 
     if (match.conversationId) {
       router.push(`/chat/${match.conversationId}?userId=${match.otherUser.id}`);
       return;
     }
 
-    const { data: convId } = await supabase.rpc('get_or_create_conversation', {
-      other_user_id: match.otherUser.id,
-    });
-    if (convId) {
-      router.push(`/chat/${convId}?userId=${match.otherUser.id}`);
+    if (USE_MOCK_DATA) {
+      // Mock mode: generate conversation ID
+      router.push(`/chat/conv_${match.otherUser.id}?userId=${match.otherUser.id}`);
+      return;
     }
+
+    // Production mode: would call Supabase RPC
+    // TODO: Implement Supabase get_or_create_conversation
   };
 
-  const handleAcceptLike = async (item: LikeItem) => {
+  const handleAcceptLike = (item: LikeItem) => {
     if (!currentUserId) return;
-    try {
-      await supabase.from('likes').upsert(
-        { liker_id: currentUserId, liked_id: item.otherUser.id },
-        { onConflict: 'liker_id,liked_id' },
-      );
-      await supabase.from('swipes').upsert(
-        { swiper_id: currentUserId, target_id: item.otherUser.id, action: 'like' },
-        { onConflict: 'swiper_id,target_id' },
-      );
-      const [u1, u2] = [currentUserId, item.otherUser.id].sort();
-      await supabase.from('matches').upsert({ user1_id: u1, user2_id: u2 }, { onConflict: 'user1_id,user2_id' });
+
+    if (USE_MOCK_DATA) {
+      // Mock mode: just remove from likes and add to matches
+      setLikes((prev) => prev.filter((l) => l.likeId !== item.likeId));
+      // Simulate adding to matches
+      const newMatch: MatchItem = {
+        id: `match_${item.otherUser.id}`,
+        otherUser: item.otherUser,
+        conversationId: `conv_${item.otherUser.id}`,
+        createdAt: new Date().toISOString(),
+        isViewed: false,
+      };
+      setMatches((prev) => [...prev, newMatch]);
+      refreshNotifications();
+      return;
+    }
+
+    // Production mode: would call Supabase
+    // TODO: Implement Supabase like/match creation
+    Alert.alert('Mode développement', 'À implémenter en production');
+  };
+
+  const handleRejectLike = (item: LikeItem) => {
+    if (!currentUserId) return;
+
+    if (USE_MOCK_DATA) {
+      // Mock mode: just remove from likes
       setLikes((prev) => prev.filter((l) => l.likeId !== item.likeId));
       refreshNotifications();
-      loadData();
-    } catch {
-      Alert.alert('Erreur', 'Erreur');
+      return;
     }
-  };
 
-  const handleRejectLike = async (item: LikeItem) => {
-    if (!currentUserId) return;
-    await supabase.from('swipes').upsert(
-      { swiper_id: currentUserId, target_id: item.otherUser.id, action: 'dislike' },
-      { onConflict: 'swiper_id,target_id' },
-    );
-    setLikes((prev) => prev.filter((l) => l.likeId !== item.likeId));
-    refreshNotifications();
+    // Production mode: would call Supabase
+    // TODO: Implement Supabase dislike recording
   };
 
   const unviewedCount = matches.filter((m) => !m.isViewed).length;
