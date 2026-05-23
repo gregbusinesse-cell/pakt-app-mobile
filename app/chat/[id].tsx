@@ -115,6 +115,8 @@ export default function ChatScreen() {
         content,
         message_type: 'text',
         file_url: null,
+        file_name: null,
+        file_size: null,
         is_read: true,
         created_at: new Date().toISOString(),
       };

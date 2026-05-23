@@ -78,14 +78,16 @@ export const mockProfiles: Profile[] = [
 export const mockMatches: Match[] = [
   {
     id: 'match1',
-    profile_id: 'user2',
-    matched_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+    user1_id: 'current_user',
+    user2_id: 'user2',
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
     is_viewed: false,
   },
   {
     id: 'match2',
-    profile_id: 'user3',
-    matched_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+    user1_id: 'current_user',
+    user2_id: 'user3',
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
     is_viewed: true,
   },
 ];
@@ -93,14 +95,16 @@ export const mockMatches: Match[] = [
 export const mockLikes: Like[] = [
   {
     id: 'like1',
-    profile_id: 'user4',
-    liked_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+    liker_id: 'user4',
+    liked_id: 'current_user',
+    created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
     is_viewed: false,
   },
   {
     id: 'like2',
-    profile_id: 'user5',
-    liked_at: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
+    liker_id: 'user5',
+    liked_id: 'current_user',
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
     is_viewed: false,
   },
 ];
@@ -108,16 +112,16 @@ export const mockLikes: Like[] = [
 export const mockConversations: Conversation[] = [
   {
     id: 'conv1',
-    user_id_1: 'current_user',
-    user_id_2: 'user2',
+    user1_id: 'current_user',
+    user2_id: 'user2',
     last_message: 'Salut! Ça va? 😊',
     last_message_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
   },
   {
     id: 'conv2',
-    user_id_1: 'current_user',
-    user_id_2: 'user3',
+    user1_id: 'current_user',
+    user2_id: 'user3',
     last_message: 'On se voit ce weekend?',
     last_message_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),

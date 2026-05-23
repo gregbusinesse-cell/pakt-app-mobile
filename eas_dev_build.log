@@ -1,0 +1,7 @@
+
+You want to build a development client build for platforms: Android
+However, we detected that you don't have expo-dev-client installed for your project.
+You'll need to install expo-dev-client manually.
+See installation instructions on how to do it.: https://docs.expo.dev/clients/installation/
+Install expo-dev-client manually and try again later.
+    Error: build command failed.

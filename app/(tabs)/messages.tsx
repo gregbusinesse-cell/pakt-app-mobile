@@ -49,7 +49,7 @@ export default function MessagesScreen() {
     if (USE_MOCK_DATA && currentUserId) {
       setTimeout(() => {
         const convItems: ConversationItem[] = mockConversations.map((conv) => {
-          const otherId = conv.user_id_1 === currentUserId ? conv.user_id_2 : conv.user_id_1;
+          const otherId = conv.user1_id === currentUserId ? conv.user2_id : conv.user1_id;
           const otherUser = mockProfiles.find((p) => p.id === otherId) || ({} as Profile);
           return {
             id: conv.id,
@@ -67,7 +67,7 @@ export default function MessagesScreen() {
     }
   }, [currentUserId]);
 
-  const loadConversations = async () => {
+  const loadConversations = useCallback(async () => {
     if (USE_MOCK_DATA) return;
 
     try {

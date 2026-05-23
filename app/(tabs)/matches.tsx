@@ -69,9 +69,9 @@ export default function MatchesScreen() {
         // Charger les mock matches
         const mockMatchItems: MatchItem[] = mockMatches.map((m) => ({
           id: m.id,
-          otherUser: mockProfiles.find((p) => p.id === m.profile_id) || ({} as Profile),
+          otherUser: mockProfiles.find((p) => p.id === m.user2_id) || ({} as Profile),
           conversationId: 'conv' + m.id,
-          createdAt: m.matched_at,
+          createdAt: m.created_at,
           isViewed: m.is_viewed,
         }));
         setMatches(mockMatchItems);
@@ -79,8 +79,8 @@ export default function MatchesScreen() {
         // Charger les mock likes
         const mockLikeItems: LikeItem[] = mockLikes.map((l) => ({
           likeId: l.id,
-          otherUser: mockProfiles.find((p) => p.id === l.profile_id) || ({} as Profile),
-          createdAt: l.liked_at,
+          otherUser: mockProfiles.find((p) => p.id === l.liker_id) || ({} as Profile),
+          createdAt: l.created_at,
           isViewed: l.is_viewed,
         }));
         setLikes(mockLikeItems);
@@ -89,7 +89,7 @@ export default function MatchesScreen() {
     }
   }, [currentUserId]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (USE_MOCK_DATA) return;
 
     try {
