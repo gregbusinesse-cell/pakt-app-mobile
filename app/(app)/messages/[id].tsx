@@ -497,20 +497,44 @@ export default function ChatDetailPage() {
         </View>
       )}
 
-      {/* Messages */}
-      <ScrollView
-        ref={scrollViewRef}
-        style={styles.messagesContainer}
-        contentContainerStyle={styles.messagesContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {messages.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="chatbubble-outline" size={48} color="#ffffff44" />
-            <Text style={styles.emptyText}>Aucun message pour le moment</Text>
-            <Text style={styles.emptySubtext}>Commencez la conversation</Text>
+      {/* Check if conversation can proceed */}
+      {currentUser?.subscription_plan !== 'free' && (!participant?.subscription_plan || participant.subscription_plan === 'free') ? (
+        <View style={styles.blockedContainer}>
+          <View style={styles.blockedContent}>
+            <View style={styles.blockedIcon}>
+              <Ionicons name="lock-closed" size={48} color="#ffd700" />
+            </View>
+            <Text style={styles.blockedTitle}>{participant?.first_name} n'a pas le plan Business</Text>
+            <Text style={styles.blockedDescription}>
+              Cette personne doit passer au plan Business pour pouvoir discuter. Vous pouvez l'encourager à le faire !
+            </Text>
+            <TouchableOpacity
+              style={styles.encourageButton}
+              onPress={() => {
+                // Handle encourage action
+                showToast('Encouragement envoyé !', 'success')
+              }}
+            >
+              <Ionicons name="sparkles" size={18} color="#000" />
+              <Text style={styles.encourageButtonText}>Envoyer l'encouragement</Text>
+            </TouchableOpacity>
           </View>
-        ) : (
+        </View>
+      ) : (
+        /* Messages */
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.messagesContainer}
+          contentContainerStyle={styles.messagesContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {messages.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="chatbubble-outline" size={48} color="#ffffff44" />
+              <Text style={styles.emptyText}>Aucun message pour le moment</Text>
+              <Text style={styles.emptySubtext}>Commencez la conversation</Text>
+            </View>
+          ) : (
           messages.map((msg, idx) => {
             const isOwn = msg.sender_id === currentUser?.id
             const showAvatar =
@@ -571,7 +595,8 @@ export default function ChatDetailPage() {
             )
           })
         )}
-      </ScrollView>
+        </ScrollView>
+      )}
 
       {/* Input */}
       <View style={styles.inputSection}>
@@ -950,5 +975,52 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     flex: 1,
+  },
+
+  // Blocked conversation
+  blockedContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  blockedContent: {
+    alignItems: 'center',
+    gap: 16,
+  },
+  blockedIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#ffd70015',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  blockedTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  blockedDescription: {
+    color: '#ffffff66',
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  encourageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#ffd700',
+    borderRadius: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    marginTop: 8,
+  },
+  encourageButtonText: {
+    color: '#000',
+    fontSize: 14,
+    fontWeight: '700',
   },
 })
