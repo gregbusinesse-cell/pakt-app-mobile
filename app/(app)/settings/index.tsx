@@ -1,0 +1,1105 @@
+import { useState, useEffect } from 'react'
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
+import { Ionicons } from '@expo/vector-icons'
+import { useRouter } from 'expo-router'
+import { supabase } from '@/lib/supabase/client'
+import { LEGAL_SECTIONS, SUPPORT_EMAIL, LEGAL_CONTENT } from '@/lib/constants/legal-content'
+
+export default function SettingsPage() {
+  const router = useRouter()
+  const [activeTab, setActiveTab] = useState<'plans' | 'events' | 'news' | 'referral' | 'legal' | 'compte'>('plans')
+  const [currentPlan, setCurrentPlan] = useState<'FREE' | 'BUSINESS' | 'BUSINESS PRO'>('FREE')
+  const [loading, setLoading] = useState(true)
+  const [referralCode, setReferralCode] = useState('')
+  const [referralLoading, setReferralLoading] = useState(false)
+  const [selectedLegal, setSelectedLegal] = useState<string | null>(null)
+  const [userEmail, setUserEmail] = useState('')
+  const [referralCount, setReferralCount] = useState(0)
+  const [referralLink, setReferralLink] = useState('')
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session?.user?.id) {
+          setLoading(false)
+          return
+        }
+
+        // Get email from session
+        if (session.user.email) {
+          setUserEmail(session.user.email)
+        }
+
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('subscription_plan')
+          .eq('id', session.user.id)
+          .single()
+
+        if (error) {
+          console.error('Error fetching subscription:', error)
+          setCurrentPlan('FREE')
+        } else if (data) {
+          const planMap: { [key: string]: 'FREE' | 'BUSINESS' | 'BUSINESS PRO' } = {
+            'free': 'FREE',
+            'business': 'BUSINESS',
+            'business_pro': 'BUSINESS PRO',
+            'pro': 'BUSINESS PRO',
+          }
+          setCurrentPlan(planMap[data.subscription_plan?.toLowerCase()] || 'FREE')
+        }
+
+        // Fetch referral code
+        const { data: referralData } = await supabase
+          .from('referrals')
+          .select('referral_code, referral_count')
+          .eq('user_id', session.user.id)
+          .single()
+
+        if (referralData?.referral_code) {
+          setReferralCode(referralData.referral_code)
+          setReferralLink(`https://pakt.app/refer/${referralData.referral_code}`)
+          setReferralCount(referralData.referral_count || 0)
+        } else {
+          // Create referral code if doesn't exist
+          const newCode = `REF-${session.user.id.substring(0, 8).toUpperCase()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+          await supabase
+            .from('referrals')
+            .insert({
+              user_id: session.user.id,
+              referral_code: newCode,
+              referral_count: 0,
+            })
+          setReferralCode(newCode)
+          setReferralLink(`https://pakt.app/refer/${newCode}`)
+          setReferralCount(0)
+        }
+      } catch (err) {
+        console.error('Error:', err)
+        setCurrentPlan('FREE')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUserData()
+  }, [])
+
+  const handleReferralShare = async () => {
+    try {
+      setReferralLoading(true)
+      // Copy referral link to clipboard
+      const message = `Rejoins-moi sur PAKT! ${referralLink}`
+
+      // For now, show alert with the link
+      // In production, this would use native share or clipboard
+      alert(`Lien de parrainage:\n${referralLink}\n\nCode: ${referralCode}`)
+    } catch (err) {
+      console.error('Error:', err)
+      alert('Erreur lors du partage du code')
+    } finally {
+      setReferralLoading(false)
+    }
+  }
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut()
+      router.replace('/auth')
+    } catch (err) {
+      console.error('Sign out error:', err)
+      alert('Erreur lors de la déconnexion')
+    }
+  }
+
+  const plans = [
+    {
+      id: 'free',
+      name: 'FREE',
+      displayName: 'Gratuit',
+      price: null,
+      features: ['Swipes illimités', 'Likes illimités', 'Pas de messagerie'],
+    },
+    {
+      id: 'business',
+      name: 'BUSINESS',
+      displayName: 'Business',
+      price: '5€',
+      priceSubtext: '/mois',
+      features: ['Swipes illimités', 'Likes illimités', 'Messagerie entre membres Business', 'Encourage les membres Free'],
+    },
+    {
+      id: 'pro',
+      name: 'BUSINESS PRO',
+      displayName: 'Business Pro',
+      price: '10€',
+      priceSubtext: '/mois',
+      features: ['Tout Business inclus', 'Voir qui vous a liké', 'Retour en arrière (annuler un swipe)', 'Filtres avancés (âge + distance)', 'Accès prioritaire aux événements'],
+    },
+  ]
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>PAKT</Text>
+      </View>
+
+      {/* Tabs */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.tabsContainer}
+        contentContainerStyle={styles.tabsContent}
+      >
+        {[
+          { id: 'plans', label: 'Plans' },
+          { id: 'events', label: 'Événements' },
+          { id: 'news', label: 'Actus' },
+          { id: 'referral', label: 'Parrainage' },
+          { id: 'compte', label: 'Compte' },
+          { id: 'legal', label: 'Mentions légales' },
+        ].map((tab) => (
+          <TouchableOpacity
+            key={tab.id}
+            onPress={() => setActiveTab(tab.id as any)}
+            style={[styles.tab, activeTab === tab.id && styles.tabActive]}
+          >
+            <Text style={[styles.tabText, activeTab === tab.id && styles.tabTextActive]}>
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {/* Tab Content */}
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {activeTab === 'plans' && (
+          <View style={styles.plansContainer}>
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#ffd700" />
+              </View>
+            ) : (
+              <>
+                {/* Current Plan Badge */}
+                <View style={styles.currentPlanRow}>
+                  <Text style={styles.currentPlanLabel}>Plan actuel: </Text>
+                  <View style={styles.currentPlanBadge}>
+                    <Text style={styles.currentPlanText}>{currentPlan}</Text>
+                  </View>
+                </View>
+
+                {/* Plans */}
+                {plans.map((plan) => (
+                  <View key={plan.id} style={styles.planCard}>
+                    {/* Plan Header */}
+                    <View style={styles.planHeader}>
+                      <View>
+                        <Text style={styles.planBadge}>{plan.name}</Text>
+                        <Text style={styles.planTitle}>{plan.displayName}</Text>
+                      </View>
+                      {plan.price && (
+                        <View style={styles.priceContainer}>
+                          <Text style={styles.price}>{plan.price}</Text>
+                          <Text style={styles.priceSubtext}>{plan.priceSubtext}</Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Features */}
+                    <View style={styles.featuresList}>
+                      {plan.features.map((feature, idx) => (
+                        <View key={idx} style={styles.featureItem}>
+                          <Ionicons name="checkmark" size={16} color="#ffd700" style={styles.featureIcon} />
+                          <Text style={styles.featureText}>{feature}</Text>
+                        </View>
+                      ))}
+                    </View>
+
+                    {/* Button */}
+                    <TouchableOpacity
+                      style={[
+                        styles.planButton,
+                        currentPlan === plan.name && styles.planButtonCurrent,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.planButtonText,
+                          currentPlan === plan.name && styles.planButtonTextCurrent,
+                        ]}
+                      >
+                        {currentPlan === plan.name
+                          ? 'Plan actuel'
+                          : plan.id === 'free'
+                          ? 'Sélectionner'
+                          : `Passer ${plan.displayName}`}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+
+                {/* Logout Button */}
+                <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
+                  <Ionicons name="log-out" size={20} color="#fff" />
+                  <Text style={styles.logoutButtonText}>Se déconnecter</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        )}
+
+        {activeTab === 'events' && (
+          <View>
+            <Text style={styles.sectionHeader}>Événements à venir</Text>
+            {[
+              {
+                title: 'Networking Soirée Tech',
+                date: '15 Juin 2026',
+                location: 'Paris',
+                description: 'Rencontrez des professionnels de la tech et du business',
+              },
+              {
+                title: 'Conférence Business Pro',
+                date: '22 Juin 2026',
+                location: 'Lyon',
+                description: 'Les tendances du networking professionnel en 2026',
+              },
+              {
+                title: 'Afterwork PAKT',
+                date: '29 Juin 2026',
+                location: 'Bordeaux',
+                description: 'Discutez en toute décontraction avec d\'autres membres',
+              },
+            ].map((event, idx) => (
+              <View key={idx} style={styles.eventCard}>
+                <View style={styles.eventDateBadge}>
+                  <Text style={styles.eventDate}>{event.date}</Text>
+                </View>
+                <View style={styles.eventContent}>
+                  <Text style={styles.eventTitle}>{event.title}</Text>
+                  <View style={styles.eventMeta}>
+                    <Ionicons name="location" size={14} color="#ffd700" />
+                    <Text style={styles.eventLocation}>{event.location}</Text>
+                  </View>
+                  <Text style={styles.eventDescription}>{event.description}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {activeTab === 'news' && (
+          <View>
+            <Text style={styles.sectionHeader}>Actualités PAKT</Text>
+            {[
+              {
+                title: 'Nouvelle fonctionnalité : Filtres avancés',
+                date: '10 Juin 2026',
+                description: 'Retrouvez les filtres avancés par âge et distance dans Business Pro',
+              },
+              {
+                title: 'PAKT atteint 50 000 utilisateurs',
+                date: '5 Juin 2026',
+                description: 'Merci pour votre confiance ! Continuons à grandir ensemble.',
+              },
+              {
+                title: 'Améliorations de sécurité',
+                date: '1er Juin 2026',
+                description: 'Nous avons renforcé la protection de vos données personnelles',
+              },
+            ].map((news, idx) => (
+              <View key={idx} style={styles.newsCard}>
+                <Text style={styles.newsDate}>{news.date}</Text>
+                <Text style={styles.newsTitle}>{news.title}</Text>
+                <Text style={styles.newsDescription}>{news.description}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {activeTab === 'referral' && (
+          <View>
+            <Text style={styles.sectionHeader}>Programme de Parrainage</Text>
+
+            <View style={styles.referralCard}>
+              <Ionicons name="gift" size={32} color="#ffd700" style={styles.referralIcon} />
+              <Text style={styles.referralTitle}>Gagnez des récompenses</Text>
+              <Text style={styles.referralText}>
+                Invitez vos amis sur PAKT et recevez des avantages exclusifs
+              </Text>
+            </View>
+
+            {/* Progress Section */}
+            <View style={styles.progressSection}>
+              <View style={styles.progressHeader}>
+                <Text style={styles.progressLabel}>Amis invités</Text>
+                <Text style={styles.progressCount}>{referralCount} / 5</Text>
+              </View>
+              <View style={styles.progressBar}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    { width: `${(referralCount / 5) * 100}%` }
+                  ]}
+                />
+              </View>
+              <View style={styles.milestoneContainer}>
+                {[1, 2, 3, 4, 5].map((num) => (
+                  <View
+                    key={num}
+                    style={[
+                      styles.milestone,
+                      referralCount >= num && styles.milestoneDone
+                    ]}
+                  >
+                    <Text style={styles.milestoneText}>{num}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.benefitsContainer}>
+              <Text style={styles.benefitsTitle}>Vos récompenses</Text>
+              {[
+                { title: '1 ami invité', reward: '1 mois Business offert', icon: 'star' },
+                { title: '3 amis invités', reward: '3 mois Business Pro offert', icon: 'star-half' },
+                { title: '5 amis invités', reward: 'Accès VIP + support prioritaire', icon: 'sparkles' },
+              ].map((benefit, idx) => (
+                <View key={idx} style={styles.benefitItem}>
+                  <Ionicons name={benefit.icon as any} size={20} color="#ffd700" />
+                  <View style={styles.benefitContent}>
+                    <Text style={styles.benefitTitle}>{benefit.title}</Text>
+                    <Text style={styles.benefitReward}>{benefit.reward}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+
+            {/* Referral Code Display */}
+            <View style={styles.codeSection}>
+              <Text style={styles.codeLabel}>Votre code de parrainage</Text>
+              <View style={styles.codeBox}>
+                <Text style={styles.codeText}>{referralCode}</Text>
+                <Ionicons name="copy" size={18} color="#ffd700" />
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.referralButton}
+              onPress={handleReferralShare}
+              disabled={referralLoading}
+            >
+              {referralLoading ? (
+                <ActivityIndicator color="#000" size="small" />
+              ) : (
+                <>
+                  <Text style={styles.referralButtonText}>Partager mon lien de parrainage</Text>
+                  <Ionicons name="share-social" size={18} color="#000" />
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {activeTab === 'compte' && (
+          <View>
+            <Text style={styles.sectionHeader}>Informations du compte</Text>
+
+            {/* Email Section */}
+            <View style={styles.accountSection}>
+              <Text style={styles.accountLabel}>Adresse email</Text>
+              <Text style={styles.accountValue}>{userEmail || 'Non défini'}</Text>
+            </View>
+
+            {/* Change Email */}
+            <TouchableOpacity style={styles.accountButton}>
+              <Ionicons name="mail-outline" size={18} color="#ffd700" />
+              <Text style={styles.accountButtonText}>Modifier mon adresse email</Text>
+              <Ionicons name="chevron-forward" size={18} color="#ffffff44" />
+            </TouchableOpacity>
+
+            {/* Change Password */}
+            <TouchableOpacity style={styles.accountButton}>
+              <Ionicons name="lock-closed-outline" size={18} color="#ffd700" />
+              <Text style={styles.accountButtonText}>Modifier mon mot de passe</Text>
+              <Ionicons name="chevron-forward" size={18} color="#ffffff44" />
+            </TouchableOpacity>
+
+            {/* Suspend Account */}
+            <TouchableOpacity style={styles.accountButtonWarning}>
+              <Ionicons name="pause-outline" size={18} color="#ff9800" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.accountButtonText}>Suspendre mon compte</Text>
+                <Text style={styles.accountButtonSubtext}>Les autres utilisateurs ne pourront plus vous voir</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#ffffff44" />
+            </TouchableOpacity>
+
+            {/* Delete Account */}
+            <TouchableOpacity style={styles.accountButtonDanger}>
+              <Ionicons name="trash-outline" size={18} color="#ff4444" />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.accountButtonText, { color: '#ff4444' }]}>Supprimer mon compte</Text>
+                <Text style={[styles.accountButtonSubtext, { color: '#ff444488' }]}>Action définitive et irréversible</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#ffffff44" />
+            </TouchableOpacity>
+
+            {/* Logout */}
+            <TouchableOpacity
+              style={styles.logoutButtonAlt}
+              onPress={handleSignOut}
+            >
+              <Ionicons name="log-out-outline" size={18} color="#fff" />
+              <Text style={styles.logoutButtonTextAlt}>Se déconnecter</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {activeTab === 'legal' && (
+          <View>
+            <Text style={styles.sectionHeader}>Mentions légales</Text>
+            {LEGAL_SECTIONS.map((section) => (
+              <TouchableOpacity
+                key={section.id}
+                style={styles.legalItem}
+                onPress={() => setSelectedLegal(section.id)}
+              >
+                <Text style={styles.legalTitle}>{section.label}</Text>
+                <Ionicons name="chevron-forward" size={20} color="#ffffff44" />
+              </TouchableOpacity>
+            ))}
+
+            {/* Support Email */}
+            <View style={styles.supportSection}>
+              <Text style={styles.supportLabel}>Support</Text>
+              <Text style={styles.supportEmail}>{SUPPORT_EMAIL}</Text>
+            </View>
+
+            {/* Footer */}
+            <View style={styles.footerInfo}>
+              <Text style={styles.footerText}>PAKT © 2026</Text>
+              <Text style={styles.footerText}>Version 1.0.0</Text>
+            </View>
+          </View>
+        )}
+
+        <View style={{ height: 20 }} />
+      </ScrollView>
+
+      {/* Legal Modal */}
+      <Modal visible={selectedLegal !== null} animationType="slide" transparent={false}>
+        <SafeAreaView style={styles.modalContainer}>
+          {/* Modal Header */}
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>
+              {LEGAL_SECTIONS.find(s => s.id === selectedLegal)?.label || ''}
+            </Text>
+            <TouchableOpacity onPress={() => setSelectedLegal(null)}>
+              <Ionicons name="close" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Modal Content */}
+          <ScrollView style={styles.modalContent}>
+            <Text style={styles.modalText}>
+              {selectedLegal && LEGAL_CONTENT[selectedLegal as keyof typeof LEGAL_CONTENT]?.content}
+            </Text>
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+    </SafeAreaView>
+  )
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#000' },
+
+  header: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a1a1a',
+  },
+  headerTitle: {
+    color: '#ffd700',
+    fontSize: 32,
+    fontWeight: 'bold',
+  },
+
+  tabsContainer: {
+    maxHeight: 50,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a1a1a',
+  },
+  tabsContent: {
+    paddingHorizontal: 16,
+    gap: 0,
+  },
+  tab: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: {
+    borderBottomColor: '#ffd700',
+  },
+  tabText: {
+    color: '#ffffff66',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  tabTextActive: {
+    color: '#ffd700',
+  },
+
+  content: { flex: 1, paddingHorizontal: 16, paddingVertical: 20 },
+
+  plansContainer: {},
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  currentPlanRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  currentPlanLabel: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  currentPlanBadge: {
+    backgroundColor: '#ffd700',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  currentPlanText: {
+    color: '#000',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  planCard: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  planHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  planBadge: {
+    backgroundColor: '#ffd70033',
+    color: '#ffd700',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 8,
+    alignSelf: 'flex-start',
+  },
+  planTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  priceContainer: {
+    alignItems: 'flex-end',
+  },
+  price: {
+    color: '#ffd700',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  priceSubtext: {
+    color: '#ffffff66',
+    fontSize: 12,
+  },
+
+  featuresList: {
+    gap: 8,
+    marginBottom: 16,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  featureIcon: {
+    marginRight: 4,
+  },
+  featureText: {
+    color: '#ffffff99',
+    fontSize: 13,
+    flex: 1,
+  },
+
+  planButton: {
+    backgroundColor: '#ffd700',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  planButtonCurrent: {
+    backgroundColor: '#4a4a4a',
+    borderWidth: 1,
+    borderColor: '#666',
+  },
+  planButtonText: {
+    color: '#000',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  planButtonTextCurrent: {
+    color: '#fff',
+  },
+
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    backgroundColor: '#8b0000',
+    borderRadius: 12,
+    gap: 10,
+    marginTop: 20,
+  },
+  logoutButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  sectionHeader: {
+    color: '#ffd700',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 16,
+  },
+
+  eventCard: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+    flexDirection: 'row',
+    gap: 12,
+  },
+  eventDateBadge: {
+    backgroundColor: '#ffd70033',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 70,
+  },
+  eventDate: {
+    color: '#ffd700',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  eventContent: {
+    flex: 1,
+  },
+  eventTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  eventMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 6,
+  },
+  eventLocation: {
+    color: '#ffd700',
+    fontSize: 12,
+  },
+  eventDescription: {
+    color: '#ffffff88',
+    fontSize: 12,
+  },
+
+  newsCard: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+  },
+  newsDate: {
+    color: '#ffffff66',
+    fontSize: 11,
+    marginBottom: 6,
+  },
+  newsTitle: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  newsDescription: {
+    color: '#ffffff88',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+
+  referralCard: {
+    backgroundColor: '#ffd70015',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#ffd70044',
+    alignItems: 'center',
+  },
+  referralIcon: {
+    marginBottom: 12,
+  },
+  referralTitle: {
+    color: '#ffd700',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  referralText: {
+    color: '#ffffff88',
+    fontSize: 13,
+    textAlign: 'center',
+  },
+
+  benefitsContainer: {
+    marginBottom: 16,
+  },
+  benefitsTitle: {
+    color: '#ffd700',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  benefitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+  },
+  benefitContent: {
+    flex: 1,
+  },
+  benefitTitle: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  benefitReward: {
+    color: '#ffd700',
+    fontSize: 12,
+  },
+
+  referralButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffd700',
+    borderRadius: 10,
+    paddingVertical: 12,
+    gap: 10,
+  },
+  referralButtonText: {
+    color: '#000',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+
+  /* Account Tab */
+  accountSection: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+  },
+  accountLabel: {
+    color: '#ffffff66',
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  accountValue: {
+    color: '#ffd700',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+
+  accountButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+    gap: 12,
+  },
+  accountButtonWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ff980015',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#ff980044',
+    gap: 12,
+  },
+  accountButtonDanger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ff444415',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#ff444444',
+    gap: 12,
+  },
+  accountButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  accountButtonSubtext: {
+    color: '#ffffff66',
+    fontSize: 12,
+    marginTop: 4,
+  },
+
+  logoutButtonAlt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2a2a2a',
+    borderRadius: 10,
+    paddingVertical: 14,
+    marginTop: 8,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: '#3a3a3a',
+  },
+  logoutButtonTextAlt: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+
+  legalItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+  },
+  legalTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  supportSection: {
+    backgroundColor: '#ffd70015',
+    borderRadius: 10,
+    padding: 16,
+    marginTop: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#ffd70044',
+  },
+  supportLabel: {
+    color: '#ffd700',
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  supportEmail: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  footerInfo: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#1a1a1a',
+  },
+  footerText: {
+    color: '#ffffff44',
+    fontSize: 11,
+  },
+
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a1a1a',
+  },
+  modalTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  modalContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  modalText: {
+    color: '#ffffff88',
+    fontSize: 13,
+    lineHeight: 20,
+  },
+
+  // Referral Progress Styles
+  progressSection: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#ffd70044',
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  progressLabel: {
+    color: '#ffd700',
+    fontSize: 13,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  progressCount: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  progressBar: {
+    height: 6,
+    backgroundColor: '#333',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#ffd700',
+    borderRadius: 3,
+  },
+  milestoneContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  milestone: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#333',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#555',
+  },
+  milestoneDone: {
+    backgroundColor: '#ffd700',
+    borderColor: '#ffd700',
+  },
+  milestoneText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+
+  // Code Section Styles
+  codeSection: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#ffd70044',
+  },
+  codeLabel: {
+    color: '#ffd700',
+    fontSize: 13,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 12,
+  },
+  codeBox: {
+    backgroundColor: '#0a0a0a',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  codeText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    fontFamily: 'monospace',
+  },
+})

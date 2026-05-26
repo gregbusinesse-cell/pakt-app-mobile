@@ -1,0 +1,704 @@
+import { useEffect, useRef, useState } from 'react'
+import {
+  View, Text, StyleSheet, ScrollView, TextInput,
+  TouchableOpacity, ActivityIndicator, Alert, Image, Modal,
+} from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
+import { useRouter } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
+import * as ImagePicker from 'expo-image-picker'
+import { supabase } from '@/lib/supabase/client'
+import { profileStore } from '@/lib/profileStore'
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+const MAX_PHOTOS = 6
+const MAX_INTERESTS = 5
+const MAX_SKILLS = 5
+const MAX_BIO = 1000
+
+const BASE_INTERESTS = [
+  'Business', 'Tech', 'Finance', 'Marketing', 'Design',
+  'Startup', 'IA', 'Voyage', 'Sport', 'Art',
+  'Musique', 'Coaching', 'Networking', 'Développement personnel', 'Immobilier',
+]
+const BASE_SKILLS = [
+  'Marketing', 'Vente / Closing', 'Copywriting', 'IA / Automation',
+  'Développement Web', 'Stratégie digitale', 'Réseaux sociaux',
+  'Montage vidéo', 'Ads / Acquisition', 'SEO / Growth',
+]
+const LEVEL_LABELS = [
+  'Débutant de fou', 'Débutant', 'Débutant avancé', 'Débutant avancé',
+  'Intermédiaire', 'Intermédiaire avancé', 'Avancé', 'Avancé', 'Expert', 'Expert / Boss',
+]
+
+interface Skill { name: string; level: number }
+
+function getExtAndMime(asset: ImagePicker.ImagePickerAsset): { ext: string; contentType: string } {
+  if (asset.mimeType) {
+    const m = asset.mimeType.toLowerCase()
+    if (m.includes('jpeg') || m.includes('jpg')) return { ext: 'jpg', contentType: 'image/jpeg' }
+    if (m.includes('png')) return { ext: 'png', contentType: 'image/png' }
+    if (m.includes('webp')) return { ext: 'webp', contentType: 'image/webp' }
+    if (m.includes('heic') || m.includes('heif')) return { ext: 'jpg', contentType: 'image/jpeg' }
+  }
+  if (asset.fileName) {
+    const ext = asset.fileName.split('.').pop()?.toLowerCase() ?? ''
+    if (ext === 'jpg' || ext === 'jpeg') return { ext: 'jpg', contentType: 'image/jpeg' }
+    if (ext === 'png') return { ext: 'png', contentType: 'image/png' }
+    if (ext === 'webp') return { ext: 'webp', contentType: 'image/webp' }
+  }
+  return { ext: 'jpg', contentType: 'image/jpeg' }
+}
+
+// ─── Composant principal ───────────────────────────────────────────────────────
+export default function EditProfilePage() {
+  const router = useRouter()
+
+  // ── États du formulaire ──
+  const [firstName, setFirstName] = useState('')
+  const [age, setAge] = useState('')
+  const [bio, setBio] = useState('')
+  const [city, setCity] = useState('')
+  const [interests, setInterests] = useState<string[]>([])
+  const [skills, setSkills] = useState<Skill[]>([])
+  const [photos, setPhotos] = useState<string[]>([])
+  const [interestInput, setInterestInput] = useState('')
+  const [skillInput, setSkillInput] = useState('')
+
+  // ── États UI ──
+  const [uploading, setUploading] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const [loading, setLoading] = useState(true)
+  const [showSkillModal, setShowSkillModal] = useState(false)
+  const [selectedSkillName, setSelectedSkillName] = useState<string | null>(null)
+  const [selectedSkillLevel, setSelectedSkillLevel] = useState(5)
+
+  // ── États ville ──
+  const [citySuggestions, setCitySuggestions] = useState<string[]>([])
+  const [showCitySuggestions, setShowCitySuggestions] = useState(false)
+  const [cityLoading, setCityLoading] = useState(false)
+
+  // ── Refs ──
+  const profileIdRef = useRef<string | null>(null)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const citySearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isDirtyRef = useRef(false)
+
+  // ─── Chargement initial depuis Supabase ────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false
+
+    const load = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session?.user || cancelled) return
+
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+
+        if (error || !data || cancelled) return
+
+        profileIdRef.current = data.id
+        setFirstName(data.first_name || '')
+        setAge(data.age ? String(data.age) : '')
+        setBio(data.bio || '')
+        setCity(data.city || '')
+        setInterests(Array.isArray(data.interests) ? data.interests : [])
+        setPhotos(Array.isArray(data.photos) ? data.photos : [])
+        const rawSkills = (data as any).skills
+        setSkills(
+          Array.isArray(rawSkills)
+            ? rawSkills
+                .map((s: any) => ({ name: typeof s === 'string' ? s : s?.name || '', level: typeof s?.level === 'number' ? s.level : 5 }))
+                .filter((s: Skill) => Boolean(s.name))
+            : []
+        )
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    load()
+    return () => { cancelled = true }
+  }, [])
+
+  // ─── Sauvegarde Supabase ───────────────────────────────────────────────────
+  const executeSave = async (data: {
+    firstName: string; age: string; bio: string; city: string
+    interests: string[]; skills: Skill[]; photos: string[]
+  }) => {
+    const profileId = profileIdRef.current
+    if (!profileId) {
+      console.warn('[EDIT] executeSave: profileId is null, aborting')
+      return false
+    }
+
+    // Vérifier la session active avant de sauvegarder
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.user) {
+      console.error('[EDIT] executeSave: no active session!')
+      Alert.alert('Session expirée', 'Veuillez vous reconnecter.')
+      return false
+    }
+    if (session.user.id !== profileId) {
+      console.error('[EDIT] executeSave: session user id mismatch!', { sessionId: session.user.id, profileId })
+      return false
+    }
+
+    const parsedAge = data.age.trim() ? Number(data.age) : null
+    const validAge = parsedAge !== null && Number.isFinite(parsedAge) ? parsedAge : null
+
+    console.log('[EDIT] Saving to Supabase:', { firstName: data.firstName, profileId, userId: session.user.id })
+
+    const { data: updatedRows, error } = await supabase
+      .from('profiles')
+      .update({
+        first_name: data.firstName.trim() || null,
+        age: validAge,
+        bio: data.bio.trim() || null,
+        city: data.city.trim() || null,
+        interests: data.interests.slice(0, MAX_INTERESTS),
+        photos: data.photos.slice(0, MAX_PHOTOS),
+        skills: data.skills.slice(0, MAX_SKILLS),
+      } as any)
+      .eq('id', profileId)
+      .select()
+
+    if (error) {
+      console.error('[EDIT] Supabase save ERROR:', error.message, error.code)
+      Alert.alert('Erreur', `Impossible de sauvegarder : ${error.message}`)
+      return false
+    }
+
+    if (!updatedRows || updatedRows.length === 0) {
+      console.error('[EDIT] Supabase save: 0 rows updated! RLS blocked or row not found.')
+      Alert.alert('Erreur', 'La sauvegarde a échoué (aucune ligne modifiée). Vérifiez votre connexion.')
+      return false
+    }
+
+    console.log('[EDIT] Supabase save SUCCESS, rows updated:', updatedRows.length, 'firstName:', data.firstName)
+
+    // Mise à jour du store global → profile/index.tsx reçoit les nouvelles données
+    profileStore.set(updatedRows[0] as any)
+    return true
+  }
+
+  // ─── Auto-save avec debounce ───────────────────────────────────────────────
+  const triggerAutoSave = (data: {
+    firstName: string; age: string; bio: string; city: string
+    interests: string[]; skills: Skill[]; photos: string[]
+  }) => {
+    if (!isDirtyRef.current) return
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    setSaveStatus('saving')
+    saveTimerRef.current = setTimeout(async () => {
+      const ok = await executeSave(data)
+      setSaveStatus(ok ? 'saved' : 'idle')
+      if (ok) setTimeout(() => setSaveStatus('idle'), 2000)
+    }, 800)
+  }
+
+  // ─── Handlers champs texte ─────────────────────────────────────────────────
+  const onFirstNameChange = (v: string) => {
+    isDirtyRef.current = true
+    setFirstName(v)
+    triggerAutoSave({ firstName: v, age, bio, city, interests, skills, photos })
+  }
+  const onAgeChange = (v: string) => {
+    isDirtyRef.current = true
+    setAge(v)
+    triggerAutoSave({ firstName, age: v, bio, city, interests, skills, photos })
+  }
+  const onBioChange = (v: string) => {
+    isDirtyRef.current = true
+    setBio(v)
+    triggerAutoSave({ firstName, age, bio: v, city, interests, skills, photos })
+  }
+  // ─── Suggestions de villes (Nominatim / OpenStreetMap) ───────────────────
+  const fetchCitySuggestions = async (query: string) => {
+    if (query.length < 2) {
+      setCitySuggestions([])
+      setShowCitySuggestions(false)
+      return
+    }
+    setCityLoading(true)
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=7&featuretype=city&accept-language=fr`
+      const res = await fetch(url, {
+        headers: { 'User-Agent': 'PAKT-App/1.0 contact@pakt.app' },
+      })
+      const results: any[] = await res.json()
+      const seen = new Set<string>()
+      const cities: string[] = []
+      for (const r of results) {
+        const addr = r.address || {}
+        const cityName = addr.city || addr.town || addr.village || addr.municipality || addr.county || r.name
+        const country = addr.country
+        if (!cityName) continue
+        const label = country ? `${cityName}, ${country}` : cityName
+        if (!seen.has(label)) {
+          seen.add(label)
+          cities.push(label)
+        }
+        if (cities.length >= 5) break
+      }
+      setCitySuggestions(cities)
+      setShowCitySuggestions(cities.length > 0)
+    } catch {
+      setCitySuggestions([])
+      setShowCitySuggestions(false)
+    } finally {
+      setCityLoading(false)
+    }
+  }
+
+  const onCityChange = (v: string) => {
+    isDirtyRef.current = true
+    setCity(v)
+    setShowCitySuggestions(false)
+    triggerAutoSave({ firstName, age, bio, city: v, interests, skills, photos })
+    if (citySearchTimerRef.current) clearTimeout(citySearchTimerRef.current)
+    citySearchTimerRef.current = setTimeout(() => fetchCitySuggestions(v), 350)
+  }
+
+  const selectCity = (label: string) => {
+    // Ne garder que la partie avant la virgule (nom de la ville sans le pays)
+    const cityOnly = label.split(',')[0].trim()
+    isDirtyRef.current = true
+    setCity(cityOnly)
+    setCitySuggestions([])
+    setShowCitySuggestions(false)
+    triggerAutoSave({ firstName, age, bio, city: cityOnly, interests, skills, photos })
+  }
+
+  // ─── Handlers intérêts ─────────────────────────────────────────────────────
+  const addInterest = (name: string) => {
+    if (!name || interests.includes(name) || interests.length >= MAX_INTERESTS) return
+    const next = [...interests, name]
+    isDirtyRef.current = true
+    setInterests(next)
+    triggerAutoSave({ firstName, age, bio, city, interests: next, skills, photos })
+  }
+  const removeInterest = (i: number) => {
+    const next = interests.filter((_, idx) => idx !== i)
+    isDirtyRef.current = true
+    setInterests(next)
+    triggerAutoSave({ firstName, age, bio, city, interests: next, skills, photos })
+  }
+  const addInterestCustom = () => {
+    const v = interestInput.trim()
+    if (v) { addInterest(v); setInterestInput('') }
+  }
+
+  // ─── Handlers compétences ──────────────────────────────────────────────────
+  const addSkill = () => {
+    if (!selectedSkillName || skills.length >= MAX_SKILLS) return
+    if (skills.some(s => s.name === selectedSkillName)) return
+    const next = [...skills, { name: selectedSkillName, level: selectedSkillLevel }]
+    isDirtyRef.current = true
+    setSkills(next)
+    triggerAutoSave({ firstName, age, bio, city, interests, skills: next, photos })
+    setSelectedSkillName(null); setSelectedSkillLevel(5); setShowSkillModal(false)
+  }
+  const addSkillCustom = () => {
+    const v = skillInput.trim()
+    if (!v || skills.length >= MAX_SKILLS || skills.some(s => s.name === v)) return
+    const next = [...skills, { name: v, level: 5 }]
+    isDirtyRef.current = true
+    setSkills(next)
+    triggerAutoSave({ firstName, age, bio, city, interests, skills: next, photos })
+    setSkillInput('')
+  }
+  const removeSkill = (idx: number) => {
+    const next = skills.filter((_, i) => i !== idx)
+    isDirtyRef.current = true
+    setSkills(next)
+    triggerAutoSave({ firstName, age, bio, city, interests, skills: next, photos })
+  }
+  const updateSkillLevel = (idx: number, level: number) => {
+    const next = skills.map((s, i) => i === idx ? { ...s, level } : s)
+    isDirtyRef.current = true
+    setSkills(next)
+    triggerAutoSave({ firstName, age, bio, city, interests, skills: next, photos })
+  }
+
+  // ─── Handler photo ─────────────────────────────────────────────────────────
+  const pickPhoto = async () => {
+    if (photos.length >= MAX_PHOTOS) {
+      Alert.alert('Limite atteinte', `Maximum ${MAX_PHOTOS} photos.`); return
+    }
+    try {
+      const isWeb = typeof document !== 'undefined'
+      if (!isWeb) {
+        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
+        if (!perm.granted) { Alert.alert('Permission refusée'); return }
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true, aspect: [3, 4], quality: 1,
+      })
+      if (result.canceled || !result.assets?.length) return
+      const asset = result.assets[0]
+      if (asset.width && asset.height && (asset.width < 200 || asset.height < 200)) {
+        Alert.alert('Image trop petite', 'Min 200×200 px'); return
+      }
+      setUploading(true)
+      const { ext, contentType } = getExtAndMime(asset)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) { Alert.alert('Session expirée'); setUploading(false); return }
+      const response = await fetch(asset.uri)
+      const blob = await response.blob()
+      if (!blob || blob.size === 0) { Alert.alert('Erreur', 'Fichier vide'); setUploading(false); return }
+      if (blob.size > 10 * 1024 * 1024) { Alert.alert('Trop volumineux', 'Max 10MB'); setUploading(false); return }
+      const fileName = `${session.user.id}/${Date.now()}.${ext}`
+      const { data: uploadData, error: uploadErr } = await supabase.storage
+        .from('avatars').upload(fileName, blob, { contentType })
+      if (uploadErr) { Alert.alert('Erreur upload', uploadErr.message); setUploading(false); return }
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(uploadData.path)
+      if (!urlData?.publicUrl) { Alert.alert('Erreur URL'); setUploading(false); return }
+      const next = [...photos, urlData.publicUrl]
+      isDirtyRef.current = true
+      setPhotos(next)
+      triggerAutoSave({ firstName, age, bio, city, interests, skills, photos: next })
+    } catch (err: any) {
+      Alert.alert('Erreur', err?.message || 'Impossible de charger la photo.')
+    } finally {
+      setUploading(false)
+    }
+  }
+  const removePhoto = (i: number) => {
+    const next = photos.filter((_, idx) => idx !== i)
+    isDirtyRef.current = true
+    setPhotos(next)
+    triggerAutoSave({ firstName, age, bio, city, interests, skills, photos: next })
+  }
+
+  // ─── Retour en arrière ─────────────────────────────────────────────────────
+  const handleBack = async () => {
+    if (uploading) {
+      Alert.alert('Veuillez patienter', 'Upload en cours…'); return
+    }
+    // Annuler le debounce en cours
+    if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null }
+
+    // Sauvegarder immédiatement si des modifications existent
+    if (isDirtyRef.current && profileIdRef.current) {
+      setSaveStatus('saving')
+      await executeSave({ firstName, age, bio, city, interests, skills, photos })
+      setSaveStatus('idle')
+    }
+
+    // Toujours utiliser replace pour forcer un refresh de /profile
+    router.replace('/profile' as any)
+  }
+
+  // ─── Affichage chargement ──────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color="#ffd700" />
+        </View>
+      </SafeAreaView>
+    )
+  }
+
+  const availableInterests = BASE_INTERESTS.filter(i => !interests.includes(i))
+  const availableSkills = BASE_SKILLS.filter(s => !skills.some(sk => sk.name === s))
+
+  // ─── Rendu ─────────────────────────────────────────────────────────────────
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={handleBack} hitSlop={16} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={26} color="#fff" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Modifier mon profil</Text>
+        <View style={styles.savingIndicator}>
+          {saveStatus === 'saving' && <ActivityIndicator size="small" color="#ffd700" />}
+          {saveStatus === 'saved' && <Text style={styles.savedText}>Sauvegardé</Text>}
+        </View>
+      </View>
+
+      <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+
+        {/* Photos */}
+        <Text style={styles.sectionLabel}>Photos ({photos.length}/{MAX_PHOTOS})</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.carousel} contentContainerStyle={{ paddingRight: 16 }}>
+          {photos.map((p, idx) => (
+            <View key={`photo-${idx}`} style={styles.photoCell}>
+              <Image source={{ uri: p }} style={styles.photoCellImg} resizeMode="cover" />
+              <TouchableOpacity style={styles.photoCellRemove} onPress={() => removePhoto(idx)} hitSlop={6}>
+                <Ionicons name="close-circle" size={26} color="#ef4444" />
+              </TouchableOpacity>
+            </View>
+          ))}
+          {photos.length < MAX_PHOTOS && (
+            <TouchableOpacity style={[styles.photoCell, styles.photoCellAdd]} onPress={pickPhoto} disabled={uploading} activeOpacity={0.7}>
+              {uploading
+                ? <ActivityIndicator size="large" color="#ffd700" />
+                : <><Ionicons name="add" size={36} color="#ffd700" /><Text style={styles.photoCellAddText}>Ajouter</Text></>
+              }
+            </TouchableOpacity>
+          )}
+        </ScrollView>
+
+        {/* Prénom */}
+        <Text style={styles.sectionLabel}>Prénom</Text>
+        <TextInput style={styles.input} value={firstName} onChangeText={onFirstNameChange} placeholder="Ton prénom" placeholderTextColor="#555" />
+
+        {/* Âge */}
+        <Text style={styles.sectionLabel}>Âge</Text>
+        <TextInput style={styles.input} value={age} onChangeText={onAgeChange} placeholder="25" placeholderTextColor="#555" keyboardType="number-pad" maxLength={3} />
+
+        {/* Ville */}
+        <Text style={styles.sectionLabel}>Ville</Text>
+        <View style={{ marginBottom: showCitySuggestions ? 0 : 12 }}>
+          <View style={[styles.cityInputWrap, showCitySuggestions && { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderColor: '#ffd70055' }]}>
+            <Ionicons name="location-outline" size={16} color="#ffd700" style={styles.cityIcon} />
+            <TextInput
+              style={styles.cityInput}
+              value={city}
+              onChangeText={onCityChange}
+              placeholder="Paris, Lyon, Marseille..."
+              placeholderTextColor="#555"
+              onBlur={() => setTimeout(() => setShowCitySuggestions(false), 200)}
+              onFocus={() => city.length >= 2 && citySuggestions.length > 0 && setShowCitySuggestions(true)}
+            />
+            {cityLoading && <ActivityIndicator size="small" color="#ffd700" style={{ marginRight: 10 }} />}
+            {city.length > 0 && !cityLoading && (
+              <TouchableOpacity onPress={() => { setCity(''); setCitySuggestions([]); setShowCitySuggestions(false) }} hitSlop={10} style={{ marginRight: 10 }}>
+                <Ionicons name="close-circle" size={18} color="#555" />
+              </TouchableOpacity>
+            )}
+          </View>
+          {showCitySuggestions && citySuggestions.length > 0 && (
+            <View style={styles.suggestionsBox}>
+              {citySuggestions.map((suggestion, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  style={[styles.suggestionRow, idx < citySuggestions.length - 1 && styles.suggestionRowBorder]}
+                  onPress={() => selectCity(suggestion)}
+                  activeOpacity={0.75}
+                >
+                  <Ionicons name="location" size={14} color="#ffd700" style={{ marginRight: 8, flexShrink: 0 }} />
+                  <Text style={styles.suggestionText} numberOfLines={1}>{suggestion}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Bio */}
+        <Text style={styles.sectionLabel}>Bio</Text>
+        <TextInput style={[styles.input, styles.textarea]} value={bio} onChangeText={onBioChange} placeholder="Parle un peu de toi..." placeholderTextColor="#555" multiline maxLength={MAX_BIO} />
+        <Text style={styles.counter}>{bio.length}/{MAX_BIO}</Text>
+
+        {/* Intérêts */}
+        <Text style={[styles.sectionLabel, { marginTop: 20 }]}>Intérêts ({interests.length}/{MAX_INTERESTS})</Text>
+        <View style={styles.bubblesRow}>
+          {availableInterests.map(interest => (
+            <TouchableOpacity key={interest} style={styles.bubbleInterest} onPress={() => addInterest(interest)}>
+              <Ionicons name="add-circle-outline" size={14} color="#ffd700" />
+              <Text style={styles.bubbleText}>{interest}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <View style={styles.inputRow}>
+          <TextInput style={[styles.input, { flex: 1, marginBottom: 0 }]} value={interestInput} onChangeText={setInterestInput} placeholder="Intérêt personnalisé..." placeholderTextColor="#555" returnKeyType="done" onSubmitEditing={addInterestCustom} />
+          <TouchableOpacity style={[styles.addBtn, interests.length >= MAX_INTERESTS && styles.addBtnDisabled]} onPress={addInterestCustom} disabled={interests.length >= MAX_INTERESTS}>
+            <Ionicons name="add" size={20} color="#000" />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.tagsRow}>
+          {interests.map((it, idx) => (
+            <TouchableOpacity key={`int-${idx}`} style={styles.tagActive} onPress={() => removeInterest(idx)}>
+              <Text style={styles.tagActiveText}>{it}</Text>
+              <Ionicons name="close" size={13} color="#ffd700" />
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Compétences */}
+        <Text style={[styles.sectionLabel, { marginTop: 20 }]}>Compétences ({skills.length}/{MAX_SKILLS})</Text>
+        <View style={styles.bubblesRow}>
+          {availableSkills.map(skill => (
+            <TouchableOpacity key={skill} style={styles.bubbleSkill} onPress={() => { setSelectedSkillName(skill); setSelectedSkillLevel(5); setShowSkillModal(true) }}>
+              <Ionicons name="add-circle-outline" size={14} color="#aaa" />
+              <Text style={styles.bubbleText}>{skill}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <View style={styles.inputRow}>
+          <TextInput style={[styles.input, { flex: 1, marginBottom: 0 }]} value={skillInput} onChangeText={setSkillInput} placeholder="Compétence personnalisée..." placeholderTextColor="#555" returnKeyType="done" onSubmitEditing={addSkillCustom} />
+          <TouchableOpacity style={[styles.addBtn, skills.length >= MAX_SKILLS && styles.addBtnDisabled]} onPress={addSkillCustom} disabled={skills.length >= MAX_SKILLS}>
+            <Ionicons name="add" size={20} color="#000" />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.skillCards}>
+          {skills.map((skill, idx) => (
+            <View key={`sk-${idx}`} style={styles.skillCard}>
+              <View style={styles.skillCardHeader}>
+                <Text style={styles.skillCardName}>{skill.name}</Text>
+                <TouchableOpacity onPress={() => removeSkill(idx)} hitSlop={10}>
+                  <Ionicons name="close-circle" size={20} color="#ef4444" />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.levelLabel}>Niveau : <Text style={styles.levelValue}>{skill.level}/10</Text></Text>
+              <View style={styles.levelBtns}>
+                {[1,2,3,4,5,6,7,8,9,10].map(lv => (
+                  <TouchableOpacity key={lv} style={[styles.levelBtn, skill.level === lv && styles.levelBtnOn]} onPress={() => updateSkillLevel(idx, lv)}>
+                    <Text style={[styles.levelBtnTxt, skill.level === lv && styles.levelBtnTxtOn]}>{lv}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={styles.levelDesc}>{LEVEL_LABELS[skill.level - 1]}</Text>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+
+      {/* Modal compétence */}
+      <Modal visible={showSkillModal} transparent animationType="slide" onRequestClose={() => setShowSkillModal(false)}>
+        <View style={styles.modalBg}>
+          <View style={styles.modalBox}>
+            <View style={styles.modalTop}>
+              <Text style={styles.modalTitle}>Ajouter une compétence</Text>
+              <TouchableOpacity onPress={() => setShowSkillModal(false)} hitSlop={12}>
+                <Ionicons name="close" size={24} color="#fff" />
+              </TouchableOpacity>
+            </View>
+            {selectedSkillName && (
+              <>
+                <Text style={styles.modalSkillName}>{selectedSkillName}</Text>
+                <Text style={styles.levelLabel}>Niveau : <Text style={styles.levelValue}>{selectedSkillLevel}/10</Text></Text>
+                <View style={[styles.levelBtns, { marginTop: 12 }]}>
+                  {[1,2,3,4,5,6,7,8,9,10].map(lv => (
+                    <TouchableOpacity key={lv} style={[styles.levelBtn, selectedSkillLevel === lv && styles.levelBtnOn]} onPress={() => setSelectedSkillLevel(lv)}>
+                      <Text style={[styles.levelBtnTxt, selectedSkillLevel === lv && styles.levelBtnTxtOn]}>{lv}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <Text style={[styles.levelDesc, { marginBottom: 20 }]}>{LEVEL_LABELS[selectedSkillLevel - 1]}</Text>
+                <TouchableOpacity style={styles.confirmBtn} onPress={addSkill}>
+                  <Text style={styles.confirmBtnTxt}>Ajouter</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal upload photo */}
+      <Modal visible={uploading} transparent animationType="fade" onRequestClose={() => {}}>
+        <View style={styles.uploadModalBg}>
+          <View style={styles.uploadModalBox}>
+            <ActivityIndicator size="large" color="#ffd700" />
+            <Text style={styles.uploadModalText}>Veuillez patienter</Text>
+            <Text style={styles.uploadModalSubtext}>Votre profil est en cours de modification</Text>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
+  )
+}
+
+// ─── Styles ────────────────────────────────────────────────────────────────────
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#000' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#1a1a1a' },
+  backBtn: { padding: 4 },
+  headerTitle: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  savingIndicator: { width: 80, alignItems: 'flex-end' },
+  savedText: { color: '#ffd700', fontSize: 12, fontWeight: '600' },
+  scroll: { flex: 1, paddingHorizontal: 16 },
+  sectionLabel: { color: '#ffd700', fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginTop: 16, marginBottom: 10 },
+  carousel: { height: 200, marginBottom: 16 },
+  photoCell: { width: 140, height: 190, marginRight: 10, borderRadius: 12, overflow: 'hidden', backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a', position: 'relative' },
+  photoCellImg: { width: '100%', height: '100%' },
+  photoCellRemove: { position: 'absolute', top: 6, right: 6 },
+  photoCellAdd: { alignItems: 'center', justifyContent: 'center', borderStyle: 'dashed', borderColor: '#ffd70055', borderWidth: 1, backgroundColor: '#ffd70008', gap: 6 },
+  photoCellAddText: { color: '#ffd700', fontSize: 12, fontWeight: '600' },
+  input: { backgroundColor: '#141414', borderColor: '#2a2a2a', borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, color: '#fff', fontSize: 15, marginBottom: 12 },
+  textarea: { minHeight: 120, textAlignVertical: 'top', paddingTop: 12 },
+  counter: { color: '#ffffff33', fontSize: 11, textAlign: 'right', marginBottom: 4 },
+  bubblesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginBottom: 12 },
+  bubbleInterest: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#ffd70012', borderColor: '#ffd70066', borderWidth: 1, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
+  bubbleSkill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#1a1a1a', borderColor: '#333', borderWidth: 1, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
+  bubbleText: { color: '#ddd', fontSize: 12, fontWeight: '500' },
+  inputRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  addBtn: { width: 46, height: 46, backgroundColor: '#ffd700', borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  addBtnDisabled: { backgroundColor: '#555' },
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
+  tagActive: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#ffd70018', borderColor: '#ffd700', borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
+  tagActiveText: { color: '#ffd700', fontSize: 13, fontWeight: '500' },
+  skillCards: { marginTop: 4, gap: 10, marginBottom: 16 },
+  skillCard: { backgroundColor: '#141414', borderColor: '#2a2a2a', borderWidth: 1, borderRadius: 12, padding: 14 },
+  skillCardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  skillCardName: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  levelLabel: { color: '#aaa', fontSize: 13, marginBottom: 8 },
+  levelValue: { color: '#ffd700', fontWeight: '700' },
+  levelBtns: { flexDirection: 'row', gap: 4, marginBottom: 8 },
+  levelBtn: { flex: 1, paddingVertical: 7, borderRadius: 6, backgroundColor: '#1e1e1e', borderColor: '#333', borderWidth: 1, alignItems: 'center' },
+  levelBtnOn: { backgroundColor: '#ffd700', borderColor: '#ffd700' },
+  levelBtnTxt: { color: '#888', fontSize: 10, fontWeight: '700' },
+  levelBtnTxtOn: { color: '#000' },
+  levelDesc: { color: '#666', fontSize: 12 },
+  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
+  modalBox: { backgroundColor: '#141414', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 36, borderTopWidth: 1, borderColor: '#2a2a2a' },
+  modalTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  modalTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  modalSkillName: { color: '#ffd700', fontSize: 20, fontWeight: '800', textAlign: 'center', marginBottom: 16 },
+  confirmBtn: { backgroundColor: '#ffd700', borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
+  confirmBtnTxt: { color: '#000', fontSize: 16, fontWeight: '700' },
+  uploadModalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center' },
+  uploadModalBox: { backgroundColor: '#141414', borderRadius: 16, padding: 32, alignItems: 'center', borderWidth: 1, borderColor: '#2a2a2a' },
+  uploadModalText: { color: '#fff', fontSize: 16, fontWeight: '700', marginTop: 20, textAlign: 'center' },
+  uploadModalSubtext: { color: '#888', fontSize: 14, marginTop: 8, textAlign: 'center' },
+  cityInputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#141414',
+    borderColor: '#2a2a2a',
+    borderWidth: 1,
+    borderRadius: 10,
+  },
+  cityIcon: { marginLeft: 12, marginRight: 2, flexShrink: 0 },
+  cityInput: {
+    flex: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+    color: '#fff',
+    fontSize: 15,
+  },
+  suggestionsBox: {
+    backgroundColor: '#1c1c1c',
+    borderWidth: 1,
+    borderTopWidth: 0,
+    borderColor: '#ffd70055',
+    borderBottomLeftRadius: 10,
+    borderBottomRightRadius: 10,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  suggestionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+  },
+  suggestionRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#2a2a2a',
+  },
+  suggestionText: {
+    color: '#fff',
+    fontSize: 14,
+    flex: 1,
+  },
+})

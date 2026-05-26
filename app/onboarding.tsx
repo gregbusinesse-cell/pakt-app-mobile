@@ -1,694 +1,264 @@
-import { useState, useCallback } from 'react';
+import { useState, useRef } from 'react'
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Image,
-  Alert,
-  Dimensions,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '@/lib/supabase';
-import { useAppStore } from '@/lib/store';
-import { Colors } from '@/constants/theme';
-import { INTERESTS, MAX_PHOTOS, SKILLS_LIST, DEFAULT_PREFERENCES } from '@/lib/utils';
-import type { Profile, UserSkill } from '@/lib/types';
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions,
+  SafeAreaView, Image, ActivityIndicator,
+} from 'react-native'
+import { useRouter } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
+import { supabase } from '@/lib/supabase/client'
 
-const STEPS = 6;
-const MAX_INTERESTS = 5;
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width } = Dimensions.get('window')
 
-export default function OnboardingScreen() {
-  const router = useRouter();
-  const { setProfile } = useAppStore();
+const SLIDES = [
+  {
+    icon: 'heart',
+    title: 'Bienvenue sur PAKT',
+    description: 'Connectez-vous avec des professionnels qui partagent vos intérêts et vos ambitions',
+    color: '#ffd700',
+  },
+  {
+    icon: 'images',
+    title: 'Créez votre profil',
+    description: 'Ajoutez vos photos, votre bio et vos intérêts pour attirer les bonnes personnes',
+    color: '#4caf50',
+  },
+  {
+    icon: 'flame',
+    title: 'Commencez à swiper',
+    description: 'Découvrez des profils et laissez les personnes qui vous plaisent vous trouver',
+    color: '#ff9800',
+  },
+  {
+    icon: 'chatbubbles',
+    title: 'Engagez une conversation',
+    description: 'Matchées? Commencez à discuter et établissez des connexions précieuses',
+    color: '#2196f3',
+  },
+]
 
-  const [step, setStep] = useState(0);
-  const [loading, setLoading] = useState(false);
+export default function OnboardingPage() {
+  const router = useRouter()
+  const [currentSlide, setCurrentSlide] = useState(0)
+  const [completing, setCompleting] = useState(false)
+  const scrollRef = useRef<ScrollView>(null)
 
-  const [firstName, setFirstName] = useState('');
-  const [age, setAge] = useState('');
-  const [bio, setBio] = useState('');
-  const [city, setCity] = useState('');
-  const [cityLat, setCityLat] = useState<number | null>(null);
-  const [cityLng, setCityLng] = useState<number | null>(null);
-  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
-  const [photos, setPhotos] = useState<string[]>([]);
-  const [selectedSkills, setSelectedSkills] = useState<UserSkill[]>([]);
+  const slide = SLIDES[currentSlide]
 
-  const progress = ((step + 1) / STEPS) * 100;
-
-  const toggleInterest = (interest: string) => {
-    setSelectedInterests((prev) => {
-      if (prev.includes(interest)) return prev.filter((i) => i !== interest);
-      if (prev.length >= MAX_INTERESTS) return prev;
-      return [...prev, interest];
-    });
-  };
-
-  const toggleSkill = (skillName: string) => {
-    setSelectedSkills((prev) => {
-      const exists = prev.find((s) => s.name === skillName);
-      if (exists) return prev.filter((s) => s.name !== skillName);
-      return [...prev, { name: skillName, level: 5 }];
-    });
-  };
-
-  const updateSkillLevel = (skillName: string, level: number) => {
-    setSelectedSkills((prev) =>
-      prev.map((s) => (s.name === skillName ? { ...s, level } : s)),
-    );
-  };
-
-  const pickPhoto = async () => {
-    if (photos.length >= MAX_PHOTOS) return;
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [3, 4],
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      setPhotos((prev) => [...prev, result.assets[0].uri]);
+  const handleNextSlide = () => {
+    if (currentSlide < SLIDES.length - 1) {
+      setCurrentSlide(currentSlide + 1)
+      scrollRef.current?.scrollTo({ x: width * (currentSlide + 1), animated: true })
     }
-  };
+  }
 
-  const removePhoto = (index: number) => {
-    setPhotos((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const canProceed = () => {
-    switch (step) {
-      case 0:
-        return firstName.trim() && age && parseInt(age) >= 15;
-      case 1:
-        return bio.trim().length >= 21;
-      case 2:
-        return selectedInterests.length > 0;
-      case 3:
-        return city.trim().length > 0;
-      case 4:
-        return true;
-      case 5:
-        return photos.length >= 1;
-      default:
-        return true;
+  const handlePrevSlide = () => {
+    if (currentSlide > 0) {
+      setCurrentSlide(currentSlide - 1)
+      scrollRef.current?.scrollTo({ x: width * (currentSlide - 1), animated: true })
     }
-  };
+  }
 
-  const handleSubmit = async () => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session?.user) return;
-
-    setLoading(true);
-
+  const handleSkipOnboarding = async () => {
     try {
-      const uploadedUrls: string[] = [];
+      setCompleting(true)
+      const { data: { session } } = await supabase.auth.getSession()
 
-      for (const photoUri of photos) {
-        const ext = photoUri.split('.').pop() || 'jpg';
-        const fileName = `${session.user.id}/${Date.now()}.${ext}`;
-
-        const response = await fetch(photoUri);
-        const blob = await response.blob();
-
-        const { data: uploadData, error } = await supabase.storage
-          .from('avatars')
-          .upload(fileName, blob, { upsert: true, contentType: `image/${ext}` });
-
-        if (error) throw error;
-
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from('avatars').getPublicUrl(uploadData.path);
-
-        uploadedUrls.push(publicUrl);
+      if (session?.user?.id) {
+        await supabase
+          .from('profiles')
+          .update({ is_onboarded: true })
+          .eq('id', session.user.id)
       }
 
-      const profilePayload = {
-        id: session.user.id,
-        email: session.user.email!,
-        first_name: firstName,
-        age: parseInt(age),
-        bio,
-        interests: selectedInterests,
-        city,
-        city_lat: cityLat,
-        city_lng: cityLng,
-        photos: uploadedUrls,
-        skills: selectedSkills.filter((s) => s.level >= 1),
-        is_onboarded: true,
-        email_confirmed: true,
-        plan: 'free',
-        preferences: DEFAULT_PREFERENCES,
-      };
-
-      const { error, data } = await supabase
-        .from('profiles')
-        .upsert(profilePayload as any)
-        .select('*')
-        .single();
-
-      if (error) throw error;
-
-      setProfile(data as unknown as Profile);
-      router.replace('/(tabs)');
-    } catch (err: any) {
-      Alert.alert('Erreur', err?.message || 'Erreur lors de la creation du profil');
+      router.replace('/(app)/swipe' as any)
+    } catch (err) {
+      console.error('Error completing onboarding:', err)
     } finally {
-      setLoading(false);
+      setCompleting(false)
     }
-  };
-
-  const goNext = () => {
-    if (!canProceed()) return;
-    if (step === STEPS - 1) {
-      handleSubmit();
-      return;
-    }
-    setStep((s) => s + 1);
-  };
-
-  const goPrev = () => {
-    if (step > 0) setStep((s) => s - 1);
-  };
+  }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      {/* Progress bar */}
-      <View style={styles.progressContainer}>
-        <View style={[styles.progressBar, { width: `${progress}%` }]} />
-      </View>
-
-      {/* Header */}
+    <SafeAreaView style={styles.container}>
+      {/* Skip Button */}
       <View style={styles.header}>
-        {step > 0 ? (
-          <TouchableOpacity onPress={goPrev} style={styles.backButton}>
-            <Ionicons name="chevron-back" size={20} color="rgba(255,255,255,0.7)" />
-          </TouchableOpacity>
-        ) : (
-          <View style={{ width: 40 }} />
-        )}
         <Text style={styles.stepText}>
-          {step + 1} / {STEPS}
+          {currentSlide + 1} / {SLIDES.length}
         </Text>
-        <View style={{ width: 40 }} />
-      </View>
-
-      {/* Content */}
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentInner}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        {step === 0 && (
-          <View style={styles.stepContent}>
-            <Text style={styles.title}>Bienvenue</Text>
-            <Text style={styles.subtitle}>Quelques infos pour commencer</Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Ton prenom"
-              placeholderTextColor="rgba(255,255,255,0.3)"
-              value={firstName}
-              onChangeText={setFirstName}
-              autoFocus
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Ton age"
-              placeholderTextColor="rgba(255,255,255,0.3)"
-              value={age}
-              onChangeText={setAge}
-              keyboardType="number-pad"
-            />
-
-            {age && parseInt(age) < 15 && (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorTitle}>Inscription impossible</Text>
-                <Text style={styles.errorText}>
-                  PAKT n'est pas accessible aux personnes de moins de 15 ans.
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
-
-        {step === 1 && (
-          <View style={styles.stepContent}>
-            <Text style={styles.title}>Ta bio</Text>
-            <Text style={styles.subtitle}>Presente-toi en quelques mots</Text>
-
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Qui es-tu ? Quels sont tes projets ?"
-              placeholderTextColor="rgba(255,255,255,0.3)"
-              value={bio}
-              onChangeText={setBio}
-              multiline
-              maxLength={500}
-              textAlignVertical="top"
-            />
-            <Text style={styles.charCount}>{bio.length}/500</Text>
-          </View>
-        )}
-
-        {step === 2 && (
-          <View style={styles.stepContent}>
-            <Text style={styles.title}>Tes interets</Text>
-            <Text style={styles.subtitle}>Selectionne ce qui te correspond (5 max)</Text>
-
-            <View style={styles.chipsContainer}>
-              {INTERESTS.filter((i) => i !== 'Autre').map((interest) => {
-                const selected = selectedInterests.includes(interest);
-                const disabled = !selected && selectedInterests.length >= MAX_INTERESTS;
-                return (
-                  <TouchableOpacity
-                    key={interest}
-                    style={[
-                      styles.chip,
-                      selected && styles.chipSelected,
-                      disabled && styles.chipDisabled,
-                    ]}
-                    onPress={() => toggleInterest(interest)}
-                    disabled={disabled}
-                  >
-                    <Text
-                      style={[
-                        styles.chipText,
-                        selected && styles.chipTextSelected,
-                      ]}
-                    >
-                      {interest}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-        )}
-
-        {step === 3 && (
-          <View style={styles.stepContent}>
-            <Text style={styles.title}>Ta ville</Text>
-            <Text style={styles.subtitle}>
-              Pour trouver des personnes pres de toi
-            </Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Paris, Lyon, Bordeaux..."
-              placeholderTextColor="rgba(255,255,255,0.3)"
-              value={city}
-              onChangeText={setCity}
-              autoFocus
-            />
-          </View>
-        )}
-
-        {step === 4 && (
-          <View style={styles.stepContent}>
-            <Text style={styles.title}>Tes competences</Text>
-            <Text style={styles.subtitle}>
-              Selectionne uniquement celles que tu maitrises vraiment
-            </Text>
-
-            {SKILLS_LIST.map((skillName) => {
-              const skill = selectedSkills.find((s) => s.name === skillName);
-              const isSelected = !!skill;
-              return (
-                <View key={skillName}>
-                  <TouchableOpacity
-                    style={[
-                      styles.skillRow,
-                      isSelected && styles.skillRowSelected,
-                    ]}
-                    onPress={() => toggleSkill(skillName)}
-                  >
-                    <Text
-                      style={[
-                        styles.skillName,
-                        isSelected && styles.skillNameSelected,
-                      ]}
-                    >
-                      {skillName}
-                    </Text>
-                    {isSelected && (
-                      <Text style={styles.skillLevel}>{skill!.level}/10</Text>
-                    )}
-                  </TouchableOpacity>
-                  {isSelected && (
-                    <View style={styles.sliderContainer}>
-                      {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                        <TouchableOpacity
-                          key={n}
-                          style={[
-                            styles.levelDot,
-                            n <= skill!.level && styles.levelDotActive,
-                          ]}
-                          onPress={() => updateSkillLevel(skillName, n)}
-                        >
-                          <Text
-                            style={[
-                              styles.levelDotText,
-                              n <= skill!.level && styles.levelDotTextActive,
-                            ]}
-                          >
-                            {n}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
-                </View>
-              );
-            })}
-          </View>
-        )}
-
-        {step === 5 && (
-          <View style={styles.stepContent}>
-            <Text style={styles.title}>Tes photos</Text>
-            <Text style={styles.subtitle}>
-              Ajoute jusqu'a {MAX_PHOTOS} photos (min 1)
-            </Text>
-
-            <View style={styles.photosGrid}>
-              {Array.from({ length: MAX_PHOTOS }).map((_, idx) => {
-                const uri = photos[idx];
-                return (
-                  <TouchableOpacity
-                    key={idx}
-                    style={styles.photoSlot}
-                    onPress={() => (uri ? removePhoto(idx) : pickPhoto())}
-                  >
-                    {uri ? (
-                      <>
-                        <Image source={{ uri }} style={styles.photoImage} />
-                        <View style={styles.photoRemove}>
-                          <Ionicons name="close" size={12} color="#fff" />
-                        </View>
-                        {idx === 0 && (
-                          <View style={styles.photoPrimary}>
-                            <Text style={styles.photoPrimaryText}>Principal</Text>
-                          </View>
-                        )}
-                      </>
-                    ) : (
-                      <Ionicons
-                        name="add"
-                        size={24}
-                        color="rgba(255,255,255,0.3)"
-                      />
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-        )}
-      </ScrollView>
-
-      {/* Bottom button */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity
-          style={[
-            styles.nextButton,
-            (!canProceed() || loading) && styles.nextButtonDisabled,
-          ]}
-          onPress={goNext}
-          disabled={!canProceed() || loading}
-        >
-          <Text style={styles.nextButtonText}>
-            {loading
-              ? 'Creation du profil...'
-              : step === STEPS - 1
-                ? 'Lancer PAKT'
-                : 'Continuer'}
-          </Text>
-          {!loading && step < STEPS - 1 && (
-            <Ionicons name="chevron-forward" size={18} color={Colors.dark} />
-          )}
+        <TouchableOpacity onPress={handleSkipOnboarding} disabled={completing}>
+          <Text style={styles.skipText}>Passer</Text>
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
-  );
+
+      {/* Slides */}
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        pagingEnabled
+        scrollEnabled={false}
+        showsHorizontalScrollIndicator={false}
+        style={styles.slides}
+      >
+        {SLIDES.map((item, idx) => (
+          <View key={idx} style={[styles.slide, { width }]}>
+            <View style={[styles.iconBox, { backgroundColor: item.color + '20' }]}>
+              <Ionicons name={item.icon as any} size={80} color={item.color} />
+            </View>
+
+            <Text style={styles.title}>{item.title}</Text>
+            <Text style={styles.description}>{item.description}</Text>
+          </View>
+        ))}
+      </ScrollView>
+
+      {/* Progress Dots */}
+      <View style={styles.dotsContainer}>
+        {SLIDES.map((_, idx) => (
+          <TouchableOpacity
+            key={idx}
+            style={[
+              styles.dot,
+              idx === currentSlide && styles.dotActive,
+              idx === currentSlide && { backgroundColor: slide.color },
+            ]}
+            onPress={() => {
+              setCurrentSlide(idx)
+              scrollRef.current?.scrollTo({ x: width * idx, animated: true })
+            }}
+          />
+        ))}
+      </View>
+
+      {/* Navigation Buttons */}
+      <View style={styles.buttons}>
+        <TouchableOpacity
+          style={[styles.navButton, { opacity: currentSlide === 0 ? 0.3 : 1 }]}
+          onPress={handlePrevSlide}
+          disabled={currentSlide === 0}
+        >
+          <Ionicons name="chevron-back" size={24} color="#ffd700" />
+        </TouchableOpacity>
+
+        {currentSlide === SLIDES.length - 1 ? (
+          <TouchableOpacity
+            style={[styles.ctaButton, { backgroundColor: slide.color }]}
+            onPress={handleSkipOnboarding}
+            disabled={completing}
+          >
+            {completing ? (
+              <ActivityIndicator color="#000" size="small" />
+            ) : (
+              <>
+                <Text style={styles.ctaButtonText}>Commencer</Text>
+                <Ionicons name="arrow-forward" size={18} color="#000" />
+              </>
+            )}
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.ctaButton, { backgroundColor: slide.color }]}
+            onPress={handleNextSlide}
+          >
+            <Text style={styles.ctaButtonText}>Suivant</Text>
+            <Ionicons name="arrow-forward" size={18} color="#000" />
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity
+          style={[styles.navButton, { opacity: currentSlide === SLIDES.length - 1 ? 0.3 : 1 }]}
+          onPress={handleNextSlide}
+          disabled={currentSlide === SLIDES.length - 1}
+        >
+          <Ionicons name="chevron-forward" size={24} color="#ffd700" />
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.dark,
-  },
-  progressContainer: {
-    height: 3,
-    backgroundColor: Colors.dark400,
-    marginTop: Platform.OS === 'ios' ? 56 : 32,
-  },
-  progressBar: {
-    height: '100%',
-    backgroundColor: Colors.gold,
-  },
+  container: { flex: 1, backgroundColor: '#000' },
+
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepText: {
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: 14,
-  },
-  content: {
-    flex: 1,
-  },
-  contentInner: {
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-  },
-  stepContent: {
-    gap: 16,
-    paddingTop: 8,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  subtitle: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 15,
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: Colors.dark200,
-    borderWidth: 1,
-    borderColor: Colors.dark400,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    fontSize: 16,
-    color: '#fff',
-  },
-  textArea: {
-    height: 160,
-    textAlignVertical: 'top',
-    paddingTop: 16,
-  },
-  charCount: {
-    color: 'rgba(255,255,255,0.3)',
-    fontSize: 12,
-    textAlign: 'right',
-  },
-  chipsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: Colors.dark300,
-    borderWidth: 1,
-    borderColor: Colors.dark500,
-  },
-  chipSelected: {
-    backgroundColor: Colors.gold,
-    borderColor: Colors.gold,
-  },
-  chipDisabled: {
-    opacity: 0.4,
-  },
-  chipText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  chipTextSelected: {
-    color: Colors.dark,
-  },
-  skillRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: Colors.dark200,
-    borderWidth: 1,
-    borderColor: Colors.dark400,
-    marginBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a1a1a',
   },
-  skillRowSelected: {
-    borderColor: Colors.gold,
-    backgroundColor: 'rgba(212,168,83,0.08)',
+  stepText: { color: '#ffd700', fontSize: 13, fontWeight: '700' },
+  skipText: { color: '#ffffff66', fontSize: 13, fontWeight: '600' },
+
+  slides: { flex: 1 },
+  slide: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    gap: 24,
   },
-  skillName: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 14,
-    fontWeight: '500',
+
+  iconBox: {
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  skillNameSelected: {
-    color: Colors.gold,
+
+  title: { color: '#fff', fontSize: 28, fontWeight: '700', textAlign: 'center' },
+  description: {
+    color: '#ffffff88',
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
   },
-  skillLevel: {
-    color: Colors.gold,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  sliderContainer: {
+
+  dotsContainer: {
     flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 20,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#333',
+  },
+  dotActive: { width: 24, backgroundColor: '#ffd700' },
+
+  buttons: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    marginBottom: 8,
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#1a1a1a',
   },
-  levelDot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: Colors.dark300,
-    alignItems: 'center',
+  navButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#1a1a1a',
     justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#333',
   },
-  levelDotActive: {
-    backgroundColor: Colors.gold,
-  },
-  levelDotText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.4)',
-  },
-  levelDotTextActive: {
-    color: Colors.dark,
-  },
-  photosGrid: {
+  ctaButton: {
+    flex: 1,
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
     gap: 8,
   },
-  photoSlot: {
-    width: (SCREEN_WIDTH - 48 - 16) / 3,
-    aspectRatio: 1,
-    borderRadius: 12,
-    backgroundColor: Colors.dark200,
-    borderWidth: 1,
-    borderColor: Colors.dark400,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  photoImage: {
-    width: '100%',
-    height: '100%',
-  },
-  photoRemove: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  photoPrimary: {
-    position: 'absolute',
-    top: 4,
-    left: 4,
-    backgroundColor: Colors.gold,
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  photoPrimaryText: {
-    color: Colors.dark,
-    fontSize: 9,
-    fontWeight: '700',
-  },
-  errorBox: {
-    backgroundColor: 'rgba(239,68,68,0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(239,68,68,0.3)',
-    borderRadius: 12,
-    padding: 12,
-  },
-  errorTitle: {
-    color: '#fca5a5',
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  errorText: {
-    color: 'rgba(252,165,165,0.8)',
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  bottomBar: {
-    paddingHorizontal: 24,
-    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
-    paddingTop: 16,
-  },
-  nextButton: {
-    backgroundColor: Colors.gold,
-    borderRadius: 14,
-    paddingVertical: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  nextButtonDisabled: {
-    opacity: 0.5,
-  },
-  nextButtonText: {
-    color: Colors.dark,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-});
+  ctaButtonText: { color: '#000', fontSize: 15, fontWeight: '700' },
+})
