@@ -16,7 +16,7 @@ export type Database = {
           photos: string[] | null;
           skills: any | null;
           preferences: any | null;
-          plan: string | null;
+          plan?: string | null; // Legacy field, kept for backward compatibility
           subscription_plan: string | null;
           stripe_customer_id: string | null;
           stripe_subscription_id: string | null;
@@ -61,8 +61,6 @@ export type Database = {
           user1_id: string;
           user2_id: string;
           match_id: string | null;
-          participant1_id: string | null;
-          participant2_id: string | null;
           last_message: string | null;
           last_message_at: string | null;
           created_at: string;
@@ -79,6 +77,18 @@ export type Database = {
         };
         Insert: Partial<Database['public']['Tables']['blocked_users']['Row']>;
         Update: Partial<Database['public']['Tables']['blocked_users']['Row']>;
+      };
+      encouragements: {
+        Row: {
+          id: string;
+          conversation_id: string;
+          sender_id: string;
+          target_id: string;
+          message: string;
+          created_at: string;
+        };
+        Insert: Partial<Database['public']['Tables']['encouragements']['Row']>;
+        Update: Partial<Database['public']['Tables']['encouragements']['Row']>;
       };
     };
   };

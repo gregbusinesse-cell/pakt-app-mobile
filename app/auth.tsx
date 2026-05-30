@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import * as Google from 'expo-auth-session/providers/google'
+import * as AuthSession from 'expo-auth-session'
 
 export default function AuthPage() {
   const router = useRouter()
@@ -13,6 +15,23 @@ export default function AuthPage() {
   const [signingIn, setSigningIn] = useState(false)
   const [showCGU, setShowCGU] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
+
+  // Google Auth
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
+    redirectUrl: AuthSession.getRedirectUrl(),
+  })
+
+  // Handle Google response
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const { id_token } = response.params
+      if (id_token) {
+        signInWithGoogle(id_token)
+      }
+    }
+  }, [response])
+
 
   useEffect(() => {
     const checkSession = async () => {
@@ -65,22 +84,25 @@ export default function AuthPage() {
     }
   }
 
-  const handleSignInWithGoogle = async () => {
-    setSigningIn(true)
+  const signInWithGoogle = async (token: string) => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithIdToken({
         provider: 'google',
-        options: {
-          redirectTo: 'http://localhost:8081/auth',
-          skipBrowserRedirect: false,
-        },
+        token: token,
       })
       if (error) throw error
     } catch (err: any) {
-      console.error('[AUTH] Google OAuth error:', err)
-      Alert.alert('Erreur Google', err?.message || 'La connexion Google a échoué')
-    } finally {
-      setSigningIn(false)
+      console.error('[AUTH] Google sign in error:', err)
+      Alert.alert('Erreur', err?.message || 'Impossible de se connecter')
+    }
+  }
+
+  const handleSignInWithGoogle = async () => {
+    try {
+      await promptAsync()
+    } catch (err: any) {
+      console.error('[AUTH] Google auth prompt error:', err)
+      Alert.alert('Erreur', 'Impossible d\'ouvrir Google Login')
     }
   }
 
@@ -97,7 +119,7 @@ export default function AuthPage() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.logo}>PAKT</Text>
+          <Text style={styles.logo}>PAKTI</Text>
           <Text style={styles.tagline}>Le Tinder du Business</Text>
         </View>
 
@@ -161,13 +183,13 @@ export default function AuthPage() {
           <View style={styles.separatorLine} />
         </View>
 
-        {/* Google Button - Official Google Design */}
+        {/* Google Button */}
         <TouchableOpacity
-          style={[styles.googleButton, signingIn && styles.buttonDisabled]}
+          style={styles.googleButton}
           onPress={handleSignInWithGoogle}
-          disabled={signingIn}
+          disabled={!request}
         >
-          <GoogleIcon />
+          <Ionicons name="logo-google" size={20} color="#fff" />
           <Text style={styles.googleButtonText}>Continuer avec Google</Text>
         </TouchableOpacity>
 
@@ -464,26 +486,18 @@ const styles = StyleSheet.create({
   },
 })
 
-// Official Google Icon SVG
-function GoogleIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" style={{ marginRight: 4 }}>
-      <path
-        fill="#4285F4"
-        d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 002.38-5.88c0-.57-.05-.66-.15-1.18z"
-      />
-      <path
-        fill="#34A853"
-        d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 01-7.18-2.54H1.83v2.07A8 8 0 008.98 17z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M4.5 10.52a4.8 4.8 0 010-3.04V5.41H1.83a8 8 0 000 7.18l2.67-2.07z"
-      />
-      <path
-        fill="#EA4335"
-        d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 001.83 5.4L4.5 7.49a4.77 4.77 0 014.48-3.3z"
-      />
-    </svg>
-  )
-}
+// // Google Icon - DISABLED FOR TESTING
+// function GoogleIcon() {
+//   return (
+//     <View style={{ width: 20, height: 20, position: 'relative' }}>
+//       {/* Blue square */}
+//       <View style={{ position: 'absolute', top: 0, left: 0, width: 10, height: 10, backgroundColor: '#4285F4', borderRadius: 2 }} />
+//       {/* Red square */}
+//       <View style={{ position: 'absolute', top: 0, right: 0, width: 10, height: 10, backgroundColor: '#EA4335', borderRadius: 2 }} />
+//       {/* Yellow square */}
+//       <View style={{ position: 'absolute', bottom: 0, left: 0, width: 10, height: 10, backgroundColor: '#FBBC04', borderRadius: 2 }} />
+//       {/* Green square */}
+//       <View style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, backgroundColor: '#34A853', borderRadius: 2 }} />
+//     </View>
+//   )
+// }

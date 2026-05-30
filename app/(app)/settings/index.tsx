@@ -120,7 +120,7 @@ export default function SettingsPage() {
       name: 'FREE',
       displayName: 'Gratuit',
       price: null,
-      features: ['Swipes illimités', 'Likes illimités', 'Pas de messagerie'],
+      features: ['Swipes illimités', 'Likes illimités', 'Impossible de communiquer'],
     },
     {
       id: 'business',
@@ -128,7 +128,7 @@ export default function SettingsPage() {
       displayName: 'Business',
       price: '5€',
       priceSubtext: '/mois',
-      features: ['Swipes illimités', 'Likes illimités', 'Messagerie entre membres Business', 'Encourage les membres Free'],
+      features: ['Swipes illimités', 'Likes illimités', 'Messages illimités', 'Encourage les membres Free'],
     },
     {
       id: 'pro',

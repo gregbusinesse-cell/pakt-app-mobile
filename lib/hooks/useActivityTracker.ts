@@ -23,8 +23,8 @@ export function useActivityTracker() {
     // Update activity on mount
     updateActivity()
 
-    // Update activity every 60 seconds
-    const interval = setInterval(updateActivity, 60000)
+    // Update activity every 15 seconds
+    const interval = setInterval(updateActivity, 15000)
 
     return () => clearInterval(interval)
   }, [])

@@ -99,10 +99,10 @@ export function useProfiles(userProfile?: Profile) {
             if (p.age && (p.age < ageMin || p.age > ageMax)) return false
             if (p.city_lat && p.city_lng) {
               const dist = calculateDistance(
-                userProfile.city_lat,
-                userProfile.city_lng,
-                p.city_lat,
-                p.city_lng
+                userProfile.city_lat as number,
+                userProfile.city_lng as number,
+                p.city_lat as number,
+                p.city_lng as number
               )
               if (dist > maxDistance) return false
             }

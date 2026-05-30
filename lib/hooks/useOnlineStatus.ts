@@ -80,8 +80,8 @@ export function useOnlineStatus(userId: string | null) {
       )
       .subscribe()
 
-    // Poll every 30 seconds to update status
-    const interval = setInterval(checkOnlineStatus, 30000)
+    // Poll every 15 seconds to update status
+    const interval = setInterval(checkOnlineStatus, 15000)
 
     return () => {
       clearInterval(interval)

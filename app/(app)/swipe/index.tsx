@@ -438,7 +438,6 @@ export default function SwipePage() {
       <Modal visible={showMatchModal} transparent animationType="fade" onRequestClose={() => setShowMatchModal(false)}>
         <View style={styles.overlay}>
           <View style={styles.matchCard}>
-            <Text style={styles.matchEmoji}>🎉</Text>
             <Text style={styles.matchTitle}>C'est un Match !</Text>
             <ProfileImage
               photos={(matchedProfile?.photos as any) || []}

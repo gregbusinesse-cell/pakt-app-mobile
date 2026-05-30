@@ -6,6 +6,7 @@ import { ProfileImage } from '@/components/ProfileImage'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '@/lib/supabase/client'
 import { BlurView } from 'expo-blur'
+import { refreshNotificationCount } from '@/lib/hooks/useNotificationCount'
 
 export default function MatchesPage() {
   const router = useRouter()
@@ -21,86 +22,124 @@ export default function MatchesPage() {
         setUserId(data.session.user.id)
         const { data: profile } = await supabase
           .from('profiles')
-          .select('plan')
+          .select('subscription_plan')
           .eq('id', data.session.user.id)
           .single()
-        setUserPlan((profile?.plan || 'free').toLowerCase())
+        setUserPlan((profile?.subscription_plan || 'free').toLowerCase())
       }
     })
   }, [])
+
+  // Mark ALL matches and likes as viewed when arriving on the page.
+  // We query the DB directly (not the filtered hook results) because the
+  // useMatches hook filters out likes that became matches, but those rows
+  // still exist in the `likes` table with is_viewed=false and would
+  // keep the notification badge stuck at 1+.
+  useEffect(() => {
+    if (!userId) return
+
+    const markAllAsViewed = async () => {
+      console.log('[MATCHES] === AUTO-MARK START === userId:', userId)
+
+      try {
+        // 1. Fetch ALL unviewed matches for this user (where they are user1 or user2)
+        const { data: unviewedMatches, error: matchFetchErr } = await supabase
+          .from('matches')
+          .select('id')
+          .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
+          .eq('is_viewed', false)
+
+        if (matchFetchErr) {
+          console.error('[MATCHES] ❌ Error fetching unviewed matches:', matchFetchErr)
+        } else {
+          console.log('[MATCHES] Unviewed matches in DB:', unviewedMatches?.length || 0, unviewedMatches)
+
+          if (unviewedMatches && unviewedMatches.length > 0) {
+            const matchIds = unviewedMatches.map((m: any) => m.id)
+            const { error: updateErr, data: updated } = await supabase
+              .from('matches')
+              .update({ is_viewed: true })
+              .in('id', matchIds)
+              .select()
+
+            if (updateErr) {
+              console.error('[MATCHES] ❌ Error updating matches:', updateErr)
+            } else {
+              console.log('[MATCHES] ✅ Updated matches:', updated?.length, updated)
+            }
+          }
+        }
+
+        // 2. Fetch ALL unviewed likes received by this user (INCLUDING those
+        //    that became matches - those are the ones that keep the badge stuck)
+        const { data: unviewedLikes, error: likeFetchErr } = await supabase
+          .from('likes')
+          .select('id, liker_id')
+          .eq('liked_id', userId)
+          .eq('is_viewed', false)
+
+        if (likeFetchErr) {
+          console.error('[MATCHES] ❌ Error fetching unviewed likes:', likeFetchErr)
+        } else {
+          console.log('[MATCHES] Unviewed likes in DB:', unviewedLikes?.length || 0, unviewedLikes)
+
+          if (unviewedLikes && unviewedLikes.length > 0) {
+            const likeIds = unviewedLikes.map((l: any) => l.id)
+            const { error: updateErr, data: updated } = await supabase
+              .from('likes')
+              .update({ is_viewed: true })
+              .in('id', likeIds)
+              .select()
+
+            if (updateErr) {
+              console.error('[MATCHES] ❌ Error updating likes:', updateErr)
+            } else {
+              console.log('[MATCHES] ✅ Updated likes:', updated?.length, updated)
+            }
+          }
+        }
+
+        // 3. Refresh the navbar badge counters
+        console.log('[MATCHES] Refreshing notification count for user:', userId)
+        await refreshNotificationCount(userId)
+
+        // 4. Reload the page data so isViewed flags are in sync locally
+        reload()
+
+        console.log('[MATCHES] === AUTO-MARK END ===')
+      } catch (err) {
+        console.error('[MATCHES] ❌ Exception in markAllAsViewed:', err)
+      }
+    }
+
+    markAllAsViewed()
+  }, [userId])
 
   const unreadMatchCount = matches.filter((m) => !m.isViewed).length
   const unreadLikeCount = likes.filter((l) => !l.isViewed).length
   const totalNotifications = unreadMatchCount + unreadLikeCount
 
-  const handleMatchPress = async (matchId: string) => {
-    // Mark as viewed and navigate to conversation
+  const handleMatchPress = async (matchId: string, otherUserId: string) => {
+    // Mark as viewed
     await supabase.from('matches').update({ is_viewed: true }).eq('id', matchId)
-    router.push('/messages')
+
+    // Refresh notification badge immediately
+    if (userId) {
+      await refreshNotificationCount(userId)
+    }
+
+    // Navigate to the profile of the other user
+    router.push(`/user/${otherUserId}` as any)
   }
 
-  const handleLikePress = async (likeId: string) => {
+  const handleLikePress = async (likeId: string, otherUserId: string) => {
     if (userPlan !== 'business_pro' || !userId) {
       // Can't view, notification stays
       return
     }
 
     try {
-      // Find the like item to get the liker's ID
-      const likeItem = likes.find((l) => l.likeId === likeId)
-      if (!likeItem) {
-        console.error('[MATCHES] Like item not found')
-        return
-      }
-
-      const otherUserId = likeItem.otherUser.id
-      const otherUserPlan = (likeItem.otherUser.plan || 'free').toLowerCase()
-
-      // Step 1: Create a like back (current user likes the person who liked them)
-      // The database trigger will automatically create a match
-      console.log('[MATCHES] Creating like back:', { userId, otherUserId })
-
-      const { data: likeBackData, error: likeBackError } = await supabase
-        .from('likes')
-        .upsert(
-          {
-            liker_id: userId,
-            liked_id: otherUserId,
-          },
-          {
-            onConflict: 'liker_id,liked_id',
-          }
-        )
-        .select()
-
-      console.log('[MATCHES] Like back result:', { data: likeBackData, error: likeBackError })
-
-      if (likeBackError) {
-        console.error('[MATCHES] Like back error - CRITICAL', likeBackError)
-        Alert.alert('Erreur', 'Impossible de liker : ' + likeBackError.message)
-        return
-      }
-
-      // Step 1b: Record swipe for tracking (same as web app)
-      const { error: swipeError } = await supabase
-        .from('swipes')
-        .upsert(
-          {
-            swiper_id: userId,
-            target_id: otherUserId,
-            action: 'like',
-          },
-          {
-            onConflict: 'swiper_id,target_id',
-          }
-        )
-
-      if (swipeError) {
-        console.error('[MATCHES] Swipe recording error', swipeError)
-        // Don't fail if swipe recording fails
-      }
-
-      // Step 2: Mark original like as viewed
+      // Mark like as viewed
       const { error: viewError } = await supabase
         .from('likes')
         .update({ is_viewed: true })
@@ -108,48 +147,17 @@ export default function MatchesPage() {
 
       if (viewError) {
         console.error('[MATCHES] Error marking like as viewed', viewError)
-        // Don't fail if marking viewed fails
+      } else {
+        console.log('[MATCHES] Marked like as viewed:', likeId)
       }
 
-      // Step 3: Check if both users have paid plan (business or business_pro) before creating conversation
-      console.log('[MATCHES] User plans:', { userPlan, otherUserPlan })
-      const bothCanChat = (userPlan === 'business' || userPlan === 'business_pro') &&
-                          (otherUserPlan === 'business' || otherUserPlan === 'business_pro')
-
-      if (!bothCanChat) {
-        // Show message that match was created but they need Business plan to chat
-        console.log('[MATCHES] Match created but Business plan required to chat', { userPlan, otherUserPlan })
-        Alert.alert(
-          'Nouveau match!',
-          'Vous devez tous les deux avoir un plan payant (Business ou Business Pro) pour discuter',
-          [{ text: 'OK' }]
-        )
-        return
+      // Refresh notification badge immediately
+      if (userId) {
+        await refreshNotificationCount(userId)
       }
 
-      // Step 4: Get or create conversation (both users are paid)
-      const { data: conversationId, error: convError } = await supabase
-        .rpc('get_or_create_conversation', {
-          other_user_id: otherUserId,
-        })
-
-      if (convError) {
-        console.error('[MATCHES] Conversation creation error', convError)
-      }
-
-      // Recharger les données pour que la personne passe de "Likes" à "Matchs"
-      console.log('[MATCHES] Reloading data...')
-      await reload()
-      console.log('[MATCHES] Data reloaded, navigating to messages')
-
-      // Afficher un toast de succès
-      ToastAndroid.show('Match créé ! Conversation lancée 🎉', ToastAndroid.SHORT)
-
-      // Attendre un peu pour s'assurer que les données sont à jour
-      await new Promise(resolve => setTimeout(resolve, 500))
-
-      // Navigate to messages
-      router.push('/messages')
+      // Navigate to the profile of the person who liked
+      router.push(`/user/${otherUserId}` as any)
     } catch (error) {
       console.error('[MATCHES] handleLikePress error', error)
     }
@@ -192,9 +200,9 @@ export default function MatchesPage() {
           >
             Matchs
           </Text>
-          {unreadMatchCount > 0 && (
-            <View style={styles.tabBadge}>
-              <Text style={styles.tabBadgeText}>{unreadMatchCount}</Text>
+          {matches.length > 0 && (
+            <View style={styles.tabCounter}>
+              <Text style={styles.tabCounterText}>{matches.length}</Text>
             </View>
           )}
         </TouchableOpacity>
@@ -216,9 +224,9 @@ export default function MatchesPage() {
           >
             Likes
           </Text>
-          {unreadLikeCount > 0 && (
-            <View style={styles.tabBadge}>
-              <Text style={styles.tabBadgeText}>{unreadLikeCount}</Text>
+          {likes.length > 0 && (
+            <View style={styles.tabCounter}>
+              <Text style={styles.tabCounterText}>{likes.length}</Text>
             </View>
           )}
         </TouchableOpacity>
@@ -242,7 +250,7 @@ export default function MatchesPage() {
                 <TouchableOpacity
                   key={item.id}
                   style={styles.gridCard}
-                  onPress={() => handleMatchPress(item.id)}
+                  onPress={() => handleMatchPress(item.id, item.otherUser.id)}
                   activeOpacity={0.8}
                 >
                   {!item.isViewed && <View style={styles.gridNewBadge} />}
@@ -283,7 +291,7 @@ export default function MatchesPage() {
                   <TouchableOpacity
                     key={item.likeId}
                     style={styles.gridCard}
-                    onPress={() => handleLikePress(item.likeId)}
+                    onPress={() => handleLikePress(item.likeId, item.otherUser.id)}
                     disabled={userPlan !== 'business_pro'}
                     activeOpacity={userPlan === 'business_pro' ? 0.8 : 1}
                   >
@@ -354,7 +362,7 @@ export default function MatchesPage() {
 }
 
 const { width } = Dimensions.get('window')
-const gridItemSize = (width - 64) / 2
+const gridItemSize = Math.floor((width - 95) / 2)
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
@@ -422,9 +430,25 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
+  /* Persistent counter (always shows total, not a notification) */
+  tabCounter: {
+    backgroundColor: '#ffffff14',
+    borderRadius: 10,
+    minWidth: 22,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 7,
+    marginLeft: 2,
+  },
+  tabCounterText: {
+    color: '#ffffff99',
+    fontSize: 11,
+    fontWeight: '600',
+  },
 
   /* Content */
-  content: { flex: 1, paddingHorizontal: 16, paddingVertical: 16 },
+  content: { flex: 1, paddingHorizontal: 8, paddingVertical: 16 },
 
   errorContainer: {
     backgroundColor: '#2a1a1a',
@@ -471,7 +495,8 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 16,
+    gap: 10,
+    justifyContent: 'flex-start',
   },
   gridCard: {
     width: gridItemSize,

@@ -1,21 +1,32 @@
 import { useEffect } from 'react'
-import * as Notifications from 'expo-notifications'
 import { supabase } from '@/lib/supabase/client'
 
-// Configure notifications handler
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-})
+// Lazy load notifications - it may not be available in all environments
+let Notifications: any = null
+try {
+  Notifications = require('expo-notifications')
+  // Configure notifications handler
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  })
+} catch (e) {
+  console.warn('expo-notifications not available')
+}
 
 export function usePushNotifications() {
   useEffect(() => {
-    let subscription: Notifications.Subscription
+    let subscription: any
 
     const setupNotifications = async () => {
+      if (!Notifications) {
+        console.log('Notifications not available')
+        return
+      }
+
       try {
         // Get notification permission
         const { status } = await Notifications.requestPermissionsAsync()
@@ -33,13 +44,13 @@ export function usePushNotifications() {
         // This would be saved in a push_tokens table or notification_settings
 
         // Handle notifications when app is in foreground
-        subscription = Notifications.addNotificationReceivedListener((notification) => {
+        subscription = Notifications.addNotificationReceivedListener((notification: any) => {
           console.log('Notification received:', notification)
           // Handle in-app notification UI if needed
         })
 
         // Handle notification responses (when user taps notification)
-        const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
+        const responseSubscription = Notifications.addNotificationResponseReceivedListener((response: any) => {
           console.log('Notification response:', response)
           // Navigate to relevant screen based on notification data
           const { data } = response.notification.request.content

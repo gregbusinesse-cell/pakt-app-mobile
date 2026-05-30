@@ -12,11 +12,13 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { supabase } from '@/lib/supabase/client';
 import { useAppStore } from '@/lib/store';
 import { Colors } from '@/constants/theme';
 import { formatTime, normalizePlan, isPaidPlan, cleanPhotoUrls } from '@/lib/utils';
 import { mockMatches, mockLikes, mockProfiles } from '@/lib/mock-data';
 import { USE_MOCK_DATA } from '@/lib/config';
+import { refreshNotificationCount } from '@/lib/hooks/useNotificationCount';
 import type { Profile } from '@/lib/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -60,6 +62,15 @@ export default function MatchesScreen() {
   useEffect(() => {
     if (USE_MOCK_DATA) {
       setCurrentUserId('current_user');
+    } else {
+      // Production mode: get user ID from Supabase auth
+      const getAuth = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.id) {
+          setCurrentUserId(session.user.id);
+        }
+      };
+      getAuth();
     }
   }, []);
 
@@ -90,7 +101,7 @@ export default function MatchesScreen() {
   }, [currentUserId]);
 
   const loadData = useCallback(async () => {
-    if (USE_MOCK_DATA) return;
+    if (USE_MOCK_DATA || !currentUserId) return;
 
     try {
       const [
@@ -165,12 +176,59 @@ export default function MatchesScreen() {
 
       setMatches(matchItems);
       setLikes(likeItems);
+
+      // ====== AUTO-MARK ALL AS VIEWED TO CLEAR BADGES ======
+      console.log('[MATCHES] === AUTO-MARK START ===');
+      console.log('[MATCHES] Total matches in DB:', matchRows.length, 'Total likes received in DB:', likeRows.length);
+
+      // 1. Mark ALL unviewed matches for this user as viewed
+      const unviewedMatchIds = matchRows.filter((m: any) => !m.is_viewed).map((m: any) => m.id);
+      console.log('[MATCHES] Unviewed match IDs:', unviewedMatchIds);
+      if (unviewedMatchIds.length > 0) {
+        const { error: updateMatchErr, data: updatedMatches } = await supabase
+          .from('matches')
+          .update({ is_viewed: true })
+          .in('id', unviewedMatchIds)
+          .select();
+        if (updateMatchErr) {
+          console.error('[MATCHES] ❌ Error auto-marking matches:', updateMatchErr);
+        } else {
+          console.log('[MATCHES] ✅ Updated matches:', updatedMatches?.length);
+          setMatches((prev) => prev.map((m) => ({ ...m, isViewed: true })));
+        }
+      }
+
+      // 2. Mark ALL unviewed likes received by this user as viewed
+      //    (INCLUDING likes that became matches - this is the bug fix!)
+      const unviewedLikeIds = likeRows.filter((l: any) => !l.is_viewed).map((l: any) => l.id);
+      console.log('[MATCHES] Unviewed like IDs:', unviewedLikeIds);
+      if (unviewedLikeIds.length > 0) {
+        const { error: updateLikeErr, data: updatedLikes } = await supabase
+          .from('likes')
+          .update({ is_viewed: true })
+          .in('id', unviewedLikeIds)
+          .select();
+        if (updateLikeErr) {
+          console.error('[MATCHES] ❌ Error auto-marking likes:', updateLikeErr);
+        } else {
+          console.log('[MATCHES] ✅ Updated likes:', updatedLikes?.length);
+          setLikes((prev) => prev.map((l) => ({ ...l, isViewed: true })));
+        }
+      }
+
+      console.log('[MATCHES] === AUTO-MARK END ===');
+
+      // 3. Refresh the navbar notification badge
+      if (currentUserId && (unviewedMatchIds.length > 0 || unviewedLikeIds.length > 0)) {
+        await refreshNotificationCount(currentUserId);
+        refreshNotifications();
+      }
     } catch {
       Alert.alert('Erreur', 'Erreur chargement matchs');
     } finally {
       setLoading(false);
     }
-  }, [currentUserId]);
+  }, [currentUserId, refreshNotifications]);
 
   useEffect(() => {
     if (currentUserId) loadData();
@@ -183,17 +241,38 @@ export default function MatchesScreen() {
   }, [currentUserId]);
 
   const markMatchViewed = useCallback(
-    (matchId: string) => {
+    async (matchId: string) => {
       if (USE_MOCK_DATA) {
         // Mock mode: just update local state
         setMatches((prev) => prev.map((m) => (m.id === matchId ? { ...m, isViewed: true } : m)));
         refreshNotifications();
         return;
       }
-      // Production mode: would call Supabase
-      // TODO: Implement Supabase update call
+
+      // Production mode: update in Supabase
+      try {
+        const { error } = await supabase
+          .from('matches')
+          .update({ is_viewed: true })
+          .eq('id', matchId);
+
+        if (error) {
+          console.error('[markMatchViewed] Error updating match:', error);
+          return;
+        }
+
+        // Update local state
+        setMatches((prev) => prev.map((m) => (m.id === matchId ? { ...m, isViewed: true } : m)));
+
+        // Refresh notification count to update navbar badge
+        if (currentUserId) {
+          await refreshNotificationCount(currentUserId);
+        }
+      } catch (err) {
+        console.error('[markMatchViewed] Exception:', err);
+      }
     },
-    [refreshNotifications],
+    [refreshNotifications, currentUserId],
   );
 
   const openConversation = (match: MatchItem) => {

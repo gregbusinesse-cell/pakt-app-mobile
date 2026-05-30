@@ -122,7 +122,12 @@ export function useMatches() {
         })
         .filter((m) => m.otherUser.id)
 
-      // Build like items
+      // Build like items, filtering out likes where a match already exists
+      const matchUserIds = new Set<string>()
+      matchItems.forEach((m) => {
+        matchUserIds.add(m.otherUser.id)
+      })
+
       const likeItems: LikeItem[] = (likesData || [])
         .map((l: any) => {
           const otherUser = profileMap.get(l.liker_id)
@@ -136,6 +141,8 @@ export function useMatches() {
           }
         })
         .filter((l) => l.otherUser.id)
+        // Don't show likes from people we're already matched with
+        .filter((l) => !matchUserIds.has(l.otherUser.id))
 
       // Build conversation items
       const conversationItems: ConversationItem[] = (conversationsData || [])

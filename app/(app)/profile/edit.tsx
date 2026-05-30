@@ -65,6 +65,14 @@ export default function EditProfilePage() {
   const [interestInput, setInterestInput] = useState('')
   const [skillInput, setSkillInput] = useState('')
 
+  // ── États filtres (Business Pro seulement) ──
+  const [ageMin, setAgeMin] = useState('15')
+  const [ageMax, setAgeMax] = useState('99')
+  const [distanceMin, setDistanceMin] = useState('0')
+  const [distanceMax, setDistanceMax] = useState('1000')
+  const [desiredSkills, setDesiredSkills] = useState<Skill[]>([])
+  const [userPlan, setUserPlan] = useState<'free' | 'business' | 'business_pro'>('free')
+
   // ── États UI ──
   const [uploading, setUploading] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
@@ -72,6 +80,9 @@ export default function EditProfilePage() {
   const [showSkillModal, setShowSkillModal] = useState(false)
   const [selectedSkillName, setSelectedSkillName] = useState<string | null>(null)
   const [selectedSkillLevel, setSelectedSkillLevel] = useState(5)
+  const [showDesiredSkillModal, setShowDesiredSkillModal] = useState(false)
+  const [selectedDesiredSkillName, setSelectedDesiredSkillName] = useState<string | null>(null)
+  const [selectedDesiredSkillLevel, setSelectedDesiredSkillLevel] = useState(5)
 
   // ── États ville ──
   const [citySuggestions, setCitySuggestions] = useState<string[]>([])
@@ -108,6 +119,11 @@ export default function EditProfilePage() {
         setCity(data.city || '')
         setInterests(Array.isArray(data.interests) ? data.interests : [])
         setPhotos(Array.isArray(data.photos) ? data.photos : [])
+
+        // Load subscription plan
+        const plan = (data.subscription_plan || 'free').toLowerCase()
+        setUserPlan(plan as any)
+
         const rawSkills = (data as any).skills
         setSkills(
           Array.isArray(rawSkills)
@@ -116,6 +132,24 @@ export default function EditProfilePage() {
                 .filter((s: Skill) => Boolean(s.name))
             : []
         )
+
+        // Load filters (Business Pro only)
+        if (plan === 'business_pro') {
+          const filters = (data as any).search_filters || {}
+          if (filters.age_min) setAgeMin(String(filters.age_min))
+          if (filters.age_max) setAgeMax(String(filters.age_max))
+          if (filters.distance_min !== undefined) setDistanceMin(String(filters.distance_min))
+          if (filters.distance_max !== undefined) setDistanceMax(String(filters.distance_max))
+
+          const rawDesiredSkills = filters.desired_skills || []
+          setDesiredSkills(
+            Array.isArray(rawDesiredSkills)
+              ? rawDesiredSkills
+                  .map((s: any) => ({ name: typeof s === 'string' ? s : s?.name || '', level: typeof s?.level === 'number' ? s.level : 5 }))
+                  .filter((s: Skill) => Boolean(s.name))
+              : []
+          )
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -129,6 +163,7 @@ export default function EditProfilePage() {
   const executeSave = async (data: {
     firstName: string; age: string; bio: string; city: string
     interests: string[]; skills: Skill[]; photos: string[]
+    ageMin?: string; ageMax?: string; distanceMin?: string; distanceMax?: string; desiredSkills?: Skill[]
   }) => {
     const profileId = profileIdRef.current
     if (!profileId) {
@@ -153,17 +188,30 @@ export default function EditProfilePage() {
 
     console.log('[EDIT] Saving to Supabase:', { firstName: data.firstName, profileId, userId: session.user.id })
 
+    const updatePayload: any = {
+      first_name: data.firstName.trim() || null,
+      age: validAge,
+      bio: data.bio.trim() || null,
+      city: data.city.trim() || null,
+      interests: data.interests.slice(0, MAX_INTERESTS),
+      photos: data.photos.slice(0, MAX_PHOTOS),
+      skills: data.skills.slice(0, MAX_SKILLS),
+    }
+
+    // Add filters if Business Pro
+    if (userPlan === 'business_pro' && data.ageMin && data.ageMax && data.distanceMin && data.distanceMax) {
+      updatePayload.search_filters = {
+        age_min: parseInt(data.ageMin, 10),
+        age_max: parseInt(data.ageMax, 10),
+        distance_min: parseInt(data.distanceMin, 10),
+        distance_max: parseInt(data.distanceMax, 10),
+        desired_skills: data.desiredSkills || [],
+      }
+    }
+
     const { data: updatedRows, error } = await supabase
       .from('profiles')
-      .update({
-        first_name: data.firstName.trim() || null,
-        age: validAge,
-        bio: data.bio.trim() || null,
-        city: data.city.trim() || null,
-        interests: data.interests.slice(0, MAX_INTERESTS),
-        photos: data.photos.slice(0, MAX_PHOTOS),
-        skills: data.skills.slice(0, MAX_SKILLS),
-      } as any)
+      .update(updatePayload)
       .eq('id', profileId)
       .select()
 
@@ -190,6 +238,7 @@ export default function EditProfilePage() {
   const triggerAutoSave = (data: {
     firstName: string; age: string; bio: string; city: string
     interests: string[]; skills: Skill[]; photos: string[]
+    ageMin?: string; ageMax?: string; distanceMin?: string; distanceMax?: string; desiredSkills?: Skill[]
   }) => {
     if (!isDirtyRef.current) return
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
@@ -323,6 +372,29 @@ export default function EditProfilePage() {
     isDirtyRef.current = true
     setSkills(next)
     triggerAutoSave({ firstName, age, bio, city, interests, skills: next, photos })
+  }
+
+  // ─── Handlers filtres (Business Pro) ────────────────────────────────────────
+  const addDesiredSkill = () => {
+    if (!selectedDesiredSkillName || desiredSkills.length >= MAX_SKILLS) return
+    if (desiredSkills.some(s => s.name === selectedDesiredSkillName)) return
+    const next = [...desiredSkills, { name: selectedDesiredSkillName, level: selectedDesiredSkillLevel }]
+    isDirtyRef.current = true
+    setDesiredSkills(next)
+    triggerAutoSave({ firstName, age, bio, city, interests, skills, photos, ageMin, ageMax, distanceMin, distanceMax, desiredSkills: next })
+    setSelectedDesiredSkillName(null); setSelectedDesiredSkillLevel(5); setShowDesiredSkillModal(false)
+  }
+  const removeDesiredSkill = (idx: number) => {
+    const next = desiredSkills.filter((_, i) => i !== idx)
+    isDirtyRef.current = true
+    setDesiredSkills(next)
+    triggerAutoSave({ firstName, age, bio, city, interests, skills, photos, ageMin, ageMax, distanceMin, distanceMax, desiredSkills: next })
+  }
+  const updateDesiredSkillLevel = (idx: number, level: number) => {
+    const next = desiredSkills.map((s, i) => i === idx ? { ...s, level } : s)
+    isDirtyRef.current = true
+    setDesiredSkills(next)
+    triggerAutoSave({ firstName, age, bio, city, interests, skills, photos, ageMin, ageMax, distanceMin, distanceMax, desiredSkills: next })
   }
 
   // ─── Handler photo ─────────────────────────────────────────────────────────
@@ -560,6 +632,114 @@ export default function EditProfilePage() {
             </View>
           ))}
         </View>
+
+        {/* FILTRES - Visible pour TOUS (avec cadenas pour non-Business Pro) */}
+        <View style={{ position: 'relative' }}>
+          <View style={[{ opacity: userPlan === 'business_pro' ? 1 : 0.5 }]}>
+            <Text style={[styles.sectionLabel, { marginTop: 20 }]}>Filtres de recherche</Text>
+            <Text style={styles.filterInfo}>Personnalisez qui vous voulez rencontrer</Text>
+
+            {/* Âge */}
+            <Text style={[styles.sectionLabel, { marginTop: 16, marginBottom: 8 }]}>Âge: {ageMin} - {ageMax} ans</Text>
+            <View style={styles.rangeRow}>
+              <TextInput
+                editable={userPlan === 'business_pro'}
+                style={[styles.rangeInput, { flex: 1, marginRight: 8 }]}
+                value={ageMin}
+                onChangeText={(v) => { setAgeMin(v); isDirtyRef.current = true; triggerAutoSave({ firstName, age, bio, city, interests, skills, photos, ageMin: v, ageMax, distanceMin, distanceMax, desiredSkills }) }}
+                placeholder="15"
+                keyboardType="number-pad"
+              />
+              <TextInput
+                editable={userPlan === 'business_pro'}
+                style={[styles.rangeInput, { flex: 1 }]}
+                value={ageMax}
+                onChangeText={(v) => { setAgeMax(v); isDirtyRef.current = true; triggerAutoSave({ firstName, age, bio, city, interests, skills, photos, ageMin, ageMax: v, distanceMin, distanceMax, desiredSkills }) }}
+                placeholder="99"
+                keyboardType="number-pad"
+              />
+            </View>
+
+            {/* Distance */}
+            <Text style={[styles.sectionLabel, { marginTop: 16, marginBottom: 8 }]}>Localisation: {distanceMin} - {distanceMax === '1000' ? '∞' : distanceMax} km</Text>
+            <View style={styles.rangeRow}>
+              <TextInput
+                editable={userPlan === 'business_pro'}
+                style={[styles.rangeInput, { flex: 1, marginRight: 8 }]}
+                value={distanceMin}
+                onChangeText={(v) => { setDistanceMin(v); isDirtyRef.current = true; triggerAutoSave({ firstName, age, bio, city, interests, skills, photos, ageMin, ageMax, distanceMin: v, distanceMax, desiredSkills }) }}
+                placeholder="0"
+                keyboardType="number-pad"
+              />
+              <TextInput
+                editable={userPlan === 'business_pro'}
+                style={[styles.rangeInput, { flex: 1 }]}
+                value={distanceMax}
+                onChangeText={(v) => { setDistanceMax(v); isDirtyRef.current = true; triggerAutoSave({ firstName, age, bio, city, interests, skills, photos, ageMin, ageMax, distanceMin, distanceMax: v, desiredSkills }) }}
+                placeholder="1000"
+                keyboardType="number-pad"
+              />
+            </View>
+
+            {/* Compétences recherchées */}
+            <Text style={[styles.sectionLabel, { marginTop: 20 }]}>Compétences recherchées ({desiredSkills.length}/{MAX_SKILLS})</Text>
+            <View style={styles.bubblesRow}>
+              {BASE_SKILLS.filter(s => !desiredSkills.some(ds => ds.name === s)).map(skill => (
+                <TouchableOpacity
+                  key={skill}
+                  style={styles.bubbleSkill}
+                  onPress={() => { if (userPlan === 'business_pro') { setSelectedDesiredSkillName(skill); setSelectedDesiredSkillLevel(5); setShowDesiredSkillModal(true) } }}
+                  disabled={userPlan !== 'business_pro'}
+                >
+                  <Ionicons name="add-circle-outline" size={14} color="#aaa" />
+                  <Text style={styles.bubbleText}>{skill}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={styles.skillCards}>
+              {desiredSkills.map((skill, idx) => (
+                <View key={`desired-sk-${idx}`} style={styles.skillCard}>
+                  <View style={styles.skillCardHeader}>
+                    <Text style={styles.skillCardName}>{skill.name}</Text>
+                    <TouchableOpacity
+                      onPress={() => { if (userPlan === 'business_pro') removeDesiredSkill(idx) }}
+                      hitSlop={10}
+                      disabled={userPlan !== 'business_pro'}
+                    >
+                      <Ionicons name="close-circle" size={20} color={userPlan === 'business_pro' ? '#ef4444' : '#666'} />
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.levelLabel}>Niveau minimum: <Text style={styles.levelValue}>{skill.level}/10</Text></Text>
+                  <View style={styles.levelBtns}>
+                    {[1,2,3,4,5,6,7,8,9,10].map(lv => (
+                      <TouchableOpacity
+                        key={lv}
+                        style={[styles.levelBtn, skill.level === lv && styles.levelBtnOn]}
+                        onPress={() => { if (userPlan === 'business_pro') updateDesiredSkillLevel(idx, lv) }}
+                        disabled={userPlan !== 'business_pro'}
+                      >
+                        <Text style={[styles.levelBtnTxt, skill.level === lv && styles.levelBtnTxtOn]}>{lv}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <Text style={styles.levelDesc}>{LEVEL_LABELS[skill.level - 1]}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Cadenas + Bandeau pour non-Business Pro */}
+          {userPlan !== 'business_pro' && (
+            <View style={styles.filterLockedOverlay}>
+              <Ionicons name="lock-closed" size={32} color="#ffd700" />
+              <Text style={styles.filterLockedText}>Filtres avancés</Text>
+              <Text style={styles.filterLockedSubtext}>Réservé aux Business Pro</Text>
+              <TouchableOpacity style={styles.filterUnlockBtn} onPress={() => router.push('/settings' as any)}>
+                <Text style={styles.filterUnlockBtnText}>Découvrir Business Pro</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       </ScrollView>
 
       {/* Modal compétence */}
@@ -585,6 +765,37 @@ export default function EditProfilePage() {
                 </View>
                 <Text style={[styles.levelDesc, { marginBottom: 20 }]}>{LEVEL_LABELS[selectedSkillLevel - 1]}</Text>
                 <TouchableOpacity style={styles.confirmBtn} onPress={addSkill}>
+                  <Text style={styles.confirmBtnTxt}>Ajouter</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal compétence recherchée (Business Pro) */}
+      <Modal visible={showDesiredSkillModal} transparent animationType="slide" onRequestClose={() => setShowDesiredSkillModal(false)}>
+        <View style={styles.modalBg}>
+          <View style={styles.modalBox}>
+            <View style={styles.modalTop}>
+              <Text style={styles.modalTitle}>Compétence recherchée</Text>
+              <TouchableOpacity onPress={() => setShowDesiredSkillModal(false)} hitSlop={12}>
+                <Ionicons name="close" size={24} color="#fff" />
+              </TouchableOpacity>
+            </View>
+            {selectedDesiredSkillName && (
+              <>
+                <Text style={styles.modalSkillName}>{selectedDesiredSkillName}</Text>
+                <Text style={styles.levelLabel}>Niveau minimum : <Text style={styles.levelValue}>{selectedDesiredSkillLevel}/10</Text></Text>
+                <View style={[styles.levelBtns, { marginTop: 12 }]}>
+                  {[1,2,3,4,5,6,7,8,9,10].map(lv => (
+                    <TouchableOpacity key={lv} style={[styles.levelBtn, selectedDesiredSkillLevel === lv && styles.levelBtnOn]} onPress={() => setSelectedDesiredSkillLevel(lv)}>
+                      <Text style={[styles.levelBtnTxt, selectedDesiredSkillLevel === lv && styles.levelBtnTxtOn]}>{lv}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <Text style={[styles.levelDesc, { marginBottom: 20 }]}>{LEVEL_LABELS[selectedDesiredSkillLevel - 1]}</Text>
+                <TouchableOpacity style={styles.confirmBtn} onPress={addDesiredSkill}>
                   <Text style={styles.confirmBtnTxt}>Ajouter</Text>
                 </TouchableOpacity>
               </>
@@ -649,6 +860,25 @@ const styles = StyleSheet.create({
   levelBtnTxt: { color: '#888', fontSize: 10, fontWeight: '700' },
   levelBtnTxtOn: { color: '#000' },
   levelDesc: { color: '#666', fontSize: 12 },
+  filterInfo: { color: '#ffffff66', fontSize: 13, marginBottom: 12 },
+  rangeRow: { flexDirection: 'row', marginBottom: 12, gap: 8 },
+  rangeInput: { flex: 1, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a', borderRadius: 8, color: '#fff', fontSize: 14 },
+  filterLockedOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+    paddingHorizontal: 20,
+  },
+  filterLockedText: { color: '#ffd700', fontSize: 16, fontWeight: '700', marginTop: 12 },
+  filterLockedSubtext: { color: '#ffffff88', fontSize: 13, marginTop: 6, textAlign: 'center' },
+  filterUnlockBtn: { backgroundColor: '#ffd700', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 8, marginTop: 16 },
+  filterUnlockBtnText: { color: '#000', fontWeight: '700', fontSize: 13 },
   modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
   modalBox: { backgroundColor: '#141414', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 36, borderTopWidth: 1, borderColor: '#2a2a2a' },
   modalTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },

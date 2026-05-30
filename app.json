@@ -3,7 +3,7 @@
     "name": "PAKT",
     "slug": "pakt",
     "version": "1.0.0",
-    "sdkVersion": "54.0.0",
+    "sdkVersion": "52.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -21,7 +21,8 @@
         "NSCameraUsageDescription": "PAKT a besoin de la camera pour prendre des photos de profil.",
         "NSPhotoLibraryUsageDescription": "PAKT a besoin d'acceder a tes photos pour ton profil.",
         "NSLocationWhenInUseUsageDescription": "PAKT utilise ta position pour trouver des personnes pres de toi.",
-        "NSMicrophoneUsageDescription": "PAKT a besoin du micro pour envoyer des messages vocaux."
+        "NSMicrophoneUsageDescription": "PAKT a besoin du micro pour envoyer des messages vocaux.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -40,7 +41,9 @@
       "expo-router",
       "expo-font",
       "expo-image-picker",
-      "expo-location"
+      "expo-location",
+      "expo-asset",
+      "expo-av"
     ],
     "experiments": {
       "typedRoutes": true

@@ -102,17 +102,23 @@ export default function MessagesPage() {
                     <Text style={styles.conversationName} numberOfLines={1}>
                       {conv.participant?.first_name || 'Utilisateur'}, {conv.participant?.age}
                     </Text>
-                    <Text style={styles.messageTime}>
-                      {conv.updated_at
-                        ? new Date(conv.updated_at).toLocaleDateString('fr-FR', {
-                            month: 'short',
-                            day: 'numeric',
-                          })
-                        : '-'}
-                    </Text>
+                    {(conv as any).unreadCount > 0 ? (
+                      <View style={styles.unreadBadge}>
+                        <Text style={styles.unreadBadgeText}>{(conv as any).unreadCount}</Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.messageTime}>
+                        {conv.updated_at
+                          ? new Date(conv.updated_at).toLocaleDateString('fr-FR', {
+                              month: 'short',
+                              day: 'numeric',
+                            })
+                          : '-'}
+                      </Text>
+                    )}
                   </View>
                   <Text style={styles.lastMessage} numberOfLines={1}>
-                    {conv.last_message || 'Aucun message'}
+                    {(conv.last_message?.replace('[ENC]', '') || 'Aucun message')}
                   </Text>
                 </View>
 
@@ -225,5 +231,22 @@ const styles = StyleSheet.create({
   /* More Button */
   moreButtonMessages: {
     padding: 8,
+  },
+
+  /* Unread Badge */
+  unreadBadge: {
+    backgroundColor: '#ff6b6b',
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    marginLeft: 8,
+  },
+  unreadBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
   },
 })

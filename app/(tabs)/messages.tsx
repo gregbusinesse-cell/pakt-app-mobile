@@ -17,6 +17,7 @@ import { Colors } from '@/constants/theme';
 import { formatTime, normalizePlan, canChat, cleanPhotoUrls, isPaidPlan } from '@/lib/utils';
 import { mockConversations, mockProfiles, mockMessages } from '@/lib/mock-data';
 import { USE_MOCK_DATA } from '@/lib/config';
+import { supabase } from '@/lib/supabase/client';
 import type { Profile } from '@/lib/types';
 
 interface ConversationItem {

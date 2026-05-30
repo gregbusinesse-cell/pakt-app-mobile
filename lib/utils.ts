@@ -104,6 +104,13 @@ export function formatTime(dateString: string): string {
   return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 }
 
+export function formatExactTime(dateString: string): string {
+  const date = new Date(dateString);
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+
 export function cleanPhotoUrls(photos: unknown): string[] {
   const arr = (() => {
     if (Array.isArray(photos)) return photos;

@@ -23,6 +23,7 @@ export interface Profile {
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   subscription_status: string | null;
+  subscription_plan: 'free' | 'business' | 'business_pro' | null;
   swipes_today: number;
   messages_today: number;
   likes_today: number;
@@ -58,8 +59,6 @@ export interface Conversation {
   user1_id: string;
   user2_id: string;
   match_id: string | null;
-  participant1_id: string | null;
-  participant2_id: string | null;
   last_message: string | null;
   last_message_at: string | null;
   created_at: string;

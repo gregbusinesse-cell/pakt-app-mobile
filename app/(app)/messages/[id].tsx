@@ -7,17 +7,27 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  SafeAreaView,
   Platform,
   Alert,
   Modal,
+  PanResponder,
+  GestureResponderEvent,
 } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import * as ImagePicker from 'expo-image-picker'
+import { Audio } from 'expo-av'
 import { supabase } from '@/lib/supabase/client'
+
+// Audio recording is only available on native platforms, not on web
+const IS_WEB = Platform.OS === 'web'
 import { ProfileImage } from '@/components/ProfileImage'
 import { useOnlineStatus } from '@/lib/hooks/useOnlineStatus'
 import { useActivityTracker } from '@/lib/hooks/useActivityTracker'
+import { refreshNotificationCount } from '@/lib/hooks/useNotificationCount'
+import { reloadConversationsList } from '@/lib/hooks/useConversations'
+import { formatExactTime } from '@/lib/utils'
 import type { Database } from '@/lib/supabase/types'
 
 type Profile = Database['public']['Tables']['profiles']['Row']
@@ -50,14 +60,57 @@ export default function ChatDetailPage() {
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set())
   const [showMoreMenu, setShowMoreMenu] = useState(false)
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null)
+  // Encouragement modal states
+  const [showEncouragementModal, setShowEncouragementModal] = useState(false)
+  const [sendingEncouragement, setSendingEncouragement] = useState(false)
+
+  // Image selection state
+  const [selectedImage, setSelectedImage] = useState<{ uri: string; name: string } | null>(null)
+  const [showMediaMenu, setShowMediaMenu] = useState(false)
+
+  // Audio recording state
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordingDuration, setRecordingDuration] = useState(0)
+  const [recordedAudio, setRecordedAudio] = useState<{ uri: string; duration: number } | null>(null)
+
   const scrollViewRef = useRef<ScrollView>(null)
+  const recordingRef = useRef<Audio.Recording | null>(null)
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const { isOnline, statusText } = useOnlineStatus(participant?.id || null)
 
   // Track activity
   useActivityTracker()
 
-  const canSendMessage = currentUser?.subscription_plan !== 'free' && !isBlocked && !isBlockedByOther
+  // Permission states - 3 cases:
+  // 1. currentUser is free → cannot send anything (must upgrade)
+  // 2. currentUser is business+ AND participant is free → can only send encouragement
+  // 3. both are business+ → can send normal messages
+  const getUserPlan = (profile: Profile | null) => {
+    if (!profile) return 'free'
+    // Check subscription_plan first (newer field), fallback to plan (older field)
+    return profile.subscription_plan || profile.plan || 'free'
+  }
+
+  const isCurrentUserFree = getUserPlan(currentUser) === 'free'
+  const isParticipantFree = getUserPlan(participant) === 'free'
+  const canSendNormalMessage = !isCurrentUserFree && !isParticipantFree && !isBlocked && !isBlockedByOther
+  const canSendEncouragement = !isCurrentUserFree && isParticipantFree && !isBlocked && !isBlockedByOther
+  const canSendMessage = canSendNormalMessage
+
+  // Debug permission states
+  useEffect(() => {
+    console.log('Permission states:', {
+      currentUserPlan: getUserPlan(currentUser),
+      participantPlan: getUserPlan(participant),
+      isCurrentUserFree,
+      isParticipantFree,
+      canSendNormalMessage,
+      canSendEncouragement,
+      isBlocked,
+      isBlockedByOther,
+    })
+  }, [currentUser, participant, isBlocked, isBlockedByOther])
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     const id = Math.random().toString()
@@ -94,6 +147,14 @@ export default function ChatDetailPage() {
           .select('*')
           .eq('id', session.user.id)
           .single()
+
+        // Debug: Log profile data to see subscription_plan field
+        console.log('Current user profile:', {
+          id: userProfile?.id,
+          email: userProfile?.email,
+          subscription_plan: userProfile?.subscription_plan,
+          plan: (userProfile as any)?.plan,
+        })
 
         setCurrentUser(userProfile)
 
@@ -133,11 +194,49 @@ export default function ChatDetailPage() {
         await fetchMessages(conversationId)
 
         // Mark messages as read
-        await supabase
+        const { error: readError } = await supabase
           .from('messages')
           .update({ is_read: true })
           .eq('conversation_id', conversationId)
           .neq('sender_id', session.user.id)
+
+        if (readError) {
+          console.error('[CHAT] Error marking messages as read:', readError)
+        } else {
+          console.log('[CHAT] Messages marked as read for conversation:', conversationId)
+
+          // Verify messages are marked as read, then reload
+          const verifyAndReload = async () => {
+            try {
+              // Wait for Supabase to replicate
+              await new Promise(resolve => setTimeout(resolve, 1000))
+
+              // Verify that messages are actually marked as read
+              const { count: unreadCount } = await supabase
+                .from('messages')
+                .select('id', { count: 'exact', head: true })
+                .eq('conversation_id', conversationId)
+                .neq('sender_id', session.user.id)
+                .eq('is_read', false)
+
+              console.log('[CHAT] Unread messages after mark-as-read:', unreadCount)
+
+              if (unreadCount === 0) {
+                console.log('[CHAT] All messages are read. Refreshing notification count and conversations list')
+                refreshNotificationCount(session.user.id)
+                reloadConversationsList()
+              } else {
+                console.warn('[CHAT] Some messages are still unread, retrying...')
+                // Retry after another delay
+                setTimeout(verifyAndReload, 500)
+              }
+            } catch (err) {
+              console.error('[CHAT] Error verifying messages:', err)
+            }
+          }
+
+          verifyAndReload()
+        }
       } catch (err) {
         console.error('Error loading chat:', err)
       } finally {
@@ -220,7 +319,7 @@ export default function ChatDetailPage() {
     if (!messageText.trim() || !currentUser) return
 
     // Check permissions
-    if (currentUser.subscription_plan === 'free') {
+    if (isCurrentUserFree) {
       showToast('Les utilisateurs gratuits ne peuvent pas envoyer de messages', 'error')
       Alert.alert(
         'Fonctionnalité Premium',
@@ -256,7 +355,6 @@ export default function ChatDetailPage() {
       if (error) throw error
 
       setMessageText('')
-      showToast('Message envoyé', 'success')
       await fetchMessages(conversationId)
     } catch (err) {
       console.error('Error sending message:', err)
@@ -264,6 +362,92 @@ export default function ChatDetailPage() {
     } finally {
       setSending(false)
     }
+  }
+
+  const handleSendEncouragement = async () => {
+    if (!currentUser || !participant) return
+    if (!canSendEncouragement) return
+
+    setSendingEncouragement(true)
+
+    try {
+      // Check if user has sent an encouragement in the last 24 hours
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+      const { data: recentEncouragement, error: checkError } = await supabase
+        .from('encouragements')
+        .select('id')
+        .eq('sender_id', currentUser.id)
+        .eq('target_id', participant.id)
+        .gte('created_at', oneDayAgo)
+        .maybeSingle()
+
+      if (checkError) throw checkError
+
+      if (recentEncouragement) {
+        showToast('Vous avez déjà envoyé un encouragement à cette personne aujourd\'hui', 'error')
+        setShowEncouragementModal(false)
+        setSendingEncouragement(false)
+        return
+      }
+
+      // Send automatic encouragement message with [ENC] prefix to identify it
+      // This is a pre-defined message, not personalized to avoid security issues
+      const encouragementMessage = `Rejoins Business pour qu'on puisse discuter ensemble !`
+
+      // 1. Insert into encouragements table
+      const { error: encError } = await supabase
+        .from('encouragements')
+        .insert({
+          conversation_id: conversationId,
+          sender_id: currentUser.id,
+          target_id: participant.id,
+          message: encouragementMessage,
+        })
+
+      if (encError) {
+        console.error('Encouragement insert error:', encError)
+        throw encError
+      }
+
+      // 2. Insert message into messages table
+      const messageContent = `[ENC]${encouragementMessage}`
+      console.log('Inserting encouragement message:', {
+        conversation_id: conversationId,
+        sender_id: currentUser.id,
+        content: messageContent,
+      })
+
+      const { error: msgError } = await supabase.from('messages').insert({
+        conversation_id: conversationId,
+        sender_id: currentUser.id,
+        content: messageContent,
+        message_type: 'text',
+      })
+
+      if (msgError) {
+        console.error('Message insert error:', msgError)
+        throw msgError
+      }
+      console.log('Message inserted successfully')
+
+      showToast('Encouragement envoyé !', 'success')
+      setShowEncouragementModal(false)
+      await fetchMessages(conversationId)
+    } catch (err) {
+      console.error('Error sending encouragement:', err)
+      showToast('Erreur lors de l\'envoi de l\'encouragement', 'error')
+      setShowEncouragementModal(false)
+    } finally {
+      setSendingEncouragement(false)
+    }
+  }
+
+  const openEncouragementModal = () => {
+    setShowEncouragementModal(true)
+  }
+
+  const closeEncouragementModal = () => {
+    setShowEncouragementModal(false)
   }
 
   const formatTime = (timestamp: string) => {
@@ -393,6 +577,208 @@ export default function ChatDetailPage() {
     )
   }
 
+  // ─── Image Selection Functions ───
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        aspect: [4, 3],
+        quality: 0.8,
+      })
+
+      if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0]
+        setSelectedImage({
+          uri: asset.uri,
+          name: asset.fileName || `photo_${Date.now()}.jpg`,
+        })
+        setShowMediaMenu(false)
+      }
+    } catch (err) {
+      console.error('Error picking image:', err)
+      showToast('Erreur lors de la sélection de l\'image', 'error')
+    }
+  }
+
+  const sendSelectedImage = async () => {
+    if (!selectedImage || !conversationId || !currentUser?.id) return
+
+    try {
+      setSending(true)
+
+      const imageBuffer = await fetch(selectedImage.uri).then(res => res.blob())
+      const fileName = `img_${Date.now()}_${selectedImage.name}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('message_attachments')
+        .upload(`images/${conversationId}/${fileName}`, imageBuffer)
+
+      if (uploadError) throw uploadError
+
+      const { data: urlData } = supabase.storage
+        .from('message_attachments')
+        .getPublicUrl(`images/${conversationId}/${fileName}`)
+
+      await supabase.from('messages').insert({
+        conversation_id: conversationId,
+        sender_id: currentUser.id,
+        content: '[IMAGE]',
+        message_type: 'image',
+        file_url: urlData.publicUrl,
+        file_name: selectedImage.name,
+      })
+
+      setSelectedImage(null)
+      await fetchMessages(conversationId)
+    } catch (err) {
+      console.error('Error sending image:', err)
+      showToast('Erreur lors de l\'envoi de l\'image', 'error')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  // ─── Audio Recording Functions ───
+  const startRecording = async () => {
+    try {
+      // Prevent double-start
+      if (recordingRef.current || isRecording) {
+        console.log('[REC] Already recording, ignoring')
+        return
+      }
+
+      console.log('[REC] Starting recording...')
+
+      // Show UI feedback immediately
+      setRecordingDuration(0)
+      setIsRecording(true)
+
+      const { granted } = await Audio.requestPermissionsAsync()
+      if (!granted) {
+        showToast('Permission d\'accès au microphone refusée', 'error')
+        setIsRecording(false)
+        return
+      }
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      })
+
+      const recording = new Audio.Recording()
+      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY)
+      await recording.startAsync()
+
+      recordingRef.current = recording
+      console.log('[REC] Recording started successfully')
+
+      // Start timer now that recording is actually running
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1)
+      }, 1000)
+    } catch (err) {
+      console.error('[REC] Error starting recording:', err)
+      showToast('Erreur micro: ' + (err instanceof Error ? err.message : 'Inconnu'), 'error')
+      setIsRecording(false)
+      setRecordingDuration(0)
+      // Clean up any partial recording
+      if (recordingRef.current) {
+        try {
+          await recordingRef.current.stopAndUnloadAsync()
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+        recordingRef.current = null
+      }
+    }
+  }
+
+  const stopRecording = async () => {
+    try {
+      console.log('[REC] Stopping recording...')
+
+      // Clear timer first
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current)
+        recordingTimerRef.current = null
+      }
+
+      if (!recordingRef.current) {
+        console.log('[REC] No active recording to stop')
+        setIsRecording(false)
+        return
+      }
+
+      const recordingToStop = recordingRef.current
+      recordingRef.current = null
+      setIsRecording(false)
+
+      const status = await recordingToStop.stopAndUnloadAsync()
+      const uri = recordingToStop.getURI() || ''
+      const duration = Math.floor((status.durationMillis || 0) / 1000)
+
+      console.log('[REC] Recording stopped, duration:', duration, 'uri:', uri)
+
+      if (uri && duration > 0) {
+        setRecordedAudio({ uri, duration })
+      } else {
+        showToast('Enregistrement trop court', 'error')
+        setRecordingDuration(0)
+      }
+    } catch (err) {
+      console.error('[REC] Error stopping recording:', err)
+      showToast('Erreur arrêt: ' + (err instanceof Error ? err.message : 'Inconnu'), 'error')
+      setIsRecording(false)
+      setRecordingDuration(0)
+      recordingRef.current = null
+    }
+  }
+
+  const sendRecordedAudio = async () => {
+    if (!recordedAudio || !conversationId || !currentUser?.id) return
+
+    try {
+      setSending(true)
+
+      const audioBuffer = await fetch(recordedAudio.uri).then(res => res.blob())
+      const fileName = `audio_${Date.now()}.m4a`
+
+      const { error: uploadError } = await supabase.storage
+        .from('message_attachments')
+        .upload(`audio/${conversationId}/${fileName}`, audioBuffer)
+
+      if (uploadError) throw uploadError
+
+      const { data: urlData } = supabase.storage
+        .from('message_attachments')
+        .getPublicUrl(`audio/${conversationId}/${fileName}`)
+
+      await supabase.from('messages').insert({
+        conversation_id: conversationId,
+        sender_id: currentUser.id,
+        content: `[AUDIO ${recordedAudio.duration}s]`,
+        message_type: 'audio',
+        file_url: urlData.publicUrl,
+        file_name: fileName,
+      })
+
+      setRecordedAudio(null)
+      setRecordingDuration(0)
+      await fetchMessages(conversationId)
+    } catch (err) {
+      console.error('Error sending audio:', err)
+      showToast('Erreur lors de l\'envoi du message vocal', 'error')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const cancelRecordedAudio = () => {
+    setRecordedAudio(null)
+    setRecordingDuration(0)
+  }
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -505,6 +891,8 @@ export default function ChatDetailPage() {
             const showAvatar =
               idx === messages.length - 1 ||
               messages[idx + 1]?.sender_id !== msg.sender_id
+            const isEncouragement = msg.content?.startsWith('[ENC]')
+            const displayContent = isEncouragement ? msg.content!.replace('[ENC]', '') : msg.content
 
             return (
               <View key={msg.id} style={[styles.messageRow, isOwn && styles.messageRowOwn]}>
@@ -526,32 +914,21 @@ export default function ChatDetailPage() {
                   style={[
                     styles.messageBubble,
                     isOwn ? styles.messageBubbleOwn : styles.messageBubbleOther,
+                    isEncouragement && !isOwn && styles.messageBubbleEncouragement,
                   ]}
                 >
+                  {isEncouragement && !isOwn && (
+                    <View style={styles.encouragementBadge}>
+                      <Text style={styles.encouragementBadgeText}>Encouragement</Text>
+                    </View>
+                  )}
                   <Text style={[styles.messageText, isOwn && styles.messageTextOwn]}>
-                    {msg.content}
+                    {displayContent}
                   </Text>
                   <View style={styles.messageFooter}>
                     <Text style={[styles.messageTime, isOwn && styles.messageTimeOwn]}>
-                      {formatTime(msg.created_at)}
+                      {formatExactTime(msg.created_at)}
                     </Text>
-                    {isOwn && (
-                      <View style={styles.statusIndicator}>
-                        {msg.is_read ? (
-                          <>
-                            <Ionicons
-                              name="checkmark"
-                              size={12}
-                              color="#ffd700"
-                              style={{ marginRight: 2 }}
-                            />
-                            <Ionicons name="checkmark" size={12} color="#ffd700" />
-                          </>
-                        ) : (
-                          <Ionicons name="checkmark" size={12} color="#ffffff66" />
-                        )}
-                      </View>
-                    )}
                   </View>
                 </View>
 
@@ -564,66 +941,234 @@ export default function ChatDetailPage() {
 
       {/* Input */}
       <View style={styles.inputSection}>
-        {!canSendMessage ? (
+        {isBlocked ? (
           <View style={styles.restrictedMessageBox}>
-            {currentUser?.subscription_plan === 'free' ? (
-              <>
-                <Ionicons name="lock-closed" size={20} color="#ff9800" />
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={styles.restrictedTitle}>Messagerie Premium</Text>
-                  <Text style={styles.restrictedText}>
-                    Passez à Business pour envoyer des messages
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  onPress={() => router.push('/settings' as any)}
-                  style={styles.upgradeButton}
-                >
-                  <Text style={styles.upgradeButtonText}>Upgrader</Text>
-                </TouchableOpacity>
-              </>
-            ) : isBlocked ? (
-              <>
-                <Ionicons name="warning" size={20} color="#ff4444" />
-                <Text style={[styles.restrictedText, { marginLeft: 12 }]}>
-                  Vous avez bloqué cet utilisateur
-                </Text>
-              </>
-            ) : (
-              <>
-                <Ionicons name="warning" size={20} color="#ff4444" />
-                <Text style={[styles.restrictedText, { marginLeft: 12 }]}>
-                  Cet utilisateur vous a bloqué
-                </Text>
-              </>
-            )}
+            <Ionicons name="warning" size={20} color="#ff4444" />
+            <Text style={[styles.restrictedText, { marginLeft: 12 }]}>
+              Vous avez bloqué cet utilisateur
+            </Text>
+          </View>
+        ) : isBlockedByOther ? (
+          <View style={styles.restrictedMessageBox}>
+            <Ionicons name="warning" size={20} color="#ff4444" />
+            <Text style={[styles.restrictedText, { marginLeft: 12 }]}>
+              Cet utilisateur vous a bloqué
+            </Text>
+          </View>
+        ) : isCurrentUserFree ? (
+          // Cas 1: User est free → ne peut rien envoyer, doit upgrader
+          <View style={styles.restrictedMessageBox}>
+            <Ionicons name="lock-closed" size={20} color="#ff9800" />
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={styles.restrictedTitle}>Messagerie Premium</Text>
+              <Text style={styles.restrictedText}>
+                Passez à Business pour envoyer des messages
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => router.push('/settings' as any)}
+              style={styles.upgradeButton}
+            >
+              <Text style={styles.upgradeButtonText}>Upgrader</Text>
+            </TouchableOpacity>
+          </View>
+        ) : canSendEncouragement ? (
+          // Cas 2: User est business+ et participant est free → peut envoyer un encouragement
+          <View style={styles.encouragementBox}>
+            <View style={styles.encouragementInfo}>
+              <Ionicons name="star" size={20} color="#ffd700" />
+              <Text style={styles.encouragementInfoText}>
+                {participant?.first_name} n'a pas le plan Business
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.encouragementButton}
+              onPress={openEncouragementModal}
+            >
+              <Text style={styles.encouragementButtonText}>Envoyer un encouragement</Text>
+            </TouchableOpacity>
           </View>
         ) : (
+          // Cas 3: Les deux sont business+ → input normal
           <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Écrire un message..."
-              placeholderTextColor="#ffffff44"
-              value={messageText}
-              onChangeText={setMessageText}
-              multiline
-              maxLength={500}
-              editable={!sending}
-            />
-            <TouchableOpacity
-              style={[styles.sendButton, (!messageText.trim() || sending) && styles.sendButtonDisabled]}
-              onPress={handleSendMessage}
-              disabled={!messageText.trim() || sending}
-            >
-              {sending ? (
-                <ActivityIndicator size="small" color="#000" />
-              ) : (
-                <Ionicons name="send" size={18} color="#000" />
+            {/* Image Selection Preview */}
+            {selectedImage && (
+              <View style={styles.imagePreviewContainer}>
+                <View style={styles.imagePreviewContent}>
+                  <Ionicons name="image" size={20} color="#4ade80" />
+                  <Text style={styles.imagePreviewText}>{selectedImage.name}</Text>
+                </View>
+                <View style={styles.imagePreviewActions}>
+                  <TouchableOpacity
+                    onPress={() => setSelectedImage(null)}
+                    style={styles.imagePreviewButton}
+                  >
+                    <Ionicons name="close" size={18} color="#ff4444" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={sendSelectedImage}
+                    disabled={sending}
+                    style={[styles.imagePreviewButton, { backgroundColor: '#4ade80' }]}
+                  >
+                    {sending ? (
+                      <ActivityIndicator size="small" color="#000" />
+                    ) : (
+                      <Ionicons name="checkmark" size={18} color="#000" />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* Audio Preview */}
+            {recordedAudio && (
+              <View style={styles.audioPreviewContainer}>
+                <View style={styles.audioPreviewContent}>
+                  <Ionicons name="musical-notes" size={20} color="#ffd700" />
+                  <Text style={styles.audioPreviewText}>
+                    Message vocal ({recordedAudio.duration}s)
+                  </Text>
+                </View>
+                <View style={styles.audioPreviewActions}>
+                  <TouchableOpacity
+                    onPress={cancelRecordedAudio}
+                    style={styles.audioPreviewButton}
+                  >
+                    <Ionicons name="close" size={18} color="#ff4444" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={sendRecordedAudio}
+                    disabled={sending}
+                    style={[styles.audioPreviewButton, { backgroundColor: '#ffd700' }]}
+                  >
+                    {sending ? (
+                      <ActivityIndicator size="small" color="#000" />
+                    ) : (
+                      <Ionicons name="checkmark" size={18} color="#000" />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* Recording Timer */}
+            {isRecording && (
+              <View style={styles.recordingContainer}>
+                <View style={styles.recordingDot} />
+                <Text style={styles.recordingText}>
+                  {String(Math.floor(recordingDuration / 60)).padStart(2, '0')}:{String(recordingDuration % 60).padStart(2, '0')}
+                </Text>
+              </View>
+            )}
+
+            {/* Input Row */}
+            <View style={styles.inputRow}>
+              {/* Photo Button */}
+              <TouchableOpacity
+                onPress={pickImage}
+                disabled={sending || !!selectedImage || isRecording}
+                style={styles.photoButton}
+              >
+                <Ionicons name="image" size={22} color={sending || !!selectedImage || isRecording ? '#ffffff44' : '#4ade80'} />
+              </TouchableOpacity>
+
+              {/* Text Input */}
+              <TextInput
+                style={styles.input}
+                placeholder="Écrire un message..."
+                placeholderTextColor="#ffffff44"
+                value={messageText}
+                onChangeText={setMessageText}
+                multiline
+                maxLength={500}
+                editable={!sending && !isRecording}
+              />
+
+              {/* Toggle Microphone Button (click to start, click to stop) */}
+              <TouchableOpacity
+                style={[
+                  styles.micButton,
+                  isRecording && styles.micButtonRecording,
+                ]}
+                onPress={() => {
+                  if (isRecording) {
+                    stopRecording()
+                  } else {
+                    startRecording()
+                  }
+                }}
+                disabled={sending || !!recordedAudio}
+              >
+                <Ionicons
+                  name={isRecording ? 'stop' : 'mic-outline'}
+                  size={20}
+                  color={isRecording ? '#fff' : '#ffd700'}
+                />
+              </TouchableOpacity>
+
+              {/* Send Text Button */}
+              {messageText.trim() && !recordedAudio && (
+                <TouchableOpacity
+                  style={[styles.sendButton, sending && styles.sendButtonDisabled]}
+                  onPress={handleSendMessage}
+                  disabled={sending}
+                >
+                  {sending ? (
+                    <ActivityIndicator size="small" color="#000" />
+                  ) : (
+                    <Ionicons name="send" size={18} color="#000" />
+                  )}
+                </TouchableOpacity>
               )}
-            </TouchableOpacity>
+            </View>
           </View>
         )}
       </View>
+
+      {/* Encouragement Modal */}
+      <Modal
+        visible={showEncouragementModal}
+        transparent
+        animationType="fade"
+        onRequestClose={closeEncouragementModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalIconContainer}>
+              <Ionicons name="star" size={36} color="#ffd700" />
+            </View>
+            <Text style={styles.modalTitle}>Envoyer un encouragement ?</Text>
+            <Text style={styles.modalDescription}>
+              Un encouragement est un message qui invite {participant?.first_name} à passer au plan Business pour pouvoir discuter avec vous.{'\n\n'}
+              Le destinataire pourra lire votre message mais devra prendre le plan Business pour vous répondre.
+            </Text>
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSecondary]}
+                onPress={closeEncouragementModal}
+                disabled={sendingEncouragement}
+              >
+                <Text style={styles.modalButtonSecondaryText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.modalButton,
+                  styles.modalButtonPrimary,
+                  sendingEncouragement && styles.modalButtonDisabled
+                ]}
+                onPress={handleSendEncouragement}
+                disabled={sendingEncouragement}
+              >
+                {sendingEncouragement ? (
+                  <ActivityIndicator size="small" color="#000" />
+                ) : (
+                  <Text style={styles.modalButtonPrimaryText}>Envoyer</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Toasts */}
       <View style={styles.toastContainer}>
@@ -939,5 +1484,276 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     flex: 1,
+  },
+
+  // Encouragement styles
+  encouragementBox: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 12,
+    padding: 16,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.2)',
+  },
+  encouragementInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  encouragementInfoText: {
+    color: '#ffffff99',
+    fontSize: 13,
+    flex: 1,
+  },
+  encouragementButton: {
+    backgroundColor: '#ffd700',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 24,
+  },
+  encouragementButtonText: {
+    color: '#000',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+
+  // Encouragement message bubble
+  messageBubbleEncouragement: {
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.4)',
+    backgroundColor: 'rgba(255,215,0,0.05)',
+  },
+  encouragementBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 6,
+    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,215,0,0.2)',
+  },
+  encouragementBadgeText: {
+    color: '#ffd700',
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 420,
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.2)',
+  },
+  modalIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(255,215,0,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  modalDescription: {
+    color: '#ffffffbb',
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  modalTextInput: {
+    backgroundColor: '#0a0a0a',
+    borderRadius: 12,
+    padding: 14,
+    color: '#fff',
+    fontSize: 14,
+    minHeight: 100,
+    textAlignVertical: 'top',
+    borderWidth: 1,
+    borderColor: '#333',
+    marginBottom: 4,
+  },
+  modalCharCount: {
+    color: '#ffffff66',
+    fontSize: 11,
+    textAlign: 'right',
+    marginBottom: 16,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalButtonPrimary: {
+    backgroundColor: '#ffd700',
+  },
+  modalButtonSecondary: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  modalButtonDisabled: {
+    opacity: 0.5,
+  },
+  modalButtonPrimaryText: {
+    color: '#000',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  modalButtonSecondaryText: {
+    color: '#ffffffaa',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+
+  // Image and Media Styles
+  imagePreviewContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#1a2a1a',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#4ade80',
+  },
+  imagePreviewContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  imagePreviewText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  imagePreviewActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  imagePreviewButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#ffffff11',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+  },
+  photoButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Audio Recording Styles
+  recordingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  recordingDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#ff4444',
+  },
+  recordingText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  audioPreviewContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#1a2a1a',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#ffd700',
+  },
+  audioPreviewContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  audioPreviewText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  audioPreviewActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  audioPreviewButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#ffffff11',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  micButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#ffffff11',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  micButtonRecording: {
+    backgroundColor: '#ff4444',
   },
 })
