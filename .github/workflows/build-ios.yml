@@ -20,14 +20,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Prebuild iOS
-        run: npx expo prebuild --clean --platform ios
-
-      - name: Build iOS with Gradle (local)
-        run: cd ios && xcodebuild -workspace pakt.xcworkspace -scheme pakt -configuration Release -derivedDataPath build
+      - name: Build iOS (local)
+        run: eas build --local --platform ios --profile preview
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: pakt.ipa
-          path: ios/build/Build/Products/Release-iphoneos/pakt.app
+          path: dist
