@@ -54,7 +54,9 @@
       },
       "eas": {
         "projectId": "9f4670fe-2401-4e85-905f-38368ff7edca"
-      }
+      },
+      "supabaseUrl": "https://cpgnczuqhwdoalgyezvr.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY"
     }
   }
 }
