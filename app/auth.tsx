@@ -141,7 +141,7 @@ export default function AuthPage() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.logo}>PAKTI</Text>
+          <Text style={styles.logo}>PAKT</Text>
           <Text style={styles.tagline}>Le Tinder du Business</Text>
         </View>
 
