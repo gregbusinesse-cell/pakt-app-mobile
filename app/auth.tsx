@@ -73,6 +73,25 @@ export default function AuthPage() {
       if (mode === 'signup') {
         const { error } = await supabase.auth.signUp({ email, password })
         if (error) throw error
+
+        // Call Edge Function to send confirmation email
+        try {
+          console.log('[AUTH] Calling send-confirmation-email function...')
+          const { data, error: funcError } = await supabase.functions.invoke('send-confirmation-email', {
+            body: { email },
+          })
+
+          if (funcError) {
+            console.error('[AUTH] Email function error:', funcError)
+            // Still show success - email may be queued
+          } else {
+            console.log('[AUTH] Confirmation email sent:', data)
+          }
+        } catch (emailErr) {
+          console.error('[AUTH] Email function call failed:', emailErr)
+          // Don't fail signup if email fails
+        }
+
         Alert.alert('Succès', 'Compte créé ! Vérifie ton email pour confirmer')
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
