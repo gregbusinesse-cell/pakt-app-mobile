@@ -32,4 +32,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pakt.ipa
-          path: dist
+          path: "**/*.ipa"
+          if-no-files-found: warn
