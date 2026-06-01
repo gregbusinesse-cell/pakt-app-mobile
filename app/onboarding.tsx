@@ -25,12 +25,14 @@ import type { UserSkill } from '@/lib/types'
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
 const TOTAL_STEPS = 6
-const GOOGLE_MAPS_KEY = 'AIzaSyBMC-UnCf0WOhdERUA1nOHgYLveNaTISps'
+// Using OpenStreetMap Nominatim - free, no API key needed, works on Android
 const MAX_INTERESTS = 5
 
 type CityResult = {
   place_id: string
   description: string
+  lat: number
+  lng: number
 }
 
 export default function OnboardingPage() {
@@ -141,7 +143,7 @@ export default function OnboardingPage() {
     setOtherInput('')
   }
 
-  // ─── City Search ─────────────────────────────────────────────────────────────
+  // ─── City Search (OpenStreetMap Nominatim - free, no API key) ────────────────
   const searchCities = async (text: string) => {
     if (text.length < 2) {
       setCitySuggestions([])
@@ -150,52 +152,68 @@ export default function OnboardingPage() {
     setCityLoading(true)
     try {
       const resp = await fetch(
-        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(text)}&types=(cities)&language=fr&key=${GOOGLE_MAPS_KEY}`,
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(text)}&format=json&limit=6&featuretype=city&accept-language=fr&addressdetails=1`,
+        {
+          headers: {
+            'User-Agent': 'PAKT-App/1.0',
+            'Accept': 'application/json',
+          },
+        }
       )
       const json = await resp.json()
-      if (json.predictions) {
-        setCitySuggestions(
-          json.predictions.slice(0, 5).map((p: any) => ({
-            place_id: p.place_id,
-            description: p.description,
-          })),
-        )
+      if (Array.isArray(json)) {
+        // Filter to only cities/towns/villages and deduplicate by display name
+        const seen = new Set<string>()
+        const results: CityResult[] = []
+        for (const p of json) {
+          const name = buildCityName(p)
+          if (!seen.has(name)) {
+            seen.add(name)
+            results.push({
+              place_id: String(p.place_id),
+              description: name,
+              lat: parseFloat(p.lat),
+              lng: parseFloat(p.lon),
+            })
+          }
+          if (results.length >= 5) break
+        }
+        setCitySuggestions(results)
       }
     } catch (e) {
-      console.warn('[CITY] Autocomplete error:', e)
+      console.warn('[CITY] Nominatim error:', e)
     } finally {
       setCityLoading(false)
     }
+  }
+
+  // Build a clean city name from Nominatim result
+  const buildCityName = (p: any): string => {
+    const addr = p.address || {}
+    const city = addr.city || addr.town || addr.village || addr.municipality || p.display_name.split(',')[0]
+    const country = addr.country || ''
+    const state = addr.state || ''
+    // Format: "Paris, Île-de-France, France"
+    const parts = [city, state, country].filter(Boolean)
+    return parts.slice(0, 3).join(', ')
   }
 
   const onCityInputChange = (text: string) => {
     setCityInput(text)
     setCitySelected(null)
     if (cityDebounce.current) clearTimeout(cityDebounce.current)
-    cityDebounce.current = setTimeout(() => searchCities(text), 400)
+    cityDebounce.current = setTimeout(() => searchCities(text), 500)
   }
 
-  const selectCity = async (city: CityResult) => {
+  const selectCity = (city: CityResult) => {
     setCityInput(city.description)
     setCitySuggestions([])
-    try {
-      const resp = await fetch(
-        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${city.place_id}&fields=geometry&key=${GOOGLE_MAPS_KEY}`,
-      )
-      const json = await resp.json()
-      const loc = json.result?.geometry?.location
-      if (loc) {
-        setCitySelected({
-          name: city.description,
-          lat: loc.lat,
-          lng: loc.lng,
-          placeId: city.place_id,
-        })
-      }
-    } catch (e) {
-      console.warn('[CITY] Details error:', e)
-      setCitySelected({ name: city.description, lat: 0, lng: 0, placeId: city.place_id })
-    }
+    setCitySelected({
+      name: city.description,
+      lat: city.lat,
+      lng: city.lng,
+      placeId: city.place_id,
+    })
   }
 
   // ─── Skills ──────────────────────────────────────────────────────────────────
