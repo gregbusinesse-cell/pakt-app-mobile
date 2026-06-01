@@ -128,50 +128,49 @@ export default function SettingsPage() {
     }, [])
   )
 
-  // ── Start checkout ──────────────────────────────────────────────────────────
+  // ── Start checkout (direct fetch - more reliable than supabase.functions.invoke) ─
   const handleUpgrade = async (plan: 'business' | 'business_pro') => {
     setCheckoutLoading(plan)
     try {
-      // Get session explicitly to pass JWT
+      // Get JWT
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.access_token) {
         Alert.alert('Erreur', 'Tu dois être connecté pour souscrire.')
         return
       }
 
-      console.log('[PAYMENT] Calling create-checkout for plan:', plan)
+      // Direct fetch to Edge Function - bypasses Supabase JS client issues
+      const SUPABASE_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
+      const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
 
-      // Pass JWT explicitly in headers (more reliable on React Native)
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { plan },
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/create-checkout`, {
+        method: 'POST',
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': ANON_KEY,
         },
+        body: JSON.stringify({ plan }),
       })
 
-      console.log('[PAYMENT] Response:', { data, error })
+      const data = await response.json()
 
-      if (error) {
-        const msg = (error as any)?.message || JSON.stringify(error)
-        console.error('[PAYMENT] Function error:', msg)
+      if (!response.ok) {
+        const msg = data?.error || `Erreur serveur ${response.status}`
         Alert.alert('Erreur paiement', msg)
         return
       }
 
       if (!data?.url) {
-        const msg = data?.error || 'Aucune URL de paiement reçue'
-        console.error('[PAYMENT] No URL:', data)
-        Alert.alert('Erreur paiement', msg)
+        Alert.alert('Erreur paiement', data?.error || 'Aucune URL reçue')
         return
       }
 
-      console.log('[PAYMENT] Opening URL:', data.url)
       // Open Stripe checkout in browser
       await Linking.openURL(data.url)
 
     } catch (err: any) {
-      console.error('[PAYMENT] Error:', err)
-      Alert.alert('Erreur', err?.message || 'Une erreur est survenue.')
+      Alert.alert('Erreur réseau', err?.message || 'Impossible de contacter le serveur.')
     } finally {
       setCheckoutLoading(null)
     }
