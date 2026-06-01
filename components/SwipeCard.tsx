@@ -206,22 +206,29 @@ export default function SwipeCard({
         {/* Action buttons */}
         {isTop && (
           <View style={styles.actions}>
-            {canUndo && onUndo && (
-              <TouchableOpacity style={styles.undoButton} onPress={onUndo}>
-                <Ionicons name="arrow-undo" size={20} color={Colors.gold} />
-              </TouchableOpacity>
-            )}
+            {/* Undo - always show, disabled if no history */}
+            <TouchableOpacity
+              style={[styles.undoButton, (!canUndo || !onUndo) && { opacity: 0.3 }]}
+              onPress={canUndo && onUndo ? onUndo : undefined}
+              disabled={!canUndo || !onUndo}
+            >
+              <Ionicons name="arrow-undo" size={22} color="rgba(255,255,255,0.8)" />
+            </TouchableOpacity>
+
+            {/* Dislike / Nope */}
             <TouchableOpacity
               style={styles.nopeButton}
               onPress={() => handleButtonSwipe('left')}
             >
-              <Ionicons name="close" size={28} color="#ff4458" />
+              <Ionicons name="close" size={32} color="#ff4458" />
             </TouchableOpacity>
+
+            {/* Like */}
             <TouchableOpacity
               style={styles.likeButton}
               onPress={() => handleButtonSwipe('right')}
             >
-              <Ionicons name="heart" size={28} color={Colors.gold} />
+              <Ionicons name="heart" size={30} color="#0a0a0a" />
             </TouchableOpacity>
           </View>
         )}
@@ -409,33 +416,48 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   undoButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(212,168,83,0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(212,168,83,0.25)',
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: 'rgba(30,30,30,0.95)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   nopeButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255,68,88,0.1)',
+    width: 66,
+    height: 66,
+    borderRadius: 33,
+    backgroundColor: 'rgba(20,20,20,0.95)',
     borderWidth: 2,
-    borderColor: 'rgba(255,68,88,0.3)',
+    borderColor: 'rgba(255,68,88,0.5)',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#ff4458',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 8,
   },
   likeButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(212,168,83,0.1)',
+    width: 66,
+    height: 66,
+    borderRadius: 33,
+    backgroundColor: '#d4a853',
     borderWidth: 2,
-    borderColor: 'rgba(212,168,83,0.3)',
+    borderColor: '#e8c06a',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#d4a853',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
+    elevation: 10,
   },
 });
