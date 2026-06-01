@@ -238,21 +238,28 @@ export default function OnboardingPage() {
       Alert.alert('Maximum atteint', `Tu peux ajouter au maximum ${MAX_PHOTOS} photos.`)
       return
     }
+    // Request permission
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (status !== 'granted') {
-      Alert.alert('Permission refusée', 'Autorise l\'accès aux photos dans les paramètres.')
+      Alert.alert('Permission refusée', "Autorise l'accès aux photos dans les paramètres.")
       return
     }
+    // Launch picker - NO base64 (causes silent failures on Android), NO allowsEditing
+    // (allowsEditing with aspect causes issues when user cancels crop)
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.8,
-      base64: true,
-      allowsEditing: true,
-      aspect: [3, 4],
+      mediaTypes: ['images'] as any,
+      quality: 0.85,
+      base64: false,        // ← critical: no base64 on Android
+      allowsEditing: false, // ← let user pick freely, no force crop
+      selectionLimit: 1,
     })
-    if (!result.canceled && result.assets[0]) {
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
       const asset = result.assets[0]
-      setPhotos((prev) => [...prev, { uri: asset.uri, base64: asset.base64 || undefined }])
+      if (asset.uri) {
+        // Add directly with URI — image shows immediately
+        setPhotos((prev) => [...prev, { uri: asset.uri }])
+      }
     }
   }
 
@@ -269,27 +276,43 @@ export default function OnboardingPage() {
 
       const userId = session.user.id
 
-      // Upload photos
+      // Upload photos via fetch → blob (works on Android without base64)
       setPhotoUploading(true)
       const photoUrls: string[] = []
       for (let i = 0; i < photos.length; i++) {
-        const photo = photos[i]
-        const ext = photo.uri.split('.').pop() || 'jpg'
-        const fileName = `${userId}/photo_${Date.now()}_${i}.${ext}`
+        try {
+          const photo = photos[i]
+          const uri = photo.uri
 
-        if (photo.base64) {
+          // Determine extension from URI or default to jpg
+          const uriLower = uri.toLowerCase()
+          const ext = uriLower.includes('.png') ? 'png'
+            : uriLower.includes('.webp') ? 'webp'
+            : 'jpg'
+          const contentType = ext === 'png' ? 'image/png'
+            : ext === 'webp' ? 'image/webp'
+            : 'image/jpeg'
+
+          const fileName = `${userId}/photo_${Date.now()}_${i}.${ext}`
+
+          // Fetch the local file as a blob
+          const response = await fetch(uri)
+          const blob = await response.blob()
+
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from('avatars')
-            .upload(fileName, decode(photo.base64), {
-              contentType: `image/${ext}`,
-              upsert: true,
-            })
-          if (!uploadError && uploadData) {
+            .upload(fileName, blob, { contentType, upsert: true })
+
+          if (uploadError) {
+            console.error('[ONBOARDING] Photo upload error:', uploadError)
+          } else if (uploadData) {
             const { data: { publicUrl } } = supabase.storage
               .from('avatars')
               .getPublicUrl(fileName)
             photoUrls.push(publicUrl)
           }
+        } catch (uploadErr) {
+          console.error('[ONBOARDING] Photo upload exception:', uploadErr)
         }
       }
       setPhotoUploading(false)

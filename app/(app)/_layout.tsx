@@ -15,19 +15,26 @@ type NavItem = {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: '/swipe', label: 'Swipe', icon: 'flame' },
-  { href: '/matches', label: 'Matchs', icon: 'heart' },
-  { href: '/messages', label: 'Chat', icon: 'chatbubble-ellipses' },
-  { href: '/profile', label: 'Profil', icon: 'person-circle' },
-  { href: '/settings', label: 'PAKT', isText: true },
+  { href: '/swipe',    label: 'Swipe',  icon: 'flame-outline' },
+  { href: '/matches',  label: 'Matchs', icon: 'heart-outline' },
+  { href: '/messages', label: 'Chat',   icon: 'chatbubble-ellipses-outline' },
+  { href: '/profile',  label: 'Profil', icon: 'person-outline' },
+  { href: '/settings', label: 'PAKT',   isText: true },
 ]
 
+// Active icon variants (filled)
+const ACTIVE_ICONS: Partial<Record<string, IoniconName>> = {
+  'flame-outline':              'flame',
+  'heart-outline':              'heart',
+  'chatbubble-ellipses-outline':'chatbubble-ellipses',
+  'person-outline':             'person',
+}
+
 export default function AppLayout() {
-  const router = useRouter()
+  const router   = useRouter()
   const pathname = usePathname() || ''
   const { messages, matchesAndLikes } = useNotificationCount()
 
-  // Track user activity for online status
   useActivityTracker()
 
   return (
@@ -38,52 +45,48 @@ export default function AppLayout() {
 
       <View style={styles.tabBar}>
         {NAV_ITEMS.map((item) => {
-          const isActive =
-            pathname === item.href || pathname.startsWith(`${item.href}/`)
-          const color = isActive ? '#ffd700' : '#ffffff66'
+          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
+          const color    = isActive ? '#ffd700' : 'rgba(255,255,255,0.45)'
 
-          let badgeCount = 0
-          let showBadge = false
+          const showBadge =
+            (item.href === '/messages' && messages > 0) ||
+            (item.href === '/matches'  && matchesAndLikes > 0)
+          const badgeCount =
+            item.href === '/messages' ? messages : matchesAndLikes
 
-          if (item.href === '/messages' && messages > 0) {
-            showBadge = true
-            badgeCount = messages
-          } else if (item.href === '/matches' && matchesAndLikes > 0) {
-            showBadge = true
-            badgeCount = matchesAndLikes
-          }
+          // Pick filled icon when active, outline otherwise
+          const iconName = item.icon
+            ? (isActive ? (ACTIVE_ICONS[item.icon] ?? item.icon) : item.icon)
+            : undefined
 
           return (
             <Pressable
               key={item.href}
-              onPress={() => {
-                if (!isActive) router.push(item.href as any)
-              }}
+              onPress={() => { if (!isActive) router.push(item.href as any) }}
               style={styles.tabItem}
-              hitSlop={8}
+              hitSlop={10}
             >
-              <View style={styles.iconWrap}>
-                {item.isText ? (
-                  <Text
-                    style={[
-                      styles.paktText,
-                      { color: isActive ? '#ffd700' : '#ffd700aa' },
-                    ]}
-                  >
-                    PAKT
-                  </Text>
-                ) : (
-                  <Ionicons name={item.icon!} size={24} color={color} />
-                )}
-                {showBadge && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>
-                      {badgeCount > 9 ? '9+' : badgeCount}
-                    </Text>
-                  </View>
-                )}
-              </View>
-
+              {item.isText ? (
+                /* ── PAKT text ── */
+                <Text
+                  style={[styles.paktText, { color: isActive ? '#ffd700' : 'rgba(255,215,0,0.55)' }]}
+                  numberOfLines={1}
+                >
+                  PAKT
+                </Text>
+              ) : (
+                /* ── Icon + optional badge ── */
+                <View style={styles.iconWrap}>
+                  <Ionicons name={iconName!} size={26} color={color} />
+                  {showBadge && (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>
+                        {badgeCount > 9 ? '9+' : badgeCount}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
             </Pressable>
           )
         })}
@@ -102,40 +105,36 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#0a0a0a',
     borderTopWidth: 1,
     borderTopColor: '#1f1f1f',
     paddingTop: 8,
-    paddingBottom: Platform.OS === 'ios' ? 4 : 8,
-    minHeight: 60,
+    paddingBottom: Platform.OS === 'ios' ? 6 : 10,
+    minHeight: 58,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
-    gap: 2,
+    minHeight: 40,
   },
   iconWrap: {
-    width: 32,
-    height: 28,
+    position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
-  },
-  label: {
-    fontSize: 11,
-    fontWeight: '600',
   },
   paktText: {
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 1.2,
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 2,
+    // Prevent line wrapping
+    includeFontPadding: false,
   },
   badge: {
     position: 'absolute',
-    top: -4,
-    right: -8,
+    top: -5,
+    right: -10,
     minWidth: 18,
     height: 18,
     paddingHorizontal: 4,

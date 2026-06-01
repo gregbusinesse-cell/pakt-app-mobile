@@ -2,15 +2,15 @@ import { Stack } from 'expo-router'
 import { useEffect } from 'react'
 import { useFonts } from 'expo-font'
 import * as SplashScreen from 'expo-splash-screen'
-import Ionicons from '@expo/vector-icons/Ionicons'
 
-// Keep the splash screen visible while we fetch resources
+// Load ALL icon fonts from @expo/vector-icons so icons show in release APK
+const IoniconsTTF = require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.ttf')
+
 SplashScreen.preventAutoHideAsync().catch(() => {})
 
 export default function RootLayout() {
-  // Explicitly load Ionicons font so icons show in release APK builds
   const [fontsLoaded, fontError] = useFonts({
-    ...Ionicons.font,
+    'Ionicons': IoniconsTTF,
   })
 
   useEffect(() => {
@@ -19,7 +19,6 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError])
 
-  // Wait for fonts before rendering
   if (!fontsLoaded && !fontError) {
     return null
   }
