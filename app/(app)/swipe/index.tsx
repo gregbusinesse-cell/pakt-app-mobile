@@ -352,28 +352,32 @@ export default function SwipePage() {
 
             {/* Action Buttons - Bottom of photo */}
             <View style={styles.photoBottomButtons}>
+              {/* Undo - always visible, dimmed if no history */}
               <TouchableOpacity
-                style={[styles.btn, styles.btnUndo]}
+                style={[styles.btn, styles.btnUndo, !lastSwiped && { opacity: 0.35 }]}
                 onPress={handleUndo}
                 activeOpacity={0.75}
+                disabled={!lastSwiped}
               >
-                <Ionicons name="arrow-back" size={22} color={lastSwiped ? '#ffd700' : '#ffffff44'} />
+                <Ionicons name="arrow-undo" size={22} color="rgba(255,255,255,0.85)" />
               </TouchableOpacity>
 
+              {/* Dislike / Nope */}
               <TouchableOpacity
                 style={[styles.btn, styles.btnDislike]}
                 onPress={() => handleSwipe('left')}
                 activeOpacity={0.75}
               >
-                <Ionicons name="close" size={28} color="#fff" />
+                <Ionicons name="close" size={32} color="#ff4444" />
               </TouchableOpacity>
 
+              {/* Like */}
               <TouchableOpacity
                 style={[styles.btn, styles.btnLike]}
                 onPress={() => handleSwipe('right')}
                 activeOpacity={0.75}
               >
-                <Ionicons name="heart" size={26} color="#000" />
+                <Ionicons name="heart" size={28} color="#0a0a0a" />
               </TouchableOpacity>
             </View>
           </View>
@@ -540,10 +544,10 @@ const styles = StyleSheet.create({
   reloadBtn: { marginTop: 20, backgroundColor: '#ffd700', paddingHorizontal: 28, paddingVertical: 12, borderRadius: 10 },
   reloadBtnText: { color: '#000', fontWeight: '700', fontSize: 14 },
 
-  btn: { width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 8 },
-  btnUndo: { backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#333', width: 52, height: 52, borderRadius: 26 },
-  btnDislike: { backgroundColor: '#ff4444' },
-  btnLike: { backgroundColor: '#ffd700' },
+  btn: { width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 8 },
+  btnUndo: { backgroundColor: '#1c1c1e', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.2)', width: 54, height: 54, borderRadius: 27 },
+  btnDislike: { backgroundColor: '#1c1c1e', borderWidth: 2, borderColor: 'rgba(255,68,68,0.6)', shadowColor: '#ff4444', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 8 },
+  btnLike: { backgroundColor: '#d4a853', borderWidth: 2, borderColor: '#e8c06a', shadowColor: '#d4a853', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 12 },
 
   // Modals
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center' },
