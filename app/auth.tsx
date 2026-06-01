@@ -71,29 +71,29 @@ export default function AuthPage() {
     setSigningIn(true)
     try {
       if (mode === 'signup') {
-        const { error } = await supabase.auth.signUp({ email, password })
-        if (error) throw error
+        // Call Edge Function to create user + send confirmation email
+        console.log('[AUTH] Calling request-email-confirmation function...')
+        const { data, error: funcError } = await supabase.functions.invoke(
+          'request-email-confirmation',
+          { body: { email, password } }
+        )
 
-        // Call Edge Function to send confirmation email
-        try {
-          console.log('[AUTH] Calling send-confirmation-email function...')
-          const { data, error: funcError } = await supabase.functions.invoke('send-confirmation-email', {
-            body: { email },
-          })
-
-          if (funcError) {
-            console.error('[AUTH] Email function error:', funcError)
-            // Still show success - email may be queued
-          } else {
-            console.log('[AUTH] Confirmation email sent:', data)
-          }
-        } catch (emailErr) {
-          console.error('[AUTH] Email function call failed:', emailErr)
-          // Don't fail signup if email fails
+        if (funcError) {
+          console.error('[AUTH] Signup function error:', funcError)
+          throw new Error(funcError?.message || 'Impossible de créer le compte')
         }
 
-        Alert.alert('Succès', 'Compte créé ! Vérifie ton email pour confirmer')
+        if (!data?.success) {
+          throw new Error(data?.error || 'Erreur lors de l\'inscription')
+        }
+
+        console.log('[AUTH] User created and confirmation email sent:', data)
+        Alert.alert(
+          'Succès!',
+          'Compte créé! Un email de confirmation t\'a été envoyé. Clique le lien pour confirmer ton adresse.'
+        )
       } else {
+        // Login mode
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
       }
