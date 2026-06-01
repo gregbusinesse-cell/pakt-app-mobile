@@ -3,25 +3,23 @@ import { useEffect } from 'react'
 import { useFonts } from 'expo-font'
 import * as SplashScreen from 'expo-splash-screen'
 
-// Load ALL icon fonts from @expo/vector-icons so icons show in release APK
-const IoniconsTTF = require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.ttf')
-
 SplashScreen.preventAutoHideAsync().catch(() => {})
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({
-    'Ionicons': IoniconsTTF,
+  // Load Ionicons font — required for @expo/vector-icons to render in release APK
+  // The font file is also declared in app.json plugins for native bundling
+  const [loaded, error] = useFonts({
+    'Ionicons': require('../node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.ttf'),
   })
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
+    if (loaded || error) {
       SplashScreen.hideAsync().catch(() => {})
     }
-  }, [fontsLoaded, fontError])
+  }, [loaded, error])
 
-  if (!fontsLoaded && !fontError) {
-    return null
-  }
+  // Don't render until fonts are ready
+  if (!loaded && !error) return null
 
   return <Stack screenOptions={{ headerShown: false }} />
 }

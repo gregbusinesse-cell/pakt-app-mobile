@@ -238,28 +238,39 @@ export default function OnboardingPage() {
       Alert.alert('Maximum atteint', `Tu peux ajouter au maximum ${MAX_PHOTOS} photos.`)
       return
     }
+
     // Request permission
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
-    if (status !== 'granted') {
-      Alert.alert('Permission refusée', "Autorise l'accès aux photos dans les paramètres.")
+    const permResult = await ImagePicker.requestMediaLibraryPermissionsAsync()
+    if (permResult.status !== 'granted') {
+      Alert.alert(
+        'Permission refusée',
+        "Va dans Paramètres → Applications → PAKT → Autorisations → Photos et autorise l'accès."
+      )
       return
     }
-    // Launch picker - NO base64 (causes silent failures on Android), NO allowsEditing
-    // (allowsEditing with aspect causes issues when user cancels crop)
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'] as any,
-      quality: 0.85,
-      base64: false,        // ← critical: no base64 on Android
-      allowsEditing: false, // ← let user pick freely, no force crop
-      selectionLimit: 1,
-    })
 
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      const asset = result.assets[0]
-      if (asset.uri) {
-        // Add directly with URI — image shows immediately
-        setPhotos((prev) => [...prev, { uri: asset.uri }])
+    try {
+      // Use MediaTypeOptions.Images (stable API across all expo-image-picker versions)
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+        // No base64, no allowsEditing, no selectionLimit — simplest possible config
+      })
+
+      if (result.canceled) return
+
+      const uri = result.assets?.[0]?.uri
+      if (!uri) {
+        Alert.alert('Erreur', 'Impossible de récupérer la photo. Réessaie.')
+        return
       }
+
+      // Update state — triggers immediate re-render with the photo shown
+      setPhotos(prev => [...prev, { uri }])
+
+    } catch (err: any) {
+      console.error('[PICKER] Error:', err)
+      Alert.alert('Erreur', err?.message || 'Impossible d\'ouvrir la galerie.')
     }
   }
 
