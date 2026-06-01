@@ -203,7 +203,7 @@ export default function SettingsPage() {
       features: ['Swipes illimités', 'Likes illimités', 'Messages illimités', 'Encourage les membres Free'],
     },
     {
-      id: 'pro',
+      id: 'business_pro',
       name: 'BUSINESS PRO',
       displayName: 'Business Pro',
       price: '10€',
