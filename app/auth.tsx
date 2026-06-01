@@ -35,12 +35,45 @@ export default function AuthPage() {
   // }, [response])
 
 
+  // Helper function to check onboarding status and redirect
+  const redirectAfterAuth = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) return
+
+      // Fetch profile to check onboarding status
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('is_onboarded')
+        .eq('id', session.user.id)
+        .single()
+
+      if (profileError) {
+        console.warn('[AUTH] Profile fetch error:', profileError)
+        // If profile not found, send to onboarding
+        router.replace('/onboarding')
+        return
+      }
+
+      // Check if user completed onboarding
+      if (profile?.is_onboarded) {
+        router.replace('/(app)/swipe')
+      } else {
+        router.replace('/onboarding')
+      }
+    } catch (err) {
+      console.error('[AUTH] Redirect error:', err)
+      // Default to onboarding on error
+      router.replace('/onboarding')
+    }
+  }
+
   useEffect(() => {
     const checkSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (session) {
-          router.replace('/(app)/swipe')
+          await redirectAfterAuth()
         }
         setLoading(false)
       } catch (err) {
@@ -54,7 +87,7 @@ export default function AuthPage() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (session) {
-          router.replace('/(app)/swipe')
+          await redirectAfterAuth()
         }
       }
     )

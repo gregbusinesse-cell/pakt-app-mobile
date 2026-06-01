@@ -39,10 +39,15 @@ serve(async (req: Request) => {
     // ── 1. Create user in Supabase Auth (email_verified = false) ───────
     console.log(`[CONFIRM] Creating user for ${email}`)
 
-    const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-    const { data: authData, error: authError } = await authClient.auth.signUp({
+    const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+      auth: { persistSession: false },
+    })
+
+    // Use admin API to create user WITHOUT triggering auto-email
+    const { data: authData, error: authError } = await serviceClient.auth.admin.createUser({
       email,
       password,
+      email_confirm: false, // Don't mark as confirmed yet
     })
 
     if (authError) {
@@ -73,10 +78,6 @@ serve(async (req: Request) => {
     console.log(`[CONFIRM] Generated token for ${email}`)
 
     // ── 3. Store token in database ────────────────────────────────────
-    const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-      auth: { persistSession: false },
-    })
-
     const { error: insertError } = await serviceClient
       .from('confirmation_tokens')
       .insert({
