@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput } from 'react-native'
+import { useState, useEffect, useCallback } from 'react'
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Alert, Linking } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
+import { useFocusEffect } from '@react-navigation/native'
 import { supabase } from '@/lib/supabase/client'
 import { LEGAL_SECTIONS, SUPPORT_EMAIL, LEGAL_CONTENT } from '@/lib/constants/legal-content'
 
@@ -11,6 +12,7 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<'plans' | 'events' | 'news' | 'referral' | 'legal' | 'compte'>('plans')
   const [currentPlan, setCurrentPlan] = useState<'FREE' | 'BUSINESS' | 'BUSINESS PRO'>('FREE')
   const [loading, setLoading] = useState(true)
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null)
   const [referralCode, setReferralCode] = useState('')
   const [referralLoading, setReferralLoading] = useState(false)
   const [selectedLegal, setSelectedLegal] = useState<string | null>(null)
@@ -101,6 +103,59 @@ export default function SettingsPage() {
       alert('Erreur lors du partage du code')
     } finally {
       setReferralLoading(false)
+    }
+  }
+
+  // ── Re-fetch plan when screen comes into focus (after returning from payment) ──
+  useFocusEffect(
+    useCallback(() => {
+      const refreshPlan = async () => {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session?.user?.id) return
+        const { data } = await supabase
+          .from('profiles')
+          .select('subscription_plan')
+          .eq('id', session.user.id)
+          .single()
+        if (data?.subscription_plan) {
+          const planMap: Record<string, 'FREE' | 'BUSINESS' | 'BUSINESS PRO'> = {
+            free: 'FREE', business: 'BUSINESS', business_pro: 'BUSINESS PRO', pro: 'BUSINESS PRO',
+          }
+          setCurrentPlan(planMap[data.subscription_plan.toLowerCase()] || 'FREE')
+        }
+      }
+      refreshPlan()
+    }, [])
+  )
+
+  // ── Start checkout ──────────────────────────────────────────────────────────
+  const handleUpgrade = async (plan: 'business' | 'business_pro') => {
+    setCheckoutLoading(plan)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        Alert.alert('Erreur', 'Tu dois être connecté pour souscrire.')
+        return
+      }
+
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { plan },
+      })
+
+      if (error || !data?.url) {
+        console.error('[PAYMENT] Checkout error:', error, data)
+        Alert.alert('Erreur', 'Impossible de démarrer le paiement. Réessaie.')
+        return
+      }
+
+      // Open Stripe checkout in browser
+      await Linking.openURL(data.url)
+
+    } catch (err: any) {
+      console.error('[PAYMENT] Error:', err)
+      Alert.alert('Erreur', err?.message || 'Une erreur est survenue.')
+    } finally {
+      setCheckoutLoading(null)
     }
   }
 
@@ -224,20 +279,31 @@ export default function SettingsPage() {
                       style={[
                         styles.planButton,
                         currentPlan === plan.name && styles.planButtonCurrent,
+                        checkoutLoading === plan.id && styles.planButtonLoading,
                       ]}
+                      onPress={() => {
+                        if (currentPlan === plan.name) return
+                        if (plan.id === 'free') return
+                        handleUpgrade(plan.id as 'business' | 'business_pro')
+                      }}
+                      disabled={currentPlan === plan.name || plan.id === 'free' || !!checkoutLoading}
                     >
-                      <Text
-                        style={[
-                          styles.planButtonText,
-                          currentPlan === plan.name && styles.planButtonTextCurrent,
-                        ]}
-                      >
-                        {currentPlan === plan.name
-                          ? 'Plan actuel'
-                          : plan.id === 'free'
-                          ? 'Sélectionner'
-                          : `Passer ${plan.displayName}`}
-                      </Text>
+                      {checkoutLoading === plan.id ? (
+                        <ActivityIndicator color="#000" size="small" />
+                      ) : (
+                        <Text
+                          style={[
+                            styles.planButtonText,
+                            currentPlan === plan.name && styles.planButtonTextCurrent,
+                          ]}
+                        >
+                          {currentPlan === plan.name
+                            ? 'Plan actuel'
+                            : plan.id === 'free'
+                            ? 'Gratuit'
+                            : `Passer ${plan.displayName}`}
+                        </Text>
+                      )}
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -661,6 +727,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#4a4a4a',
     borderWidth: 1,
     borderColor: '#666',
+  },
+  planButtonLoading: {
+    opacity: 0.7,
   },
   planButtonText: {
     color: '#000',
