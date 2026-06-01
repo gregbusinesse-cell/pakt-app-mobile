@@ -132,22 +132,40 @@ export default function SettingsPage() {
   const handleUpgrade = async (plan: 'business' | 'business_pro') => {
     setCheckoutLoading(plan)
     try {
+      // Get session explicitly to pass JWT
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.access_token) {
         Alert.alert('Erreur', 'Tu dois être connecté pour souscrire.')
         return
       }
 
+      console.log('[PAYMENT] Calling create-checkout for plan:', plan)
+
+      // Pass JWT explicitly in headers (more reliable on React Native)
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { plan },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       })
 
-      if (error || !data?.url) {
-        console.error('[PAYMENT] Checkout error:', error, data)
-        Alert.alert('Erreur', 'Impossible de démarrer le paiement. Réessaie.')
+      console.log('[PAYMENT] Response:', { data, error })
+
+      if (error) {
+        const msg = (error as any)?.message || JSON.stringify(error)
+        console.error('[PAYMENT] Function error:', msg)
+        Alert.alert('Erreur paiement', msg)
         return
       }
 
+      if (!data?.url) {
+        const msg = data?.error || 'Aucune URL de paiement reçue'
+        console.error('[PAYMENT] No URL:', data)
+        Alert.alert('Erreur paiement', msg)
+        return
+      }
+
+      console.log('[PAYMENT] Opening URL:', data.url)
       // Open Stripe checkout in browser
       await Linking.openURL(data.url)
 
