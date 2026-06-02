@@ -54,14 +54,15 @@ serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: 'User mismatch' }), { status: 403 })
     }
 
-    // Update plan in Supabase (webhook might not have fired yet)
+    // Update BOTH plan fields for consistency
     await supabase
       .from('profiles')
       .update({
-        subscription_plan: plan,
         plan: plan,
+        subscription_plan: plan,
         subscription_status: 'active',
         stripe_subscription_id: session.subscription || null,
+        updated_at: new Date().toISOString(),
       })
       .eq('id', user.id)
 

@@ -328,11 +328,12 @@ export default function OnboardingPage() {
       }
       setPhotoUploading(false)
 
-      // Upsert profile
+      // Upsert profile — save ALL fields including email
       const { error: profileError } = await supabase
         .from('profiles')
         .upsert({
           id: userId,
+          email: session.user.email || null,
           first_name: firstName.trim(),
           age: parseInt(age),
           bio: bio.trim(),
@@ -343,8 +344,11 @@ export default function OnboardingPage() {
           skills: selectedSkills,
           photos: photoUrls,
           plan: 'free',
+          subscription_plan: 'free',
+          subscription_status: 'active',
           is_onboarded: true,
           preferences: DEFAULT_PREFERENCES,
+          updated_at: new Date().toISOString(),
         })
 
       if (profileError) throw profileError
