@@ -104,41 +104,26 @@ export default function AuthPage() {
     setSigningIn(true)
     try {
       if (mode === 'signup') {
-        // Direct fetch to Edge Function
-        const SUPA_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
-        const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
+        // Use supabase.functions.invoke — handles auth headers automatically
+        const { data, error: funcError } = await supabase.functions.invoke(
+          'request-email-confirmation',
+          { body: { email, password } }
+        )
 
-        const response = await fetch(`${SUPA_URL}/functions/v1/request-email-confirmation`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': ANON_KEY,
-            'Authorization': `Bearer ${ANON_KEY}`,
-          },
-          body: JSON.stringify({ email, password }),
-        })
+        console.log('[AUTH] Signup response:', JSON.stringify(data), 'error:', funcError?.message)
 
-        let data: any = {}
-        try { data = await response.json() } catch (e) {
-          console.error('[AUTH] JSON parse error:', e)
-        }
-
-        console.log('[AUTH] Signup response:', response.status, JSON.stringify(data))
-
-        // Function returns { success: true } on success (HTTP 200)
-        // or { error: "..." } with HTTP 400/500 on failure
-        if (!response.ok) {
-          const msg = data?.details || data?.error || `Erreur serveur (${response.status})`
-          throw new Error(msg)
+        if (funcError) {
+          console.error('[AUTH] Signup function error:', funcError)
+          throw new Error(funcError?.message || 'Erreur lors de la création du compte')
         }
 
         if (!data?.success) {
-          throw new Error(data?.error || data?.details || 'Compte non créé. Réessaie.')
+          throw new Error(data?.error || 'Erreur lors de l\'inscription')
         }
 
         Alert.alert(
           'Compte créé ! ✅',
-          'Un email de confirmation t\'a été envoyé. Clique sur le lien pour confirmer, puis connecte-toi.'
+          'Un email de confirmation t\'a été envoyé. Clique sur le lien pour confirmer ton adresse, puis connecte-toi.'
         )
       } else {
         // Login mode

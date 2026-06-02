@@ -29,9 +29,9 @@ serve(async (req: Request) => {
     }
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !BREVO_API_KEY) {
-      console.error('[CONFIRM] Missing environment variables')
-      return new Response(JSON.stringify({ error: 'Server not configured' }), {
-        status: 500,
+      console.error('[CONFIRM] Missing env vars')
+      return new Response(JSON.stringify({ success: false, error: 'Server not configured' }), {
+        status: 200,
         headers: { 'Content-Type': 'application/json' },
       })
     }
@@ -49,17 +49,18 @@ serve(async (req: Request) => {
     })
 
     if (authError) {
-      console.error('[CONFIRM] Auth signup error:', authError)
+      console.error('[CONFIRM] Auth signup error:', authError.message)
+      // Always return 200 so supabase.functions.invoke doesn't throw
       return new Response(
-        JSON.stringify({ error: 'Signup failed', details: authError.message }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: false, error: authError.message }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
       )
     }
 
     if (!authData.user) {
       return new Response(
-        JSON.stringify({ error: 'User creation failed' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: false, error: 'User creation failed' }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
       )
     }
 
@@ -163,8 +164,8 @@ serve(async (req: Request) => {
   } catch (error) {
     console.error('[CONFIRM] Function error:', error)
     return new Response(
-      JSON.stringify({ error: 'Function error', details: String(error) }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      JSON.stringify({ success: false, error: 'Erreur serveur. Réessaie.' }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
     )
   }
 })
