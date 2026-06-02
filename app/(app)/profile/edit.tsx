@@ -410,13 +410,12 @@ export default function EditProfilePage() {
       }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true, aspect: [3, 4], quality: 1,
+        allowsEditing: false, // ← false fixes "Network request failed" on Android
+        quality: 0.85,
       })
       if (result.canceled || !result.assets?.length) return
       const asset = result.assets[0]
-      if (asset.width && asset.height && (asset.width < 200 || asset.height < 200)) {
-        Alert.alert('Image trop petite', 'Min 200×200 px'); return
-      }
+      if (!asset.uri) { Alert.alert('Erreur', 'URI invalide'); return }
       setUploading(true)
       const { ext, contentType } = getExtAndMime(asset)
       const { data: { session } } = await supabase.auth.getSession()
