@@ -26,12 +26,9 @@ export function ProfileImage({ photos, style, placeholder }: ProfileImageProps) 
   return (
     <Image
       source={{ uri: imageUrl }}
-      style={[styles.image, style]}
-      defaultSource={require('@/assets/icon.png')}
-      onError={() => {
-        // Fallback to placeholder on error
-        console.warn('Failed to load image:', imageUrl)
-      }}
+      style={[styles.image, style, { backgroundColor: '#111' }]}
+      fadeDuration={150}
+      onError={() => console.warn('Failed to load image:', imageUrl)}
     />
   )
 }

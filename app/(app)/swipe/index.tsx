@@ -333,25 +333,22 @@ export default function SwipePage() {
               </View>
             )}
 
-            {/* Photo nav (prev / next) */}
+            {/* Photo nav — tap zones left/right (above action buttons) */}
             {photos.length > 1 && (
-              <View style={styles.photoNavRow}>
+              <>
+                {/* Left tap zone */}
                 <TouchableOpacity
-                  style={styles.photoNavBtn}
+                  style={styles.photoTapLeft}
                   onPress={() => setPhotoIdx(i => Math.max(0, i - 1))}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="chevron-back" size={22} color="#fff" />
-                </TouchableOpacity>
-                <View style={{ flex: 1 }} />
+                  activeOpacity={1}
+                />
+                {/* Right tap zone */}
                 <TouchableOpacity
-                  style={styles.photoNavBtn}
+                  style={styles.photoTapRight}
                   onPress={() => setPhotoIdx(i => Math.min(photos.length - 1, i + 1))}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="chevron-forward" size={22} color="#fff" />
-                </TouchableOpacity>
-              </View>
+                  activeOpacity={1}
+                />
+              </>
             )}
 
             {/* Action Buttons - Bottom of photo */}
@@ -521,8 +518,9 @@ const styles = StyleSheet.create({
   photoBarFill: { height: '100%', backgroundColor: 'transparent' },
   photoBarFillActive: { backgroundColor: '#fff' },
 
-  photoNavRow: { position: 'absolute', bottom: 12, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, zIndex: 20 },
-  photoNavBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
+  // Tap zones for photo navigation (covers top 60% of photo, below bars)
+  photoTapLeft:  { position: 'absolute', left: 0,   top: 30, bottom: 90, width: '38%', zIndex: 25 },
+  photoTapRight: { position: 'absolute', right: 0,  top: 30, bottom: 90, width: '38%', zIndex: 25 },
 
   photoBottomButtons: { position: 'absolute', bottom: 12, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 20, paddingHorizontal: 20, zIndex: 30 },
 
