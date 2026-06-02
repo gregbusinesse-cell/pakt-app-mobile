@@ -478,7 +478,7 @@ export default function SwipePage() {
             <Text style={styles.paywallText}>
               Tu as swipé trop vite ? Le retour en arrière te permet de revoir le profil que tu viens de passer. Fonctionnalité réservée aux membres Business Pro.
             </Text>
-            <TouchableOpacity style={styles.paywallBtn} onPress={() => { setShowUndoPaywall(false); router.push('/settings' as any) }}>
+            <TouchableOpacity style={styles.paywallBtn} onPress={() => { setShowUndoPaywall(false); router.push('/settings?scroll=pro' as any) }}>
               <Text style={styles.paywallBtnTxt}>Passer Business Pro →</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.paywallBtnSec} onPress={() => setShowUndoPaywall(false)}>

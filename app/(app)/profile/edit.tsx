@@ -733,7 +733,7 @@ export default function EditProfilePage() {
               <Ionicons name="lock-closed" size={32} color="#ffd700" />
               <Text style={styles.filterLockedText}>Filtres avancés</Text>
               <Text style={styles.filterLockedSubtext}>Réservé aux Business Pro</Text>
-              <TouchableOpacity style={styles.filterUnlockBtn} onPress={() => router.push('/settings' as any)}>
+              <TouchableOpacity style={styles.filterUnlockBtn} onPress={() => router.push('/settings?scroll=pro' as any)}>
                 <Text style={styles.filterUnlockBtnText}>Découvrir Business Pro</Text>
               </TouchableOpacity>
             </View>

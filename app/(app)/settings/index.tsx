@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Alert, Linking } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
-import { useRouter } from 'expo-router'
+import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useFocusEffect } from '@react-navigation/native'
 import { supabase } from '@/lib/supabase/client'
 import { LEGAL_SECTIONS, SUPPORT_EMAIL, LEGAL_CONTENT } from '@/lib/constants/legal-content'
@@ -76,6 +76,11 @@ const csStyles = StyleSheet.create({
 
 export default function SettingsPage() {
   const router = useRouter()
+  const { scroll } = useLocalSearchParams<{ scroll?: string }>()
+  const scrollViewRef = useRef<ScrollView>(null)
+  const proCardRef = useRef<View>(null)
+  const proCardY = useRef<number>(0)
+
   const [activeTab, setActiveTab] = useState<'plans' | 'events' | 'news' | 'referral' | 'legal' | 'compte'>('plans')
   const [currentPlan, setCurrentPlan] = useState<'FREE' | 'BUSINESS' | 'BUSINESS PRO'>('FREE')
   const [loading, setLoading] = useState(true)
@@ -84,6 +89,7 @@ export default function SettingsPage() {
   const [referralLoading, setReferralLoading] = useState(false)
   const [selectedLegal, setSelectedLegal] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState('')
+  const [userId, setUserId] = useState<string | null>(null)
   const [referralCount, setReferralCount] = useState(0)
   const [referralLink, setReferralLink] = useState('')
 
@@ -96,10 +102,8 @@ export default function SettingsPage() {
           return
         }
 
-        // Get email from session
-        if (session.user.email) {
-          setUserEmail(session.user.email)
-        }
+        setUserId(session.user.id)
+        if (session.user.email) setUserEmail(session.user.email)
 
         const { data, error } = await supabase
           .from('profiles')
@@ -171,6 +175,62 @@ export default function SettingsPage() {
     } finally {
       setReferralLoading(false)
     }
+  }
+
+  // ── Scroll to Business Pro when ?scroll=pro ──────────────────────────────────
+  useEffect(() => {
+    if (scroll === 'pro' && !loading) {
+      setActiveTab('plans')
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ y: proCardY.current, animated: true })
+      }, 400)
+    }
+  }, [scroll, loading])
+
+  // ── Password reset ──────────────────────────────────────────────────────────
+  const handleChangePassword = async () => {
+    if (!userEmail) { Alert.alert('Erreur', 'Email introuvable'); return }
+    Alert.alert(
+      'Réinitialiser le mot de passe',
+      `Un lien de réinitialisation sera envoyé à :\n${userEmail}`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Envoyer',
+          onPress: async () => {
+            const { error } = await supabase.auth.resetPasswordForEmail(userEmail)
+            if (error) Alert.alert('Erreur', error.message)
+            else Alert.alert('Email envoyé ✅', 'Consulte ta boîte mail et clique sur le lien pour choisir un nouveau mot de passe.')
+          },
+        },
+      ]
+    )
+  }
+
+  // ── Account suspension ──────────────────────────────────────────────────────
+  const handleSuspendAccount = async () => {
+    Alert.alert(
+      'Suspendre mon compte',
+      'Ton profil ne sera plus visible par les autres membres. Tu pourras le réactiver à tout moment depuis les paramètres.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Suspendre',
+          style: 'destructive',
+          onPress: async () => {
+            if (!userId) return
+            const { error } = await supabase.from('profiles').update({ is_suspended: true }).eq('id', userId)
+            if (error) Alert.alert('Erreur', error.message)
+            else Alert.alert('Compte suspendu', 'Ton profil est maintenant masqué. Reviens dans Paramètres > Compte pour le réactiver.')
+          },
+        },
+      ]
+    )
+  }
+
+  // ── Account deletion ────────────────────────────────────────────────────────
+  const handleDeleteAccount = () => {
+    router.push('/delete-account' as any)
   }
 
   // ── Re-fetch plan when screen comes into focus (after returning from payment) ──
@@ -314,7 +374,7 @@ export default function SettingsPage() {
       </ScrollView>
 
       {/* Tab Content */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollViewRef} style={styles.content} showsVerticalScrollIndicator={false}>
         {activeTab === 'plans' && (
           <View style={styles.plansContainer}>
             {loading ? (
@@ -333,7 +393,12 @@ export default function SettingsPage() {
 
                 {/* Plans */}
                 {plans.map((plan) => (
-                  <View key={plan.id} style={styles.planCard}>
+                  <View
+                    key={plan.id}
+                    style={styles.planCard}
+                    ref={plan.id === 'business_pro' ? proCardRef : undefined}
+                    onLayout={plan.id === 'business_pro' ? (e) => { proCardY.current = e.nativeEvent.layout.y } : undefined}
+                  >
                     {/* Plan Header */}
                     <View style={styles.planHeader}>
                       <View>
@@ -498,24 +563,24 @@ export default function SettingsPage() {
 
 
             {/* Change Password */}
-            <TouchableOpacity style={styles.accountButton}>
+            <TouchableOpacity style={styles.accountButton} onPress={handleChangePassword}>
               <Ionicons name="lock-closed-outline" size={18} color="#ffd700" />
               <Text style={styles.accountButtonText}>Modifier mon mot de passe</Text>
               <Ionicons name="chevron-forward" size={18} color="#ffffff44" />
             </TouchableOpacity>
 
             {/* Suspend Account */}
-            <TouchableOpacity style={styles.accountButtonWarning}>
+            <TouchableOpacity style={styles.accountButtonWarning} onPress={handleSuspendAccount}>
               <Ionicons name="pause-outline" size={18} color="#ff9800" />
               <View style={{ flex: 1 }}>
                 <Text style={styles.accountButtonText}>Suspendre mon compte</Text>
-                <Text style={styles.accountButtonSubtext}>Les autres utilisateurs ne pourront plus vous voir</Text>
+                <Text style={styles.accountButtonSubtext}>Ton profil ne sera plus visible par les autres membres</Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color="#ffffff44" />
             </TouchableOpacity>
 
             {/* Delete Account */}
-            <TouchableOpacity style={styles.accountButtonDanger}>
+            <TouchableOpacity style={styles.accountButtonDanger} onPress={handleDeleteAccount}>
               <Ionicons name="trash-outline" size={18} color="#ff4444" />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.accountButtonText, { color: '#ff4444' }]}>Supprimer mon compte</Text>

@@ -326,7 +326,7 @@ export default function ChatDetailPage() {
         'Passez à Business (5€/mois) pour débloquer la messagerie',
         [
           { text: 'Annuler', onPress: () => {} },
-          { text: 'Passer à Business', onPress: () => router.push('/settings' as any) }
+          { text: 'Passer à Business', onPress: () => router.push('/settings?scroll=pro' as any) }
         ]
       )
       return
@@ -966,7 +966,7 @@ export default function ChatDetailPage() {
               </Text>
             </View>
             <TouchableOpacity
-              onPress={() => router.push('/settings' as any)}
+              onPress={() => router.push('/settings?scroll=pro' as any)}
               style={styles.upgradeButton}
             >
               <Text style={styles.upgradeButtonText}>Upgrader</Text>

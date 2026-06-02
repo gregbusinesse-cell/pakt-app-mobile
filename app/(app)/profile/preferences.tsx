@@ -161,7 +161,7 @@ export default function PreferencesPage() {
             </Text>
             <TouchableOpacity
               style={styles.upgradeButton}
-              onPress={() => router.push('/settings' as any)}
+              onPress={() => router.push('/settings?scroll=pro' as any)}
             >
               <Text style={styles.upgradeButtonText}>Passer à Business Pro</Text>
               <Ionicons name="arrow-forward" size={16} color="#000" />
