@@ -316,7 +316,8 @@ export default function OnboardingPage() {
             .upload(fileName, blob, { contentType, upsert: true })
 
           if (uploadError) {
-            console.error('[ONBOARDING] Photo upload error:', uploadError)
+            console.error('[ONBOARDING] Photo upload error:', uploadError.message)
+            Alert.alert('Erreur photo', `Impossible d'uploader la photo ${i + 1}: ${uploadError.message}`)
           } else if (uploadData) {
             const { data: { publicUrl } } = supabase.storage
               .from('avatars')

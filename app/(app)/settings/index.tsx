@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Alert, Linking } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Alert, Linking, ToastAndroid, Platform } from 'react-native'
+import * as Clipboard from 'expo-clipboard'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter, useLocalSearchParams } from 'expo-router'
@@ -160,20 +161,16 @@ export default function SettingsPage() {
     fetchUserData()
   }, [])
 
-  const handleReferralShare = async () => {
+  const handleCopyReferral = async () => {
     try {
-      setReferralLoading(true)
-      // Copy referral link to clipboard
-      const message = `Rejoins-moi sur PAKT! ${referralLink}`
-
-      // For now, show alert with the link
-      // In production, this would use native share or clipboard
-      alert(`Lien de parrainage:\n${referralLink}\n\nCode: ${referralCode}`)
-    } catch (err) {
-      console.error('Error:', err)
-      alert('Erreur lors du partage du code')
-    } finally {
-      setReferralLoading(false)
+      await Clipboard.setStringAsync(referralLink || referralCode)
+      if (Platform.OS === 'android') {
+        ToastAndroid.show('Lien copié dans le presse-papiers ✓', ToastAndroid.SHORT)
+      } else {
+        Alert.alert('Copié ✓', 'Ton lien de parrainage a été copié dans le presse-papiers.')
+      }
+    } catch {
+      Alert.alert('Erreur', 'Impossible de copier le lien.')
     }
   }
 
@@ -525,29 +522,17 @@ export default function SettingsPage() {
               ))}
             </View>
 
-            {/* Referral Code Display */}
+            {/* Referral Code Display — tap icon to copy */}
             <View style={styles.codeSection}>
-              <Text style={styles.codeLabel}>Votre code de parrainage</Text>
-              <View style={styles.codeBox}>
-                <Text style={styles.codeText}>{referralCode}</Text>
-                <Ionicons name="copy" size={18} color="#ffd700" />
-              </View>
+              <Text style={styles.codeLabel}>Votre lien de parrainage</Text>
+              <TouchableOpacity style={styles.codeBox} onPress={handleCopyReferral} activeOpacity={0.7}>
+                <Text style={styles.codeText} numberOfLines={1}>{referralLink || referralCode}</Text>
+                <Ionicons name="copy-outline" size={20} color="#ffd700" />
+              </TouchableOpacity>
+              <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, marginTop: 6, textAlign: 'center' }}>
+                Appuie sur le lien pour copier
+              </Text>
             </View>
-
-            <TouchableOpacity
-              style={styles.referralButton}
-              onPress={handleReferralShare}
-              disabled={referralLoading}
-            >
-              {referralLoading ? (
-                <ActivityIndicator color="#000" size="small" />
-              ) : (
-                <>
-                  <Text style={styles.referralButtonText}>Partager mon lien de parrainage</Text>
-                  <Ionicons name="share-social" size={18} color="#000" />
-                </>
-              )}
-            </TouchableOpacity>
           </View>
         )}
 
