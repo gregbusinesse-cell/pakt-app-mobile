@@ -115,15 +115,20 @@ serve(async (req: Request) => {
     }
 
     // ── 6. Mark token as used ────────────────────────────────────────
-    const { error: markError } = await serviceClient
+    await serviceClient
       .from('confirmation_tokens')
       .update({ used_at: new Date().toISOString() })
       .eq('token', token)
 
-    if (markError) {
-      console.warn('[VERIFY] Failed to mark token as used:', markError)
-      // Don't fail if this fails
-    }
+    // ── 7. Update profiles table: email_confirmed + email ────────────
+    await serviceClient
+      .from('profiles')
+      .update({
+        email_confirmed: true,
+        email: tokenRecord.email,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', user.id)
 
     console.log(`[VERIFY] Email confirmed for ${tokenRecord.email}`)
 

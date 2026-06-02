@@ -175,6 +175,11 @@ export default function SwipePage() {
       console.error('[SWIPE] swipes insert error:', swipeErr.code, swipeErr.message)
     } else {
       console.log('[SWIPE] Swipe saved ✓')
+      // Update last_swipe_date in profile
+      supabase.from('profiles').update({
+        last_swipe_date: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }).eq('id', userId).then(() => {})
     }
 
     if (dir === 'left') return
