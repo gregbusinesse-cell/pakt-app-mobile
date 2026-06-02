@@ -104,7 +104,7 @@ export default function AuthPage() {
     setSigningIn(true)
     try {
       if (mode === 'signup') {
-        // Direct fetch — reliable on all React Native builds
+        // Direct fetch to Edge Function
         const SUPA_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
         const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
 
@@ -115,18 +115,26 @@ export default function AuthPage() {
         })
 
         let data: any = {}
-        try { data = await response.json() } catch {}
+        try { data = await response.json() } catch (e) {
+          console.error('[AUTH] JSON parse error:', e)
+        }
+
+        console.log('[AUTH] Signup response:', response.status, JSON.stringify(data))
+
+        // Function returns { success: true } on success (HTTP 200)
+        // or { error: "..." } with HTTP 400/500 on failure
+        if (!response.ok) {
+          const msg = data?.details || data?.error || `Erreur serveur (${response.status})`
+          throw new Error(msg)
+        }
 
         if (!data?.success) {
-          // Show the actual error from the server (in French)
-          throw new Error(data?.error || 'Impossible de créer le compte. Réessaie.')
+          throw new Error(data?.error || data?.details || 'Compte non créé. Réessaie.')
         }
 
         Alert.alert(
           'Compte créé ! ✅',
-          data?.email_sent === false
-            ? 'Compte créé. L\'email de confirmation n\'a pas pu être envoyé. Contacte le support.'
-            : 'Un email de confirmation t\'a été envoyé. Clique le lien puis reviens te connecter.'
+          'Un email de confirmation t\'a été envoyé. Clique sur le lien pour confirmer, puis connecte-toi.'
         )
       } else {
         // Login mode
