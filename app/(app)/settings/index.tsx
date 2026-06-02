@@ -496,12 +496,6 @@ export default function SettingsPage() {
               <Text style={styles.accountValue}>{userEmail || 'Non défini'}</Text>
             </View>
 
-            {/* Change Email */}
-            <TouchableOpacity style={styles.accountButton}>
-              <Ionicons name="mail-outline" size={18} color="#ffd700" />
-              <Text style={styles.accountButtonText}>Modifier mon adresse email</Text>
-              <Ionicons name="chevron-forward" size={18} color="#ffffff44" />
-            </TouchableOpacity>
 
             {/* Change Password */}
             <TouchableOpacity style={styles.accountButton}>

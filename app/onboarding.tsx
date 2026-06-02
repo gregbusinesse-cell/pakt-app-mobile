@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
+import { profileStore } from '@/lib/profileStore'
 import {
   View,
   Text,
@@ -351,6 +352,24 @@ export default function OnboardingPage() {
         })
 
       if (profileError) throw profileError
+
+      // Update global profile store so profile page shows photos immediately
+      profileStore.set({
+        ...profileStore.profile,
+        id: userId,
+        email: session.user.email || null,
+        first_name: firstName.trim(),
+        age: parseInt(age),
+        bio: bio.trim(),
+        city: citySelected?.name || null,
+        city_lat: citySelected?.lat || null,
+        city_lng: citySelected?.lng || null,
+        interests: selectedInterests,
+        skills: selectedSkills,
+        photos: photoUrls,
+        plan: 'free',
+        is_onboarded: true,
+      } as any)
 
       router.replace('/(app)/swipe' as any)
     } catch (err: any) {

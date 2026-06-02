@@ -229,10 +229,12 @@ export default function SwipePage() {
 
   // ── 4. HANDLE UNDO ──────────────────────────────────────────
   const handleUndo = useCallback(async () => {
+    // Non-Pro: always show paywall (never actually undo)
     if (!isPro) {
       setShowUndoPaywall(true)
       return
     }
+    // Pro: only undo if there's something to undo
     if (!userId || !lastSwiped) return
 
     const { profile: target, dir } = lastSwiped
@@ -355,10 +357,10 @@ export default function SwipePage() {
             <View style={styles.photoBottomButtons}>
               {/* Undo - always visible, dimmed if no history */}
               <TouchableOpacity
-                style={[styles.btn, styles.btnUndo, !lastSwiped && { opacity: 0.35 }]}
+                style={[styles.btn, styles.btnUndo, (isPro && !lastSwiped) && { opacity: 0.35 }]}
                 onPress={handleUndo}
                 activeOpacity={0.75}
-                disabled={!lastSwiped}
+                disabled={isPro && !lastSwiped}
               >
                 <Ionicons name="arrow-undo" size={22} color="rgba(255,255,255,0.85)" />
               </TouchableOpacity>
@@ -471,13 +473,13 @@ export default function SwipePage() {
       <Modal visible={showUndoPaywall} transparent animationType="fade" onRequestClose={() => setShowUndoPaywall(false)}>
         <View style={styles.overlay}>
           <View style={styles.paywallCard}>
-            <Ionicons name="lock-closed" size={40} color="#ff9800" />
-            <Text style={styles.paywallTitle}>Business Pro requis</Text>
+            <Ionicons name="arrow-undo" size={40} color="#ffd700" />
+            <Text style={styles.paywallTitle}>Revenir en arrière</Text>
             <Text style={styles.paywallText}>
-              L'annulation de swipe est réservée aux membres Business Pro. Passez à l'offre supérieure pour ne jamais rater un profil.
+              Tu as swipé trop vite ? Le retour en arrière te permet de revoir le profil que tu viens de passer. Fonctionnalité réservée aux membres Business Pro.
             </Text>
             <TouchableOpacity style={styles.paywallBtn} onPress={() => { setShowUndoPaywall(false); router.push('/settings' as any) }}>
-              <Text style={styles.paywallBtnTxt}>Découvrir Business Pro</Text>
+              <Text style={styles.paywallBtnTxt}>Passer Business Pro →</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.paywallBtnSec} onPress={() => setShowUndoPaywall(false)}>
               <Text style={styles.paywallBtnSecTxt}>Fermer</Text>
