@@ -92,8 +92,8 @@ serve(async (req: Request) => {
     }
 
     // ── 4. Build confirmation link ────────────────────────────────────
-    // Deep link format for React Native: pakt://confirm/[token]
-    const confirmationLink = `pakt://confirm/${tokenHex}`
+    // HTTPS link → web page handles both PC (show message) and mobile (redirect to app)
+    const confirmationLink = `https://pakt-sigma.vercel.app/confirm/${tokenHex}`
 
     console.log(`[CONFIRM] Confirmation link: ${confirmationLink}`)
 
