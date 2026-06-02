@@ -7,6 +7,73 @@ import { useFocusEffect } from '@react-navigation/native'
 import { supabase } from '@/lib/supabase/client'
 import { LEGAL_SECTIONS, SUPPORT_EMAIL, LEGAL_CONTENT } from '@/lib/constants/legal-content'
 
+// ─── Coming Soon component ────────────────────────────────────────────────────
+function ComingSoon({ icon, title, subtitle }: { icon: string; title: string; subtitle: string }) {
+  return (
+    <View style={csStyles.container}>
+      <View style={csStyles.iconCircle}>
+        <Ionicons name={icon as any} size={40} color="#d4a853" />
+      </View>
+      <Text style={csStyles.label}>Bientôt disponible</Text>
+      <Text style={csStyles.title}>{title}</Text>
+      <Text style={csStyles.subtitle}>{subtitle}</Text>
+      <View style={csStyles.dotsRow}>
+        {[0, 1, 2].map(i => <View key={i} style={csStyles.dot} />)}
+      </View>
+    </View>
+  )
+}
+
+const csStyles = StyleSheet.create({
+  container: {
+    alignItems: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 32,
+    gap: 12,
+  },
+  iconCircle: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: 'rgba(212,168,83,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(212,168,83,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  label: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#d4a853',
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#ffffff',
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.45)',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  dotsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(212,168,83,0.4)',
+  },
+})
+
 export default function SettingsPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'plans' | 'events' | 'news' | 'referral' | 'legal' | 'compte'>('plans')
@@ -325,84 +392,15 @@ export default function SettingsPage() {
                   </View>
                 ))}
 
-                {/* Logout Button */}
-                <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
-                  <Ionicons name="log-out" size={20} color="#fff" />
-                  <Text style={styles.logoutButtonText}>Se déconnecter</Text>
-                </TouchableOpacity>
+                {/* Logout button removed from Plans — find it in Compte tab */}
               </>
             )}
           </View>
         )}
 
-        {activeTab === 'events' && (
-          <View>
-            <Text style={styles.sectionHeader}>Événements à venir</Text>
-            {[
-              {
-                title: 'Networking Soirée Tech',
-                date: '15 Juin 2026',
-                location: 'Paris',
-                description: 'Rencontrez des professionnels de la tech et du business',
-              },
-              {
-                title: 'Conférence Business Pro',
-                date: '22 Juin 2026',
-                location: 'Lyon',
-                description: 'Les tendances du networking professionnel en 2026',
-              },
-              {
-                title: 'Afterwork PAKT',
-                date: '29 Juin 2026',
-                location: 'Bordeaux',
-                description: 'Discutez en toute décontraction avec d\'autres membres',
-              },
-            ].map((event, idx) => (
-              <View key={idx} style={styles.eventCard}>
-                <View style={styles.eventDateBadge}>
-                  <Text style={styles.eventDate}>{event.date}</Text>
-                </View>
-                <View style={styles.eventContent}>
-                  <Text style={styles.eventTitle}>{event.title}</Text>
-                  <View style={styles.eventMeta}>
-                    <Ionicons name="location" size={14} color="#ffd700" />
-                    <Text style={styles.eventLocation}>{event.location}</Text>
-                  </View>
-                  <Text style={styles.eventDescription}>{event.description}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
+        {activeTab === 'events' && <ComingSoon icon="calendar-outline" title="Événements" subtitle="Les événements networking PAKT arrivent bientôt. Sois le premier informé." />}
 
-        {activeTab === 'news' && (
-          <View>
-            <Text style={styles.sectionHeader}>Actualités PAKT</Text>
-            {[
-              {
-                title: 'Nouvelle fonctionnalité : Filtres avancés',
-                date: '10 Juin 2026',
-                description: 'Retrouvez les filtres avancés par âge et distance dans Business Pro',
-              },
-              {
-                title: 'PAKT atteint 50 000 utilisateurs',
-                date: '5 Juin 2026',
-                description: 'Merci pour votre confiance ! Continuons à grandir ensemble.',
-              },
-              {
-                title: 'Améliorations de sécurité',
-                date: '1er Juin 2026',
-                description: 'Nous avons renforcé la protection de vos données personnelles',
-              },
-            ].map((news, idx) => (
-              <View key={idx} style={styles.newsCard}>
-                <Text style={styles.newsDate}>{news.date}</Text>
-                <Text style={styles.newsTitle}>{news.title}</Text>
-                <Text style={styles.newsDescription}>{news.description}</Text>
-              </View>
-            ))}
-          </View>
-        )}
+        {activeTab === 'news' && <ComingSoon icon="newspaper-outline" title="Actualités" subtitle="Les dernières nouvelles de PAKT seront disponibles ici très prochainement." />}
 
         {activeTab === 'referral' && (
           <View>
