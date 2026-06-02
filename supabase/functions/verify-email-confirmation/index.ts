@@ -157,20 +157,29 @@ function pageError() {
 serve(async (req: Request) => {
   const url = new URL(req.url)
 
-  // GET — browser clicked the email link
+  // GET — browser clicked the email link → verify then REDIRECT to Vercel page
   if (req.method === 'GET') {
     const token = url.searchParams.get('token')
-    if (!token) return htmlPage(pageError())
+    const base = 'https://pakt-sigma.vercel.app/email-confirme'
+
+    if (!token) {
+      return Response.redirect(`${base}?status=error`, 302)
+    }
 
     const result = await verifyToken(token)
 
     if (!result.ok) {
-      if (result.reason === 'already_used') return htmlPage(pageAlreadyUsed())
-      if (result.reason === 'expired')      return htmlPage(pageExpired())
-      return htmlPage(pageError())
+      const statusMap: Record<string, string> = {
+        already_used:   'already',
+        expired:        'expired',
+        invalid:        'error',
+        server_error:   'error',
+        user_not_found: 'error',
+      }
+      return Response.redirect(`${base}?status=${statusMap[result.reason] ?? 'error'}`, 302)
     }
 
-    return htmlPage(pageOk())
+    return Response.redirect(`${base}?status=ok`, 302)
   }
 
   // POST — called from the mobile app
