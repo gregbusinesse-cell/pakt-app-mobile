@@ -81,11 +81,9 @@ serve(async (req: Request) => {
     if (insertError) console.error('[CONFIRM] Token storage failed:', insertError)
 
     // ── 4. Confirmation link ─────────────────────────────────────────
-    // Points directly to the Edge Function (GET) which:
-    //  - Verifies the token server-side
-    //  - Returns a nice HTML page with result
-    //  - Has a button to open the app on mobile
-    const confirmationLink = `https://cpgnczuqhwdoalgyezvr.supabase.co/functions/v1/verify-email-confirmation?token=${tokenHex}`
+    // Deep link → opens the PAKT app directly on mobile
+    // On PC, the email body explains to open from the phone
+    const confirmationLink = `pakt://confirm/${tokenHex}`
 
     // ── 5. Send email via Brevo ──────────────────────────────────────
     const emailHtml = `<!DOCTYPE html>
@@ -100,17 +98,24 @@ serve(async (req: Request) => {
         </td></tr>
         <tr><td style="background:#1a1a1a;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:32px 28px;">
           <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#fff;">Bienvenue dans PAKT !</h1>
-          <p style="margin:0 0 14px;font-size:14px;color:rgba(255,255,255,0.6);line-height:1.7;">Tu es à un clic de rejoindre la communauté francophone avec le plus d'opportunités.</p>
-          <p style="margin:0 0 28px;font-size:14px;color:rgba(255,255,255,0.6);line-height:1.7;">Clique le bouton ci-dessous pour confirmer ton adresse email et activer ton compte.</p>
-          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+          <p style="margin:0 0 24px;font-size:14px;color:rgba(255,255,255,0.6);line-height:1.7;">
+            Appuie sur le bouton ci-dessous depuis ton <strong style="color:#fff;">t&eacute;l&eacute;phone</strong> pour confirmer ton adresse et acc&eacute;der &agrave; PAKT.
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
             <tr><td align="center">
-              <a href="${confirmationLink}" target="_blank"
-                 style="display:inline-block;background:#d4a853;color:#0a0a0a;font-size:14px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:12px;">
+              <a href="${confirmationLink}"
+                 style="display:inline-block;background:#d4a853;color:#0a0a0a;font-size:15px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:12px;">
                 Confirmer mon adresse email
               </a>
             </td></tr>
           </table>
-          <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.3);">Si tu n'es pas à l'origine de cette demande, ignore cet email. Le lien expire dans 24h.</p>
+          <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px 16px;margin-bottom:20px;text-align:left;">
+            <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.45);line-height:1.7;">
+              &#128241; <strong style="color:rgba(255,255,255,0.7);">Important :</strong> Ce bouton doit &ecirc;tre ouvert depuis ton t&eacute;l&eacute;phone avec l&apos;application PAKT install&eacute;e.<br>
+              Si tu lis cet email sur ordinateur, ouvre-le depuis ton t&eacute;l&eacute;phone.
+            </p>
+          </div>
+          <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.2);">Si tu n&apos;es pas &agrave; l&apos;origine de cette demande, ignore cet email. Le lien expire dans 24h.</p>
         </td></tr>
         <tr><td align="center" style="padding-top:20px;">
           <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.2);">PAKT © 2026</p>
