@@ -78,7 +78,7 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'GET') {
     const token = url.searchParams.get('token')
     // Static HTML hosted in Supabase Storage (public bucket "pages")
-    const PAGE = 'https://cpgnczuqhwdoalgyezvr.supabase.co/storage/v1/object/public/pages/email-confirme.html'
+    const PAGE = 'https://pakt-sigma.vercel.app/email-confirme'
 
     if (!token) return Response.redirect(`${PAGE}?status=error`, 302)
 
