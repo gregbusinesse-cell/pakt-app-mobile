@@ -3,37 +3,36 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
-import { v4 as uuidv4 } from 'https://deno.land/std@0.208.0/uuid/mod.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 const BREVO_API_KEY = Deno.env.get('BREVO_API_KEY')
 
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
+const json = (data: unknown, status = 200) =>
+  new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...CORS },
+  })
+
 serve(async (req: Request) => {
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' },
-    })
-  }
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
+  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
 
   try {
     const { email, password } = await req.json()
 
-    if (!email || !password) {
-      return new Response(JSON.stringify({ error: 'Email and password required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    }
+    if (!email || !password) return json({ error: 'Email and password required' }, 400)
 
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_KEY || !BREVO_API_KEY) {
-      console.error('[CONFIRM] Missing environment variables')
-      return new Response(JSON.stringify({ error: 'Server not configured' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      })
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !BREVO_API_KEY) {
+      console.error('[CONFIRM] Missing env vars:', { SUPABASE_URL: !!SUPABASE_URL, SUPABASE_SERVICE_KEY: !!SUPABASE_SERVICE_KEY, BREVO_API_KEY: !!BREVO_API_KEY })
+      return json({ error: 'Server not configured' }, 500)
     }
 
     // ── 1. Create user in Supabase Auth (email_verified = false) ───────
@@ -51,19 +50,11 @@ serve(async (req: Request) => {
     })
 
     if (authError) {
-      console.error('[CONFIRM] Auth signup error:', authError)
-      return new Response(
-        JSON.stringify({ error: 'Signup failed', details: authError.message }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      )
+      console.error('[CONFIRM] Auth signup error:', authError.message)
+      return json({ error: authError.message || 'Signup failed' }, 400)
     }
 
-    if (!authData.user) {
-      return new Response(
-        JSON.stringify({ error: 'User creation failed' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      )
-    }
+    if (!authData.user) return json({ error: 'User creation failed' }, 500)
 
     console.log(`[CONFIRM] User created: ${authData.user.id}`)
 
@@ -179,28 +170,16 @@ serve(async (req: Request) => {
 
     if (!res.ok) {
       const body = await res.text().catch(() => '')
-      console.error('[CONFIRM] Brevo API error:', res.status, body)
-      return new Response(
-        JSON.stringify({ sent: false, reason: 'brevo_error', status: res.status }),
-        { status: res.status, headers: { 'Content-Type': 'application/json' } }
-      )
+      console.error('[CONFIRM] Brevo error:', res.status, body)
+      // User created successfully, email failed — still return success so user can proceed
+      return json({ success: true, user_id: authData.user.id, email, warning: 'email_send_failed' })
     }
 
     console.log(`[CONFIRM] Email sent to ${email}`)
-    return new Response(
-      JSON.stringify({
-        success: true,
-        user_id: authData.user.id,
-        email,
-        message: 'Confirmation email sent. Please check your inbox.',
-      }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
-    )
+    return json({ success: true, user_id: authData.user.id, email })
+
   } catch (error) {
     console.error('[CONFIRM] Function error:', error)
-    return new Response(
-      JSON.stringify({ error: 'Function error', details: String(error) }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    )
+    return json({ error: 'Function error', details: String(error) }, 500)
   }
 })

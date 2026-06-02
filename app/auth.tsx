@@ -104,26 +104,28 @@ export default function AuthPage() {
     setSigningIn(true)
     try {
       if (mode === 'signup') {
-        // Call Edge Function to create user + send confirmation email
-        console.log('[AUTH] Calling request-email-confirmation function...')
-        const { data, error: funcError } = await supabase.functions.invoke(
-          'request-email-confirmation',
-          { body: { email, password } }
-        )
+        // Direct fetch to Edge Function (more reliable than supabase.functions.invoke on React Native)
+        const SUPABASE_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
+        const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
 
-        if (funcError) {
-          console.error('[AUTH] Signup function error:', funcError)
-          throw new Error(funcError?.message || 'Impossible de créer le compte')
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/request-email-confirmation`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': ANON_KEY,
+          },
+          body: JSON.stringify({ email, password }),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok || !data?.success) {
+          throw new Error(data?.error || data?.details || 'Impossible de créer le compte')
         }
 
-        if (!data?.success) {
-          throw new Error(data?.error || 'Erreur lors de l\'inscription')
-        }
-
-        console.log('[AUTH] User created and confirmation email sent:', data)
         Alert.alert(
-          'Succès!',
-          'Compte créé! Un email de confirmation t\'a été envoyé. Clique le lien pour confirmer ton adresse.'
+          'Compte créé! ✅',
+          'Un email de confirmation t\'a été envoyé. Clique le lien pour confirmer ton adresse, puis connecte-toi.'
         )
       } else {
         // Login mode
