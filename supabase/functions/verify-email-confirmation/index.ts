@@ -74,44 +74,24 @@ footer{color:rgba(255,255,255,0.15);font-size:11px;margin-top:24px;text-align:ce
 Deno.serve(async (req: Request) => {
   const url = new URL(req.url)
 
-  // GET — user clicked the confirmation link in their email
+  // GET — user clicked the confirmation link → verify then redirect to static HTML
   if (req.method === 'GET') {
     const token = url.searchParams.get('token')
+    // Static HTML hosted in Supabase Storage (public bucket "pages")
+    const PAGE = 'https://cpgnczuqhwdoalgyezvr.supabase.co/storage/v1/object/public/pages/email-confirme.html'
 
-    if (!token) {
-      return new Response(makePage(false, 'Lien invalide', 'Ce lien de confirmation est invalide.'), {
-        headers: { 'Content-Type': 'text/html; charset=UTF-8' },
-      })
-    }
+    if (!token) return Response.redirect(`${PAGE}?status=error`, 302)
 
     const result = await verifyToken(token)
 
     if (!result.ok) {
-      if (result.reason === 'already_used') {
-        return new Response(makePage(true, 'D&eacute;j&agrave; confirm&eacute;', 'Ton email a d&eacute;j&agrave; &eacute;t&eacute; confirm&eacute;.',
-          `<div class="box"><p>Ouvre l'app PAKT sur ton t&eacute;l&eacute;phone et connecte-toi.</p></div>
-           <a class="btn" href="pakt://auth">Ouvrir PAKT</a>`), {
-          headers: { 'Content-Type': 'text/html; charset=UTF-8' },
-        })
-      }
-      if (result.reason === 'expired') {
-        return new Response(makePage(false, 'Lien expir&eacute;', 'Ce lien a expir&eacute; (validit&eacute; 24h). Cr&eacute;e un nouveau compte.'), {
-          headers: { 'Content-Type': 'text/html; charset=UTF-8' },
-        })
-      }
-      return new Response(makePage(false, 'Lien invalide', 'Ce lien est invalide. Contacte-nous : paktsupport@gmail.com'), {
-        headers: { 'Content-Type': 'text/html; charset=UTF-8' },
-      })
+      const s = result.reason === 'already_used' ? 'already'
+              : result.reason === 'expired'      ? 'expired'
+              : 'error'
+      return Response.redirect(`${PAGE}?status=${s}`, 302)
     }
 
-    return new Response(
-      makePage(true, 'Email confirm&eacute;&nbsp;!',
-        'Ton adresse email a bien &eacute;t&eacute; confirm&eacute;e.<br>Ton compte PAKT est maintenant actif.',
-        `<div class="box"><p>Retourne sur l&apos;application mobile PAKT et connecte-toi avec ton mot de passe.</p></div>
-         <a class="btn" href="pakt://auth">Ouvrir PAKT</a>`
-      ),
-      { headers: { 'Content-Type': 'text/html; charset=UTF-8' } }
-    )
+    return Response.redirect(`${PAGE}?status=ok`, 302)
   }
 
   // POST — called from the mobile app (JSON)

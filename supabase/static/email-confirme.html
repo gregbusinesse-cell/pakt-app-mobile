@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PAKT</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0a;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    color: #fff;
+  }
+  .logo { font-size: 30px; font-weight: 900; letter-spacing: 8px; color: #d4a853; margin-bottom: 36px; }
+  .card {
+    background: #161616;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 20px;
+    padding: 36px 28px;
+    max-width: 380px;
+    width: 100%;
+    text-align: center;
+  }
+  .circle {
+    width: 68px; height: 68px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 900;
+    margin: 0 auto 20px;
+  }
+  .circle.ok   { background: #d4a853; color: #000; }
+  .circle.warn { background: transparent; border: 2px solid #d4a853; color: #d4a853; }
+  .circle.bad  { background: transparent; border: 2px solid #ff4444; color: #ff4444; }
+  h1 { color: #fff; font-size: 20px; font-weight: 800; margin-bottom: 10px; }
+  .sub { color: rgba(255,255,255,0.5); font-size: 14px; line-height: 1.7; }
+  .box {
+    background: rgba(212,168,83,0.08);
+    border: 1px solid rgba(212,168,83,0.2);
+    border-radius: 12px; padding: 14px 16px; margin-top: 20px;
+  }
+  .box p { color: #d4a853; font-weight: 600; font-size: 13px; }
+  .btn {
+    display: inline-block; margin-top: 18px;
+    background: #d4a853; color: #000; font-weight: 700;
+    font-size: 14px; text-decoration: none;
+    padding: 12px 28px; border-radius: 10px;
+  }
+  footer { color: rgba(255,255,255,0.15); font-size: 11px; margin-top: 24px; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="logo">PAKT</div>
+<div class="card" id="card">
+  <!-- Content injected by JS based on ?status= param -->
+</div>
+<footer>PAKT &copy; 2026</footer>
+
+<script>
+  const status = new URLSearchParams(window.location.search).get('status') || 'ok';
+  const card = document.getElementById('card');
+
+  const configs = {
+    ok: {
+      cls: 'ok', sym: '&#10003;',
+      title: 'Email confirm&eacute;&nbsp;!',
+      msg: 'Ton adresse email a bien &eacute;t&eacute; confirm&eacute;e.<br>Ton compte PAKT est maintenant actif.',
+      box: 'Retourne sur l&apos;application mobile PAKT et connecte-toi avec ton mot de passe.',
+      btn: true
+    },
+    already: {
+      cls: 'warn', sym: '&#10003;',
+      title: 'D&eacute;j&agrave; confirm&eacute;',
+      msg: 'Ton adresse email a d&eacute;j&agrave; &eacute;t&eacute; confirm&eacute;e.',
+      box: 'Ouvre l&apos;application PAKT sur ton t&eacute;l&eacute;phone et connecte-toi.',
+      btn: true
+    },
+    expired: {
+      cls: 'bad', sym: '!',
+      title: 'Lien expir&eacute;',
+      msg: 'Ce lien a expir&eacute; (validit&eacute; 24h).',
+      box: 'Cr&eacute;e un nouveau compte depuis l&apos;application PAKT.',
+      btn: false
+    },
+    error: {
+      cls: 'bad', sym: '!',
+      title: 'Lien invalide',
+      msg: 'Ce lien est invalide ou a d&eacute;j&agrave; &eacute;t&eacute; utilis&eacute;.',
+      box: 'Si probl&egrave;me, contacte&nbsp;: paktsupport@gmail.com',
+      btn: false
+    }
+  };
+
+  const c = configs[status] || configs.error;
+  card.innerHTML = `
+    <div class="circle ${c.cls}">${c.sym}</div>
+    <h1>${c.title}</h1>
+    <p class="sub">${c.msg}</p>
+    <div class="box"><p>${c.box}</p></div>
+    ${c.btn ? '<a class="btn" href="pakt://auth">Ouvrir PAKT</a>' : ''}
+  `;
+</script>
+</body>
+</html>
