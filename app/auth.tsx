@@ -104,28 +104,29 @@ export default function AuthPage() {
     setSigningIn(true)
     try {
       if (mode === 'signup') {
-        // Direct fetch to Edge Function (more reliable than supabase.functions.invoke on React Native)
-        const SUPABASE_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
+        // Direct fetch — reliable on all React Native builds
+        const SUPA_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
         const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
 
-        const response = await fetch(`${SUPABASE_URL}/functions/v1/request-email-confirmation`, {
+        const response = await fetch(`${SUPA_URL}/functions/v1/request-email-confirmation`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': ANON_KEY,
-          },
+          headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
           body: JSON.stringify({ email, password }),
         })
 
-        const data = await response.json()
+        let data: any = {}
+        try { data = await response.json() } catch {}
 
-        if (!response.ok || !data?.success) {
-          throw new Error(data?.error || data?.details || 'Impossible de créer le compte')
+        if (!data?.success) {
+          // Show the actual error from the server (in French)
+          throw new Error(data?.error || 'Impossible de créer le compte. Réessaie.')
         }
 
         Alert.alert(
-          'Compte créé! ✅',
-          'Un email de confirmation t\'a été envoyé. Clique le lien pour confirmer ton adresse, puis connecte-toi.'
+          'Compte créé ! ✅',
+          data?.email_sent === false
+            ? 'Compte créé. L\'email de confirmation n\'a pas pu être envoyé. Contacte le support.'
+            : 'Un email de confirmation t\'a été envoyé. Clique le lien puis reviens te connecter.'
         )
       } else {
         // Login mode
