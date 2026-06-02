@@ -81,9 +81,11 @@ serve(async (req: Request) => {
     if (insertError) console.error('[CONFIRM] Token storage failed:', insertError)
 
     // ── 4. Confirmation link ─────────────────────────────────────────
-    // PC: shows a nice web page → "Retourne sur l'app mobile"
-    // Mobile browser: auto-redirects to pakt://confirm/[token]
-    const confirmationLink = `https://pakt-sigma.vercel.app/confirm/${tokenHex}`
+    // Points directly to the Edge Function (GET) which:
+    //  - Verifies the token server-side
+    //  - Returns a nice HTML page with result
+    //  - Has a button to open the app on mobile
+    const confirmationLink = `https://cpgnczuqhwdoalgyezvr.supabase.co/functions/v1/verify-email-confirmation?token=${tokenHex}`
 
     // ── 5. Send email via Brevo ──────────────────────────────────────
     const emailHtml = `<!DOCTYPE html>
