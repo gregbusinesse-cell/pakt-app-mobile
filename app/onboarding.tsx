@@ -348,7 +348,6 @@ export default function OnboardingPage() {
           subscription_status: 'active',
           is_onboarded: true,
           preferences: DEFAULT_PREFERENCES,
-          updated_at: new Date().toISOString(),
         })
 
       if (profileError) throw profileError

@@ -110,7 +110,11 @@ export default function AuthPage() {
 
         const response = await fetch(`${SUPA_URL}/functions/v1/request-email-confirmation`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': ANON_KEY,
+            'Authorization': `Bearer ${ANON_KEY}`,
+          },
           body: JSON.stringify({ email, password }),
         })
 

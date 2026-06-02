@@ -126,7 +126,6 @@ serve(async (req: Request) => {
       .update({
         email_confirmed: true,
         email: tokenRecord.email,
-        updated_at: new Date().toISOString(),
       })
       .eq('id', user.id)
 

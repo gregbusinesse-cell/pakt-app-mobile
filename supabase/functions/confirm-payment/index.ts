@@ -62,7 +62,6 @@ serve(async (req: Request) => {
         subscription_plan: plan,
         subscription_status: 'active',
         stripe_subscription_id: session.subscription || null,
-        updated_at: new Date().toISOString(),
       })
       .eq('id', user.id)
 

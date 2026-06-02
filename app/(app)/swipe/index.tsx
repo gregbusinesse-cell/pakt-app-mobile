@@ -178,7 +178,6 @@ export default function SwipePage() {
       // Update last_swipe_date in profile
       supabase.from('profiles').update({
         last_swipe_date: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       }).eq('id', userId).then(() => {})
     }
 
