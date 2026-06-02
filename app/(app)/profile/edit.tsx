@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
+import * as FileSystem from 'expo-file-system'
 import { supabase } from '@/lib/supabase/client'
 import { profileStore } from '@/lib/profileStore'
 
@@ -420,13 +421,18 @@ export default function EditProfilePage() {
       const { ext, contentType } = getExtAndMime(asset)
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) { Alert.alert('Session expirée'); setUploading(false); return }
-      const response = await fetch(asset.uri)
-      const blob = await response.blob()
-      if (!blob || blob.size === 0) { Alert.alert('Erreur', 'Fichier vide'); setUploading(false); return }
-      if (blob.size > 10 * 1024 * 1024) { Alert.alert('Trop volumineux', 'Max 10MB'); setUploading(false); return }
+      // Use expo-file-system to handle Android content:// URIs
+      const base64 = await FileSystem.readAsStringAsync(asset.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      })
+      const binaryString = atob(base64)
+      const byteArray = new Uint8Array(binaryString.length)
+      for (let j = 0; j < binaryString.length; j++) byteArray[j] = binaryString.charCodeAt(j)
+      if (byteArray.length === 0) { Alert.alert('Erreur', 'Fichier vide'); setUploading(false); return }
+      if (byteArray.length > 10 * 1024 * 1024) { Alert.alert('Trop volumineux', 'Max 10MB'); setUploading(false); return }
       const fileName = `${session.user.id}/${Date.now()}.${ext}`
       const { data: uploadData, error: uploadErr } = await supabase.storage
-        .from('avatars').upload(fileName, blob, { contentType })
+        .from('avatars').upload(fileName, byteArray, { contentType })
       if (uploadErr) { Alert.alert('Erreur upload', uploadErr.message); setUploading(false); return }
       const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(uploadData.path)
       if (!urlData?.publicUrl) { Alert.alert('Erreur URL'); setUploading(false); return }

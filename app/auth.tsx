@@ -132,7 +132,17 @@ export default function AuthPage() {
       }
     } catch (err: any) {
       console.error('[AUTH] Email auth error:', err)
-      Alert.alert('Erreur', err?.message || 'Une erreur est survenue')
+      const raw = err?.message || ''
+      const msg = raw.includes('Invalid login credentials') || raw.includes('invalid_credentials')
+        ? 'Email ou mot de passe incorrect.'
+        : raw.includes('already registered') || raw.includes('already been registered')
+        ? 'Un compte existe déjà avec cet email. Connecte-toi.'
+        : raw.includes('Email not confirmed')
+        ? 'Confirme ton adresse email avant de te connecter.'
+        : raw.includes('password') && raw.includes('short')
+        ? 'Mot de passe trop court (6 caractères minimum).'
+        : raw || 'Une erreur est survenue.'
+      Alert.alert('Erreur', msg)
     } finally {
       setSigningIn(false)
     }

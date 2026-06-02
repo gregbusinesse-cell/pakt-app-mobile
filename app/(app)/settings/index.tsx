@@ -134,7 +134,7 @@ export default function SettingsPage() {
 
         if (referralData?.referral_code) {
           setReferralCode(referralData.referral_code)
-          setReferralLink(`https://pakt.app/refer/${referralData.referral_code}`)
+          setReferralLink(`Rejoins-moi sur PAKT ! Code : ${referralData.referral_code}`)
           setReferralCount(referralData.referral_count || 0)
         } else {
           // Create referral code if doesn't exist
@@ -147,7 +147,7 @@ export default function SettingsPage() {
               referral_count: 0,
             })
           setReferralCode(newCode)
-          setReferralLink(`https://pakt.app/refer/${newCode}`)
+          setReferralLink(`Rejoins-moi sur PAKT ! Code : ${newCode}`)
           setReferralCount(0)
         }
       } catch (err) {
@@ -189,15 +189,26 @@ export default function SettingsPage() {
     if (!userEmail) { Alert.alert('Erreur', 'Email introuvable'); return }
     Alert.alert(
       'Réinitialiser le mot de passe',
-      `Un lien de réinitialisation sera envoyé à :\n${userEmail}`,
+      `Un lien sera envoyé à :\n${userEmail}\n\nOuvre-le depuis ton téléphone.`,
       [
         { text: 'Annuler', style: 'cancel' },
         {
           text: 'Envoyer',
           onPress: async () => {
-            const { error } = await supabase.auth.resetPasswordForEmail(userEmail)
-            if (error) Alert.alert('Erreur', error.message)
-            else Alert.alert('Email envoyé ✅', 'Consulte ta boîte mail et clique sur le lien pour choisir un nouveau mot de passe.')
+            try {
+              const SUPA_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
+              const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
+              const res = await fetch(`${SUPA_URL}/functions/v1/request-password-reset`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
+                body: JSON.stringify({ email: userEmail }),
+              })
+              const data = await res.json()
+              if (data.success) Alert.alert('Email envoyé ✅', 'Vérifie ta boîte mail et clique sur le lien depuis ton téléphone pour choisir un nouveau mot de passe.')
+              else Alert.alert('Erreur', data.error || 'Impossible d\'envoyer l\'email.')
+            } catch {
+              Alert.alert('Erreur réseau', 'Impossible de contacter le serveur.')
+            }
           },
         },
       ]

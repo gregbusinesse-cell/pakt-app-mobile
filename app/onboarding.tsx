@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 import { profileStore } from '@/lib/profileStore'
+import * as FileSystem from 'expo-file-system'
 import {
   View,
   Text,
@@ -307,17 +308,24 @@ export default function OnboardingPage() {
 
           const fileName = `${userId}/photo_${Date.now()}_${i}.${ext}`
 
-          // Fetch the local file as a blob
-          const response = await fetch(uri)
-          const blob = await response.blob()
+          // Use expo-file-system to read as base64 (handles Android content:// URIs)
+          const base64 = await FileSystem.readAsStringAsync(uri, {
+            encoding: FileSystem.EncodingType.Base64,
+          })
+          // Decode base64 → Uint8Array
+          const binaryString = atob(base64)
+          const byteArray = new Uint8Array(binaryString.length)
+          for (let j = 0; j < binaryString.length; j++) {
+            byteArray[j] = binaryString.charCodeAt(j)
+          }
 
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from('avatars')
-            .upload(fileName, blob, { contentType, upsert: true })
+            .upload(fileName, byteArray, { contentType, upsert: true })
 
           if (uploadError) {
             console.error('[ONBOARDING] Photo upload error:', uploadError.message)
-            Alert.alert('Erreur photo', `Impossible d'uploader la photo ${i + 1}: ${uploadError.message}`)
+            Alert.alert('Erreur', `Photo ${i + 1} : impossible d'uploader (${uploadError.message})`)
           } else if (uploadData) {
             const { data: { publicUrl } } = supabase.storage
               .from('avatars')
