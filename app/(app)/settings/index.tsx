@@ -163,8 +163,9 @@ export default function SettingsPage() {
 
   const handleCopyReferral = async () => {
     try {
-      // Clear message that tells the recipient exactly what to do
-      const message = `🚀 Rejoins-moi sur PAKT — l'app de networking business !\n\nTélécharge l'application PAKT, crée ton compte et entre mon code de parrainage lors de l'inscription :\n\n👉 Code : ${referralCode}\n\nDispo sur Android et bientôt sur iOS.`
+      // Real link — opens the app on mobile, shows landing page on PC
+      const referUrl = `https://pakt-sigma.vercel.app/refer/${referralCode}`
+      const message = `🚀 Rejoins-moi sur PAKT — le Tinder du business !\n\nClique sur le lien pour créer ton compte :\n${referUrl}\n\nOu entre ce code lors de l'inscription : ${referralCode}`
       await Clipboard.setStringAsync(message)
       if (Platform.OS === 'android') {
         ToastAndroid.show('Message copié dans le presse-papiers ✓', ToastAndroid.LONG)

@@ -4,6 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 
+const SUPABASE_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
+
 export default function ResetPasswordPage() {
   const router = useRouter()
   const { token } = useLocalSearchParams<{ token?: string }>()
@@ -11,9 +14,7 @@ export default function ResetPasswordPage() {
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPwd, setShowPwd] = useState(false)
-
-  const SUPABASE_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
-  const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
+  const [showConfirm, setShowConfirm] = useState(false)
 
   useEffect(() => {
     if (!token) {
@@ -24,35 +25,23 @@ export default function ResetPasswordPage() {
   }, [token])
 
   const handleSubmit = async () => {
-    if (password.length < 6) {
-      Alert.alert('Erreur', 'Le mot de passe doit contenir au moins 6 caractères.')
-      return
-    }
-    if (password !== confirm) {
-      Alert.alert('Erreur', 'Les mots de passe ne correspondent pas.')
-      return
-    }
-
+    if (password.length < 6) { Alert.alert('Erreur', 'Le mot de passe doit contenir au moins 6 caractères.'); return }
+    if (password !== confirm) { Alert.alert('Erreur', 'Les mots de passe ne correspondent pas.'); return }
     setLoading(true)
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/reset-password-confirm`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': ANON_KEY,
-        },
+        headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
         body: JSON.stringify({ token, newPassword: password }),
       })
-      const data = await res.json()
-      if (!data.success) {
-        Alert.alert('Erreur', data.error || 'Impossible de changer le mot de passe.')
-        return
-      }
-      Alert.alert('Mot de passe changé ✅', 'Ton mot de passe a été mis à jour. Connecte-toi avec ton nouveau mot de passe.', [
+      let data: any = {}
+      try { data = await res.json() } catch {}
+      if (!data.success) { Alert.alert('Erreur', data.error || 'Lien invalide ou expiré. Fais une nouvelle demande.'); return }
+      Alert.alert('Mot de passe changé ✅', 'Connecte-toi avec ton nouveau mot de passe.', [
         { text: 'OK', onPress: () => router.replace('/auth' as any) }
       ])
     } catch (e: any) {
-      Alert.alert('Erreur', e?.message || 'Erreur réseau.')
+      Alert.alert('Erreur réseau', e?.message || 'Impossible de contacter le serveur.')
     } finally {
       setLoading(false)
     }
@@ -72,9 +61,10 @@ export default function ResetPasswordPage() {
           <Ionicons name="lock-open" size={36} color="#d4a853" />
         </View>
         <Text style={styles.title}>Choisis un nouveau mot de passe</Text>
-        <Text style={styles.subtitle}>Il doit contenir au moins 6 caractères.</Text>
+        <Text style={styles.subtitle}>Au moins 6 caractères.</Text>
 
-        <View style={styles.inputRow}>
+        {/* Password field */}
+        <View style={styles.fieldWrap}>
           <TextInput
             style={styles.input}
             placeholder="Nouveau mot de passe"
@@ -83,21 +73,30 @@ export default function ResetPasswordPage() {
             value={password}
             onChangeText={setPassword}
             autoCapitalize="none"
+            returnKeyType="next"
           />
-          <TouchableOpacity onPress={() => setShowPwd(v => !v)} style={styles.eyeBtn}>
+          <TouchableOpacity onPress={() => setShowPwd(v => !v)} style={styles.eye}>
             <Ionicons name={showPwd ? 'eye-off' : 'eye'} size={20} color="rgba(255,255,255,0.4)" />
           </TouchableOpacity>
         </View>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Confirmer le mot de passe"
-          placeholderTextColor="rgba(255,255,255,0.3)"
-          secureTextEntry={!showPwd}
-          value={confirm}
-          onChangeText={setConfirm}
-          autoCapitalize="none"
-        />
+        {/* Confirm field */}
+        <View style={styles.fieldWrap}>
+          <TextInput
+            style={styles.input}
+            placeholder="Confirmer le mot de passe"
+            placeholderTextColor="rgba(255,255,255,0.3)"
+            secureTextEntry={!showConfirm}
+            value={confirm}
+            onChangeText={setConfirm}
+            autoCapitalize="none"
+            returnKeyType="done"
+            onSubmitEditing={handleSubmit}
+          />
+          <TouchableOpacity onPress={() => setShowConfirm(v => !v)} style={styles.eye}>
+            <Ionicons name={showConfirm ? 'eye-off' : 'eye'} size={20} color="rgba(255,255,255,0.4)" />
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity
           style={[styles.btn, loading && { opacity: 0.6 }]}
@@ -122,28 +121,31 @@ const styles = StyleSheet.create({
   },
   backBtn: { padding: 4 },
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  content: { flex: 1, padding: 28, alignItems: 'center' },
+  content: { flex: 1, padding: 28 },
   iconCircle: {
     width: 80, height: 80, borderRadius: 40,
     backgroundColor: 'rgba(212,168,83,0.1)',
-    border: '1px solid rgba(212,168,83,0.2)' as any,
+    borderWidth: 1, borderColor: 'rgba(212,168,83,0.2)',
     alignItems: 'center', justifyContent: 'center',
-    marginBottom: 20, marginTop: 20,
+    alignSelf: 'center', marginBottom: 20, marginTop: 16,
   },
   title: { color: '#fff', fontSize: 20, fontWeight: '800', textAlign: 'center', marginBottom: 8 },
   subtitle: { color: 'rgba(255,255,255,0.45)', fontSize: 14, textAlign: 'center', marginBottom: 32 },
-  inputRow: { flexDirection: 'row', alignItems: 'center', width: '100%', marginBottom: 12 },
-  input: {
-    flex: 1,
-    backgroundColor: '#1a1a1a', borderRadius: 12, borderWidth: 1, borderColor: '#333',
-    paddingHorizontal: 16, paddingVertical: 14, color: '#fff', fontSize: 15,
-    marginBottom: 12,
+  fieldWrap: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#1a1a1a', borderRadius: 12,
+    borderWidth: 1, borderColor: '#333',
+    marginBottom: 14, height: 52,
+    paddingHorizontal: 16,
   },
-  eyeBtn: { position: 'absolute', right: 14, top: 14 },
+  input: {
+    flex: 1, color: '#fff', fontSize: 15,
+    height: 52, paddingVertical: 0,
+  },
+  eye: { padding: 4 },
   btn: {
     backgroundColor: '#d4a853', borderRadius: 12,
-    paddingVertical: 14, paddingHorizontal: 24,
-    alignItems: 'center', width: '100%', marginTop: 8,
+    paddingVertical: 14, alignItems: 'center', marginTop: 8,
   },
   btnText: { color: '#000', fontWeight: '700', fontSize: 15 },
 })

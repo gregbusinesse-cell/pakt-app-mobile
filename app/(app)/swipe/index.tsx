@@ -100,6 +100,7 @@ export default function SwipePage() {
         .select('*')
         .eq('is_onboarded', true)
         .neq('id', userId)
+        .or('is_suspended.is.null,is_suspended.eq.false')
 
       if (error) {
         console.error('[SWIPE] Load profiles error:', error)
