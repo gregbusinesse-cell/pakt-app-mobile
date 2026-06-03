@@ -100,7 +100,6 @@ export default function SwipePage() {
         .select('*')
         .eq('is_onboarded', true)
         .neq('id', userId)
-        .or('is_suspended.is.null,is_suspended.eq.false')
 
       if (error) {
         console.error('[SWIPE] Load profiles error:', error)
@@ -108,9 +107,9 @@ export default function SwipePage() {
         return
       }
 
-      // Filter: exclude swiped AND recently viewed
+      // Filter: exclude swiped, recently viewed, AND suspended accounts
       const eligible = (data || []).filter(
-        (p: any) => !swipedIds.has(p.id) && !recentViewIds.has(p.id)
+        (p: any) => !swipedIds.has(p.id) && !recentViewIds.has(p.id) && p.is_suspended !== true
       )
 
       console.log('[SWIPE] Total profiles:', data?.length || 0)
