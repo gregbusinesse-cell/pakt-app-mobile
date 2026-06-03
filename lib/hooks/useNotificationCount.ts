@@ -20,12 +20,12 @@ export function useNotificationCount() {
           .from('matches')
           .select('id', { count: 'exact', head: true })
           .or(`user1_id.eq.${uid},user2_id.eq.${uid}`)
-          .eq('is_viewed', false),
+          .or('is_viewed.eq.false,is_viewed.is.null'),
         supabase
           .from('likes')
           .select('id', { count: 'exact', head: true })
           .eq('liked_id', uid)
-          .eq('is_viewed', false),
+          .or('is_viewed.eq.false,is_viewed.is.null'),
         supabase
           .from('conversations')
           .select('id')

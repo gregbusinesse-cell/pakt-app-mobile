@@ -186,7 +186,7 @@ export default function SwipePage() {
     // Record like
     const { error: likeErr } = await supabase
       .from('likes')
-      .insert({ liker_id: userId, liked_id: target.id })
+      .insert({ liker_id: userId, liked_id: target.id, is_viewed: false })
 
     if (likeErr) {
       console.error('[SWIPE] likes insert error:', likeErr.code, likeErr.message)
@@ -210,20 +210,34 @@ export default function SwipePage() {
     const [u1, u2] = [userId, target.id].sort()
     const { error: matchErr } = await supabase
       .from('matches')
-      .insert({ user1_id: u1, user2_id: u2 })
+      .insert({ user1_id: u1, user2_id: u2, is_viewed: false })
 
     if (!matchErr) {
-      // Create conversation
-      await supabase
+      // Create conversation (check it doesn't already exist)
+      const { data: existingConv } = await supabase
         .from('conversations')
-        .insert({ user1_id: u1, user2_id: u2 })
-        .select()
-        .single()
+        .select('id')
+        .or(`and(user1_id.eq.${u1},user2_id.eq.${u2}),and(user1_id.eq.${u2},user2_id.eq.${u1})`)
+        .maybeSingle()
+
+      if (!existingConv) {
+        const { error: convErr } = await supabase
+          .from('conversations')
+          .insert({ user1_id: u1, user2_id: u2 })
+        if (convErr) console.error('[SWIPE] conv insert error:', convErr.message)
+      }
 
       setMatchedProfile(target)
       setShowMatchModal(true)
+      console.log('[SWIPE] Match + conversation created ✓')
     } else {
-      console.error('[SWIPE] match insert error:', matchErr.message)
+      // Match might already exist (race condition) — still show modal
+      if (matchErr.code === '23505') {
+        setMatchedProfile(target)
+        setShowMatchModal(true)
+      } else {
+        console.error('[SWIPE] match insert error:', matchErr.message, matchErr.code)
+      }
     }
   }, [userId, profiles])
 
