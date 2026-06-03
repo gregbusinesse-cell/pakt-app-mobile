@@ -1,5 +1,5 @@
 // use-referral-code: User enters a referral code after signup
-// Validates the code, links the referral, increments the referrer's count
+// Validates code from profiles table, records in referrals table
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 
@@ -18,7 +18,6 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   try {
-    // Auth
     const authHeader = req.headers.get('Authorization') || ''
     const token = authHeader.replace('Bearer ', '').trim()
     if (!token) return err('Non authentifié')
@@ -33,26 +32,31 @@ Deno.serve(async (req: Request) => {
     const cleanCode = code.trim().toUpperCase()
 
     // Check user hasn't already used a referral code
-    const { data: myProfile } = await sb.from('profiles').select('referred_by_code').eq('id', user.id).single()
-    if (myProfile?.referred_by_code) return err('Tu as déjà utilisé un code de parrainage.')
+    const { data: myProfile } = await sb.from('profiles').select('referred_by_code, referral_code').eq('id', user.id).single()
+    if ((myProfile as any)?.referred_by_code) return err('Tu as déjà utilisé un code de parrainage.')
 
-    // Find referrer by code
-    const { data: referral } = await sb.from('referrals').select('user_id, referral_count').eq('referral_code', cleanCode).single()
-    if (!referral) return err('Code invalide. Vérifie et réessaie.')
+    // Find referrer by their referral_code in profiles
+    const { data: referrer } = await sb.from('profiles').select('id, referral_code').eq('referral_code', cleanCode).single()
+    if (!referrer) return err('Code invalide. Vérifie et réessaie.')
 
     // Can't use your own code
-    if (referral.user_id === user.id) return err('Tu ne peux pas utiliser ton propre code.')
+    if (referrer.id === user.id) return err('Tu ne peux pas utiliser ton propre code.')
 
-    // Link the referral on the new user's profile
-    await sb.from('profiles').update({ referred_by_code: cleanCode }).eq('id', user.id)
+    // Record in referrals table (using actual schema)
+    await sb.from('referrals').insert({
+      referred_id: user.id,
+      referral_code: cleanCode,
+      status: 'pending',
+    })
 
-    // Increment referrer's count
-    await sb.from('referrals').update({
-      referral_count: (referral.referral_count || 0) + 1,
-    }).eq('referral_code', cleanCode)
+    // Link on the new user's profile
+    await sb.from('profiles').update({ referred_by_code: cleanCode } as any).eq('id', user.id)
 
-    console.log(`[REFERRAL] ${user.id} used code ${cleanCode} from ${referral.user_id}`)
-    return ok({ message: 'Code appliqué !', referral_count: (referral.referral_count || 0) + 1 })
+    // Count total referrals for the referrer
+    const { count } = await sb.from('referrals').select('*', { count: 'exact', head: true }).eq('referral_code', cleanCode)
+
+    console.log(`[REFERRAL] ${user.id} used code ${cleanCode} from ${referrer.id}, total: ${count}`)
+    return ok({ message: 'Code appliqué !', referral_count: count || 1 })
 
   } catch (e) {
     console.error('[REFERRAL] Error:', e)

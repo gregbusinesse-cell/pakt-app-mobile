@@ -128,31 +128,31 @@ export default function SettingsPage() {
           setCurrentPlan(planMap[data.subscription_plan?.toLowerCase()] || 'FREE')
         }
 
-        // Fetch referral code
-        const { data: referralData } = await supabase
-          .from('referrals')
-          .select('referral_code, referral_count')
-          .eq('user_id', session.user.id)
+        // Fetch referral code from profiles (where it's actually stored)
+        const { data: profileFull } = await supabase
+          .from('profiles')
+          .select('referral_code, referred_by_code')
+          .eq('id', session.user.id)
           .single()
 
-        if (referralData?.referral_code) {
-          setReferralCode(referralData.referral_code)
-          setReferralLink(`Rejoins-moi sur PAKT ! Code : ${referralData.referral_code}`)
-          setReferralCount(referralData.referral_count || 0)
-        } else {
-          // Create referral code if doesn't exist
-          const newCode = `REF-${session.user.id.substring(0, 8).toUpperCase()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
-          await supabase
-            .from('referrals')
-            .insert({
-              user_id: session.user.id,
-              referral_code: newCode,
-              referral_count: 0,
-            })
-          setReferralCode(newCode)
-          setReferralLink(`Rejoins-moi sur PAKT ! Code : ${newCode}`)
-          setReferralCount(0)
+        let code = (profileFull as any)?.referral_code as string | null
+
+        if (!code) {
+          // Generate and save referral code in profiles
+          code = `REF-${session.user.id.substring(0, 8).toUpperCase()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+          await supabase.from('profiles').update({ referral_code: code } as any).eq('id', session.user.id)
         }
+
+        setReferralCode(code)
+        if ((profileFull as any)?.referred_by_code) setCodeUsed(true)
+
+        // Count how many people used this code (from referrals table)
+        const { count } = await supabase
+          .from('referrals')
+          .select('*', { count: 'exact', head: true })
+          .eq('referral_code', code)
+
+        setReferralCount(count || 0)
       } catch (err) {
         console.error('Error:', err)
         setCurrentPlan('FREE')
