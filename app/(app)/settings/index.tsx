@@ -163,14 +163,16 @@ export default function SettingsPage() {
 
   const handleCopyReferral = async () => {
     try {
-      await Clipboard.setStringAsync(referralLink || referralCode)
+      // Clear message that tells the recipient exactly what to do
+      const message = `🚀 Rejoins-moi sur PAKT — l'app de networking business !\n\nTélécharge l'application PAKT, crée ton compte et entre mon code de parrainage lors de l'inscription :\n\n👉 Code : ${referralCode}\n\nDispo sur Android et bientôt sur iOS.`
+      await Clipboard.setStringAsync(message)
       if (Platform.OS === 'android') {
-        ToastAndroid.show('Lien copié dans le presse-papiers ✓', ToastAndroid.SHORT)
+        ToastAndroid.show('Message copié dans le presse-papiers ✓', ToastAndroid.LONG)
       } else {
-        Alert.alert('Copié ✓', 'Ton lien de parrainage a été copié dans le presse-papiers.')
+        Alert.alert('Copié ✓', 'Le message de parrainage a été copié. Colle-le dans un SMS, WhatsApp ou email.')
       }
     } catch {
-      Alert.alert('Erreur', 'Impossible de copier le lien.')
+      Alert.alert('Erreur', 'Impossible de copier.')
     }
   }
 
@@ -198,10 +200,14 @@ export default function SettingsPage() {
             try {
               const SUPA_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
               const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
-              const res = await fetch(`${SUPA_URL}/functions/v1/request-password-reset`, {
+              const { data: { session } } = await supabase.auth.getSession()
+              const res = await fetch(`${SUPA_URL}/functions/v1/reset-password-request`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
-                body: JSON.stringify({ email: userEmail }),
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': ANON_KEY,
+                  'Authorization': `Bearer ${session?.access_token || ''}`,
+                },
               })
               const data = await res.json()
               if (data.success) Alert.alert('Email envoyé ✅', 'Vérifie ta boîte mail et clique sur le lien depuis ton téléphone pour choisir un nouveau mot de passe.')
@@ -533,15 +539,17 @@ export default function SettingsPage() {
               ))}
             </View>
 
-            {/* Referral Code Display — tap icon to copy */}
+            {/* Referral Code — tap to copy full message */}
             <View style={styles.codeSection}>
-              <Text style={styles.codeLabel}>Votre lien de parrainage</Text>
+              <Text style={styles.codeLabel}>Ton code de parrainage</Text>
               <TouchableOpacity style={styles.codeBox} onPress={handleCopyReferral} activeOpacity={0.7}>
-                <Text style={styles.codeText} numberOfLines={1}>{referralLink || referralCode}</Text>
-                <Ionicons name="copy-outline" size={20} color="#ffd700" />
+                <Text style={styles.codeText}>{referralCode || '...'}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Ionicons name="copy-outline" size={20} color="#ffd700" />
+                </View>
               </TouchableOpacity>
-              <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, marginTop: 6, textAlign: 'center' }}>
-                Appuie sur le lien pour copier
+              <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 8, textAlign: 'center', lineHeight: 18 }}>
+                Appuie sur le code pour copier un message prêt à envoyer{'\n'}(SMS, WhatsApp, email...)
               </Text>
             </View>
           </View>
