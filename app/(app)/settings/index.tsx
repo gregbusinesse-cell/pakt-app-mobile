@@ -91,6 +91,7 @@ export default function SettingsPage() {
   const [selectedLegal, setSelectedLegal] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
+  const [isSuspended, setIsSuspended] = useState(false)
   const [referralCount, setReferralCount] = useState(0)
   const [referralLink, setReferralLink] = useState('')
   const [inputCode, setInputCode] = useState('')
@@ -111,7 +112,7 @@ export default function SettingsPage() {
 
         const { data, error } = await supabase
           .from('profiles')
-          .select('subscription_plan')
+          .select('subscription_plan, is_suspended')
           .eq('id', session.user.id)
           .single()
 
@@ -126,6 +127,7 @@ export default function SettingsPage() {
             'pro': 'BUSINESS PRO',
           }
           setCurrentPlan(planMap[data.subscription_plan?.toLowerCase()] || 'FREE')
+          setIsSuspended(!!(data as any).is_suspended)
         }
 
         // Fetch referral code from profiles (where it's actually stored)
@@ -250,23 +252,44 @@ export default function SettingsPage() {
 
   // ── Account suspension ──────────────────────────────────────────────────────
   const handleSuspendAccount = async () => {
-    Alert.alert(
-      'Suspendre mon compte',
-      'Ton profil ne sera plus visible par les autres membres. Tu pourras le réactiver à tout moment depuis les paramètres.',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Suspendre',
-          style: 'destructive',
-          onPress: async () => {
-            if (!userId) return
-            const { error } = await supabase.from('profiles').update({ is_suspended: true }).eq('id', userId)
-            if (error) Alert.alert('Erreur', error.message)
-            else Alert.alert('Compte suspendu', 'Ton profil est maintenant masqué. Reviens dans Paramètres > Compte pour le réactiver.')
+    if (isSuspended) {
+      // Reactivate
+      Alert.alert(
+        'Réactiver mon compte',
+        'Ton profil redeviendra visible par les autres membres PAKT.',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          {
+            text: 'Réactiver',
+            onPress: async () => {
+              if (!userId) return
+              const { error } = await supabase.from('profiles').update({ is_suspended: false }).eq('id', userId)
+              if (error) Alert.alert('Erreur', error.message)
+              else { setIsSuspended(false); Alert.alert('Compte réactivé ✅', 'Ton profil est à nouveau visible.') }
+            },
           },
-        },
-      ]
-    )
+        ]
+      )
+    } else {
+      // Suspend
+      Alert.alert(
+        'Mettre mon compte en pause',
+        'Ton profil ne sera plus affiché aux autres membres. Tu pourras le réactiver quand tu veux.',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          {
+            text: 'Mettre en pause',
+            style: 'destructive',
+            onPress: async () => {
+              if (!userId) return
+              const { error } = await supabase.from('profiles').update({ is_suspended: true }).eq('id', userId)
+              if (error) Alert.alert('Erreur', error.message)
+              else { setIsSuspended(true); Alert.alert('Compte en pause ⏸', 'Ton profil est masqué. Reviens ici pour le réactiver.') }
+            },
+          },
+        ]
+      )
+    }
   }
 
   // ── Account deletion ────────────────────────────────────────────────────────
@@ -626,12 +649,16 @@ export default function SettingsPage() {
               <Ionicons name="chevron-forward" size={18} color="#ffffff44" />
             </TouchableOpacity>
 
-            {/* Suspend Account */}
-            <TouchableOpacity style={styles.accountButtonWarning} onPress={handleSuspendAccount}>
-              <Ionicons name="pause-outline" size={18} color="#ff9800" />
+            {/* Suspend/Reactivate Account */}
+            <TouchableOpacity style={isSuspended ? styles.accountButtonSuccess : styles.accountButtonWarning} onPress={handleSuspendAccount}>
+              <Ionicons name={isSuspended ? 'play-outline' : 'pause-outline'} size={18} color={isSuspended ? '#4caf50' : '#ff9800'} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.accountButtonText}>Suspendre mon compte</Text>
-                <Text style={styles.accountButtonSubtext}>Ton profil ne sera plus visible par les autres membres</Text>
+                <Text style={styles.accountButtonText}>
+                  {isSuspended ? 'Réactiver mon compte' : 'Mettre en pause'}
+                </Text>
+                <Text style={styles.accountButtonSubtext}>
+                  {isSuspended ? '⏸ Ton profil est actuellement masqué' : 'Ton profil ne sera plus visible par les autres'}
+                </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color="#ffffff44" />
             </TouchableOpacity>
@@ -1071,6 +1098,18 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#2a2a2a',
+    gap: 12,
+  },
+  accountButtonSuccess: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4caf5015',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#4caf5044',
     gap: 12,
   },
   accountButtonWarning: {

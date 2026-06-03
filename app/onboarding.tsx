@@ -26,7 +26,7 @@ import { INTERESTS, SKILLS_LIST, DEFAULT_PREFERENCES, MAX_PHOTOS } from '@/lib/u
 import type { UserSkill } from '@/lib/types'
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
-const TOTAL_STEPS = 6
+const TOTAL_STEPS = 7 // Step 6 = referral code (optional)
 // Using OpenStreetMap Nominatim - free, no API key needed, works on Android
 const MAX_INTERESTS = 5
 
@@ -65,9 +65,12 @@ export default function OnboardingPage() {
   const [selectedSkills, setSelectedSkills] = useState<UserSkill[]>([])
   const [skillSearch, setSkillSearch] = useState('')
 
-  // Step 5
+  // Step 5 - Photos
   const [photos, setPhotos] = useState<{ uri: string; base64?: string }[]>([])
   const [photoUploading, setPhotoUploading] = useState(false)
+
+  // Step 6 - Referral code (optional)
+  const [referralCode, setReferralCode] = useState('')
 
   const progress = ((step + 1) / TOTAL_STEPS) * 100
 
@@ -117,6 +120,8 @@ export default function OnboardingPage() {
         return true // Skills optional
       case 5:
         return photos.length >= 1
+      case 6:
+        return true // Referral code is optional
       default:
         return false
     }
@@ -362,6 +367,20 @@ export default function OnboardingPage() {
 
       if (profileError) throw profileError
 
+      // Apply referral code if provided (anti-abuse: only during onboarding)
+      if (referralCode.trim()) {
+        const SUPA_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
+        const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
+        const refRes = await fetch(`${SUPA_URL}/functions/v1/use-referral-code`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY, 'Authorization': `Bearer ${session.access_token}` },
+          body: JSON.stringify({ code: referralCode.trim() }),
+        })
+        const refData = await refRes.json()
+        if (!refData.success) console.warn('[ONBOARDING] Referral code error:', refData.error)
+        // Don't block if code fails — user can add it later
+      }
+
       // Update global profile store so profile page shows photos immediately
       profileStore.set({
         ...profileStore.profile,
@@ -437,6 +456,13 @@ export default function OnboardingPage() {
             photoUploading={photoUploading}
           />
         )
+      case 6:
+        return (
+          <StepReferral
+            code={referralCode}
+            onChange={setReferralCode}
+          />
+        )
     }
   }
 
@@ -480,6 +506,12 @@ export default function OnboardingPage() {
 
         {/* Footer CTA */}
         <View style={styles.footer}>
+          {/* Skip button on referral step */}
+          {step === 6 && (
+            <TouchableOpacity style={styles.skipBtn} onPress={goNext} disabled={loading}>
+              <Text style={styles.skipBtnText}>Je n'ai pas de code →</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={[styles.ctaButton, !canProceed() && styles.ctaDisabled]}
             onPress={goNext}
@@ -490,7 +522,9 @@ export default function OnboardingPage() {
             ) : (
               <>
                 <Text style={styles.ctaText}>
-                  {step === TOTAL_STEPS - 1 ? 'Lancer PAKT' : 'Continuer'}
+                  {step === TOTAL_STEPS - 1
+                    ? (referralCode.trim() ? 'Appliquer et lancer PAKT' : 'Lancer PAKT')
+                    : 'Continuer'}
                 </Text>
                 {step < TOTAL_STEPS - 1 && (
                   <Ionicons name="chevron-forward" size={18} color="#000" />
@@ -1211,4 +1245,52 @@ const s = StyleSheet.create({
     gap: 10,
     alignItems: 'center',
   },
+  skipBtn: {
+    alignItems: 'center',
+    paddingVertical: 10,
+    marginBottom: 8,
+  },
+  skipBtnText: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 14,
+  },
 })
+
+// ─── Step 6: Code de parrainage (optionnel) ───────────────────────────────────
+function StepReferral({ code, onChange }: { code: string; onChange: (v: string) => void }) {
+  return (
+    <View style={{ paddingHorizontal: 24, paddingTop: 16 }}>
+      <Text style={{ color: '#fff', fontSize: 28, fontWeight: '800', marginBottom: 8 }}>
+        Code de parrainage
+      </Text>
+      <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 15, lineHeight: 22, marginBottom: 32 }}>
+        Tu as reçu un code d'un ami déjà sur PAKT ? Entre-le ici. Sinon, appuie sur "Je n'ai pas de code".
+      </Text>
+
+      <View style={{
+        backgroundColor: '#1a1a1a', borderRadius: 14, borderWidth: 1,
+        borderColor: code.trim() ? '#d4a853' : '#333',
+        paddingHorizontal: 16, paddingVertical: 14, marginBottom: 16,
+      }}>
+        <TextInput
+          value={code}
+          onChangeText={(v) => onChange(v.toUpperCase())}
+          placeholder="REF-XXXXXXXX-XXXXXX"
+          placeholderTextColor="rgba(255,255,255,0.25)"
+          style={{ color: '#fff', fontSize: 18, fontWeight: '700', letterSpacing: 1 }}
+          autoCapitalize="characters"
+          autoCorrect={false}
+        />
+      </View>
+
+      <View style={{
+        backgroundColor: 'rgba(212,168,83,0.06)', borderRadius: 12,
+        borderWidth: 1, borderColor: 'rgba(212,168,83,0.15)', padding: 14,
+      }}>
+        <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, lineHeight: 20 }}>
+          🎁 En entrant un code valide, ton ami reçoit une récompense. Ce code n'est utilisable qu'une seule fois, lors de l'inscription.
+        </Text>
+      </View>
+    </View>
+  )
+}
