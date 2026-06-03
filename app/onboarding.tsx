@@ -794,15 +794,7 @@ function StepSkills({
         Chaque compétence nécessite un niveau honnête de 1 à 10.
       </Text>
 
-      <TextInput
-        style={s.input}
-        placeholder="Rechercher une compétence..."
-        placeholderTextColor="#ffffff44"
-        value={skillSearch}
-        onChangeText={setSkillSearch}
-      />
-
-      {/* Skill list */}
+      {/* Skill list — search bar removed, all skills shown directly */}
       <View style={s.chipsRow}>
         {filtered.map((skill) => {
           const selected = selectedSkills.find((s) => s.name === skill)

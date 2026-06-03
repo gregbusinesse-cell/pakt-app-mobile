@@ -88,8 +88,14 @@ export default function ChatDetailPage() {
   // 3. both are business+ → can send normal messages
   const getUserPlan = (profile: Profile | null) => {
     if (!profile) return 'free'
-    // Check subscription_plan first (newer field), fallback to plan (older field)
-    return profile.subscription_plan || profile.plan || 'free'
+    // Use the BEST plan between subscription_plan and plan
+    // (avoids 'free' from subscription_plan blocking 'business' in plan)
+    const RANK: Record<string, number> = { free: 0, business: 1, business_pro: 2, pro: 2 }
+    const sp = ((profile.subscription_plan || '') as string).toLowerCase()
+    const p  = ((profile.plan || '') as string).toLowerCase()
+    const spRank = RANK[sp] ?? 0
+    const pRank  = RANK[p]  ?? 0
+    return spRank >= pRank ? (sp || 'free') : (p || 'free')
   }
 
   const isCurrentUserFree = getUserPlan(currentUser) === 'free'
