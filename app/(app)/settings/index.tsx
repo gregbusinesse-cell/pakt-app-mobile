@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Alert, Linking, ToastAndroid, Platform } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Alert, Linking, ToastAndroid, Platform, TextInput } from 'react-native'
 import * as Clipboard from 'expo-clipboard'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
@@ -93,6 +93,9 @@ export default function SettingsPage() {
   const [userId, setUserId] = useState<string | null>(null)
   const [referralCount, setReferralCount] = useState(0)
   const [referralLink, setReferralLink] = useState('')
+  const [inputCode, setInputCode] = useState('')
+  const [codeLoading, setCodeLoading] = useState(false)
+  const [codeUsed, setCodeUsed] = useState(false)
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -161,11 +164,34 @@ export default function SettingsPage() {
     fetchUserData()
   }, [])
 
+  // ── Use a referral code ──────────────────────────────────────────────────────
+  const handleUseCode = async () => {
+    if (!inputCode.trim()) return
+    setCodeLoading(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const SUPA_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
+      const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
+      const res = await fetch(`${SUPA_URL}/functions/v1/use-referral-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY, 'Authorization': `Bearer ${session?.access_token || ''}` },
+        body: JSON.stringify({ code: inputCode.trim() }),
+      })
+      const data = await res.json()
+      if (!data.success) Alert.alert('Erreur', data.error || 'Code invalide.')
+      else {
+        Alert.alert('Code appliqué ✅', 'Le code de parrainage a bien été enregistré !')
+        setCodeUsed(true)
+        setInputCode('')
+      }
+    } catch { Alert.alert('Erreur réseau', 'Impossible de contacter le serveur.') }
+    finally { setCodeLoading(false) }
+  }
+
   const handleCopyReferral = async () => {
     try {
-      // Real link — opens the app on mobile, shows landing page on PC
-      const referUrl = `https://pakt-sigma.vercel.app/refer/${referralCode}`
-      const message = `🚀 Rejoins-moi sur PAKT — le Tinder du business !\n\nClique sur le lien pour créer ton compte :\n${referUrl}\n\nOu entre ce code lors de l'inscription : ${referralCode}`
+      // Simple message with just the code — mobile app, no web links
+      const message = `🚀 Rejoins-moi sur PAKT — le Tinder du business !\n\nTélécharge l'app PAKT, crée ton compte et entre mon code de parrainage dans l'onglet Parrainage :\n\n👉 ${referralCode}\n\nDispo sur Android et bientôt sur iOS.`
       await Clipboard.setStringAsync(message)
       if (Platform.OS === 'android') {
         ToastAndroid.show('Message copié dans le presse-papiers ✓', ToastAndroid.LONG)
@@ -539,6 +565,32 @@ export default function SettingsPage() {
                 </View>
               ))}
             </View>
+
+            {/* Enter a friend's referral code */}
+            {!codeUsed && (
+              <View style={[styles.codeSection, { marginBottom: 16 }]}>
+                <Text style={styles.codeLabel}>Tu as un code d'un ami ?</Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TextInput
+                    style={[styles.codeBox, { flex: 1, color: '#fff', fontSize: 13 }]}
+                    placeholder="Entre le code ici (ex: REF-XXXXXXX)"
+                    placeholderTextColor="rgba(255,255,255,0.3)"
+                    value={inputCode}
+                    onChangeText={t => setInputCode(t.toUpperCase())}
+                    autoCapitalize="characters"
+                    returnKeyType="done"
+                    onSubmitEditing={handleUseCode}
+                  />
+                  <TouchableOpacity
+                    style={{ backgroundColor: '#d4a853', borderRadius: 10, paddingHorizontal: 14, justifyContent: 'center', opacity: codeLoading ? 0.6 : 1 }}
+                    onPress={handleUseCode}
+                    disabled={codeLoading}
+                  >
+                    {codeLoading ? <ActivityIndicator color="#000" size="small" /> : <Text style={{ color: '#000', fontWeight: '700', fontSize: 13 }}>OK</Text>}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
 
             {/* Referral Code — tap to copy full message */}
             <View style={styles.codeSection}>

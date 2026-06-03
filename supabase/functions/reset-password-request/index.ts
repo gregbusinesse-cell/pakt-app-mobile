@@ -32,13 +32,21 @@ Deno.serve(async (req: Request) => {
     const resetToken = Array.from(tokenBytes).map(b => b.toString(16).padStart(2, '0')).join('')
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString() // 1h
 
-    // Save token
-    await sb.from('password_reset_tokens').upsert({
+    // Delete any existing tokens for this user first
+    await sb.from('password_reset_tokens').delete().eq('user_id', user.id)
+
+    // Insert fresh token
+    const { error: insertErr } = await sb.from('password_reset_tokens').insert({
       user_id: user.id,
       email: user.email,
       token: resetToken,
       expires_at: expiresAt,
-    }, { onConflict: 'user_id' })
+    })
+
+    if (insertErr) {
+      console.error('[RESET] Token insert error:', insertErr.message)
+      return err('Impossible de créer le token. Réessaie.')
+    }
 
     // Deep link — opens app on mobile
     const resetLink = `pakt://reset-password?token=${resetToken}`
