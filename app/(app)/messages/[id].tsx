@@ -80,6 +80,7 @@ export default function ChatDetailPage() {
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null)
   const soundRef = useRef<Audio.Sound | null>(null)
   const [playingUrl, setPlayingUrl] = useState<string | null>(null)
+  const [playbackPosition, setPlaybackPosition] = useState(0) // seconds played
 
   const { isOnline, statusText } = useOnlineStatus(participant?.id || null)
 
@@ -495,29 +496,31 @@ export default function ChatDetailPage() {
   // ── Audio Playback ──────────────────────────────────────────────────────────
   const playAudio = async (url: string) => {
     try {
-      // Stop current sound if playing
       if (soundRef.current) {
         await soundRef.current.stopAsync()
         await soundRef.current.unloadAsync()
         soundRef.current = null
-        if (playingUrl === url) { setPlayingUrl(null); return }
+        if (playingUrl === url) { setPlayingUrl(null); setPlaybackPosition(0); return }
       }
-
       setPlayingUrl(url)
+      setPlaybackPosition(0)
       await Audio.setAudioModeAsync({ playsInSilentModeIOS: true, allowsRecordingIOS: false })
       const { sound } = await Audio.Sound.createAsync(
         { uri: url },
         { shouldPlay: true },
-        (status) => {
-          if ((status as any).didJustFinish) {
-            setPlayingUrl(null)
-            soundRef.current = null
+        (status: any) => {
+          if (status.isLoaded) {
+            setPlaybackPosition(Math.floor((status.positionMillis || 0) / 1000))
+            if (status.didJustFinish) {
+              setPlayingUrl(null)
+              setPlaybackPosition(0)
+              soundRef.current = null
+            }
           }
         }
       )
       soundRef.current = sound
     } catch (err) {
-      console.error('[AUDIO] Playback error:', err)
       showToast('Impossible de lire le message vocal', 'error')
       setPlayingUrl(null)
     }
@@ -595,7 +598,7 @@ export default function ChatDetailPage() {
       // Send report via Edge Function (Brevo key is in Supabase secrets)
       const SUPA_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
       const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
-      await fetch(`${SUPA_URL}/functions/v1/report-user`, {
+      const res = await fetch(`${SUPA_URL}/functions/v1/report-user`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
         body: JSON.stringify({
@@ -607,7 +610,12 @@ export default function ChatDetailPage() {
           conversation_id: conversationId,
         }),
       })
-      showToast('Signalement envoyé. Merci.', 'success')
+      const result = await res.json().catch(() => ({}))
+      if (result.success) {
+        showToast('Signalement envoyé à notre équipe. Merci.', 'success')
+      } else {
+        showToast('Signalement reçu (email en attente)', 'success')
+      }
     } catch (err) {
       showToast('Erreur lors du signalement', 'error')
     }
@@ -704,6 +712,15 @@ export default function ChatDetailPage() {
 
       setSelectedImage(null)
       await fetchMessages(conversationId)
+      // Push notification for image
+      if (participant?.id) {
+        const SUPA_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
+        const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
+        fetch(`${SUPA_URL}/functions/v1/send-push-notification`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
+          body: JSON.stringify({ to_user_id: participant.id, title: `📷 ${currentUser?.first_name || 'Message'}`, body: 'Vous avez reçu un message', data: { type: 'message', conversation_id: conversationId } }),
+        }).catch(() => {})
+      }
     } catch (err) {
       console.error('Error sending image:', err)
       showToast('Erreur lors de l\'envoi de l\'image', 'error')
@@ -1023,23 +1040,29 @@ export default function ChatDetailPage() {
                       </View>
                     </View>
                   ) : (msg as any).message_type === 'audio' && (msg as any).file_url ? (
-                    /* AUDIO message — tappable to play */
+                    /* AUDIO message — compact horizontal */
                     <TouchableOpacity
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 4, paddingVertical: 4 }}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 180, maxWidth: 240 }}
                       onPress={() => playAudio((msg as any).file_url)}
                       activeOpacity={0.7}
                     >
                       <Ionicons
                         name={playingUrl === (msg as any).file_url ? 'pause-circle' : 'play-circle'}
-                        size={36}
+                        size={32}
                         color={isOwn ? '#0a0a0a' : '#ffd700'}
                       />
                       <View style={{ flex: 1 }}>
-                        <Text style={[styles.messageText, isOwn && styles.messageTextOwn]}>
-                          {playingUrl === (msg as any).file_url ? 'En lecture...' : 'Message vocal'}
-                        </Text>
-                        <Text style={{ fontSize: 11, color: isOwn ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)' }}>
-                          {displayContent?.replace('[AUDIO ', '').replace(']', '') || ''}
+                        {/* Progress bar */}
+                        <View style={{ height: 3, backgroundColor: isOwn ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)', borderRadius: 2, marginBottom: 2 }}>
+                          {playingUrl === (msg as any).file_url && (() => {
+                            const total = parseInt(displayContent?.replace('[AUDIO ', '').replace('s]', '') || '1')
+                            return <View style={{ height: 3, width: `${Math.min(100, (playbackPosition / total) * 100)}%` as any, backgroundColor: isOwn ? '#0a0a0a' : '#ffd700', borderRadius: 2 }} />
+                          })()}
+                        </View>
+                        <Text style={{ fontSize: 11, color: isOwn ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.6)' }}>
+                          {playingUrl === (msg as any).file_url
+                            ? `${playbackPosition}s / ${displayContent?.replace('[AUDIO ', '').replace(']', '') || ''}`
+                            : displayContent?.replace('[AUDIO ', '').replace(']', '') || ''}
                         </Text>
                       </View>
                       <Text style={[styles.messageTime, isOwn && styles.messageTimeOwn]}>

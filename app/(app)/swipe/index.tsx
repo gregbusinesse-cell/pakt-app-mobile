@@ -188,6 +188,17 @@ export default function SwipePage() {
       .from('likes')
       .insert({ liker_id: userId, liked_id: target.id, is_viewed: false })
 
+    // Push notification to liked user
+    if (!likeErr) {
+      const SUPA = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
+      const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
+      const myName = (await supabase.from('profiles').select('first_name').eq('id', userId).single()).data?.first_name || 'Quelqu\'un'
+      fetch(`${SUPA}/functions/v1/send-push-notification`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': ANON },
+        body: JSON.stringify({ to_user_id: target.id, title: '❤️ Nouveau like !', body: `${myName} a liké ton profil`, data: { type: 'like' } }),
+      }).catch(() => {})
+    }
+
     if (likeErr) {
       console.error('[SWIPE] likes insert error:', likeErr.code, likeErr.message)
     } else {
