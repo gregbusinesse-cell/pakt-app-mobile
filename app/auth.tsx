@@ -3,9 +3,10 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-// Google OAuth imports - DISABLED TEMPORARILY (no native modules in release APK)
-// import * as Google from 'expo-auth-session/providers/google'
-// import * as AuthSession from 'expo-auth-session'
+import * as WebBrowser from 'expo-web-browser'
+import * as Linking from 'expo-linking'
+
+WebBrowser.maybeCompleteAuthSession()
 
 export default function AuthPage() {
   const router = useRouter()
@@ -148,28 +149,45 @@ export default function AuthPage() {
     }
   }
 
-  const signInWithGoogle = async (token: string) => {
+  const handleGoogleSignIn = async () => {
     try {
-      const { error } = await supabase.auth.signInWithIdToken({
+      setSigningIn(true)
+
+      // Build the redirect URL back to the app
+      const redirectTo = Linking.createURL('auth/callback')
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        token: token,
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true,
+        },
       })
+
       if (error) throw error
+      if (!data.url) throw new Error('No OAuth URL returned')
+
+      // Open browser for Google login
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo)
+
+      if (result.type === 'success' && result.url) {
+        // Exchange the code for a session
+        const url = new URL(result.url)
+        const code = url.searchParams.get('code')
+        if (code) {
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(result.url)
+          if (exchangeError) throw exchangeError
+        }
+      }
     } catch (err: any) {
       console.error('[AUTH] Google sign in error:', err)
-      Alert.alert('Erreur', err?.message || 'Impossible de se connecter')
+      if (err?.message !== 'The operation was cancelled.') {
+        Alert.alert('Erreur Google', err?.message || 'Impossible de se connecter avec Google')
+      }
+    } finally {
+      setSigningIn(false)
     }
   }
-
-  // Google auth handler - DISABLED TEMPORARILY
-  // const handleSignInWithGoogle = async () => {
-  //   try {
-  //     await promptAsync()
-  //   } catch (err: any) {
-  //     console.error('[AUTH] Google auth prompt error:', err)
-  //     Alert.alert('Erreur', 'Impossible d\'ouvrir Google Login')
-  //   }
-  // }
 
   if (loading) {
     return (
@@ -241,22 +259,22 @@ export default function AuthPage() {
           </TouchableOpacity>
         </View>
 
-        {/* Separator - HIDDEN (Google OAuth disabled temporarily) */}
-        {/* <View style={styles.separator}>
+        {/* Separator */}
+        <View style={styles.separator}>
           <View style={styles.separatorLine} />
           <Text style={styles.separatorText}>ou</Text>
           <View style={styles.separatorLine} />
-        </View> */}
+        </View>
 
-        {/* Google Button - DISABLED TEMPORARILY */}
-        {/* <TouchableOpacity
-          style={styles.googleButton}
-          onPress={handleSignInWithGoogle}
-          disabled={!request}
+        {/* Google Button */}
+        <TouchableOpacity
+          style={[styles.googleButton, signingIn && { opacity: 0.6 }]}
+          onPress={handleGoogleSignIn}
+          disabled={signingIn}
         >
           <Ionicons name="logo-google" size={20} color="#fff" />
           <Text style={styles.googleButtonText}>Continuer avec Google</Text>
-        </TouchableOpacity> */}
+        </TouchableOpacity>
 
         {/* Disclaimer */}
         <View style={styles.disclaimerContainer}>
