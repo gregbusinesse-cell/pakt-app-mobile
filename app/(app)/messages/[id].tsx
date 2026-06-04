@@ -535,7 +535,6 @@ export default function ChatDetailPage() {
         .insert({
           blocker_id: currentUser.id,
           blocked_id: participant.id,
-          reason: 'Bloqué via chat'
         })
 
       if (error) throw error

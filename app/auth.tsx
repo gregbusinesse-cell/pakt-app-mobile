@@ -180,37 +180,18 @@ export default function AuthPage() {
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo, skipBrowserRedirect: true },
+        options: { redirectTo, skipBrowserRedirect: false },
       })
       if (error) throw error
       if (!data.url) throw new Error('No OAuth URL')
 
+      // Open browser and wait for redirect to auth/callback deep link
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo)
 
-      if (result.type === 'success' && result.url) {
-        const url = result.url
-
-        // Handle implicit flow (tokens in hash/fragment)
-        if (url.includes('access_token=')) {
-          const fragment = url.includes('#') ? url.split('#')[1] : url.split('?').slice(1).join('?')
-          const params = new URLSearchParams(fragment)
-          const access_token = params.get('access_token')
-          const refresh_token = params.get('refresh_token')
-          if (access_token && refresh_token) {
-            const { error: sessErr } = await supabase.auth.setSession({ access_token, refresh_token })
-            if (sessErr) throw sessErr
-          }
-        } else {
-          // PKCE flow (code in query params)
-          const { error: exchErr } = await supabase.auth.exchangeCodeForSession(url)
-          if (exchErr) {
-            // If PKCE fails, check if session was set another way
-            console.warn('[AUTH] PKCE exchange failed:', exchErr.message)
-          }
-        }
-
-        // Wait briefly then redirect
-        await new Promise(r => setTimeout(r, 500))
+      if (result.type === 'success') {
+        // Supabase client automatically handles session from deep link
+        // Just wait for session to be set
+        await new Promise(r => setTimeout(r, 1000))
         await redirectAfterAuth()
       }
     } catch (err: any) {
