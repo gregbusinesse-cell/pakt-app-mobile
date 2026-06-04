@@ -19,6 +19,7 @@ export function usePushNotifications() {
   const responseListener = useRef<any>(null)
 
   useEffect(() => {
+    // Auto-register silently on mount (no custom dialog, just system prompt)
     registerForPushNotifications()
 
     notifListener.current = Notifications.addNotificationReceivedListener(n => {
@@ -41,28 +42,31 @@ export function usePushNotifications() {
 export async function registerForPushNotifications() {
   if (!Device.isDevice) return null
 
-  const { status: existing } = await Notifications.getPermissionsAsync()
-  let finalStatus = existing
-  if (existing !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync()
-    finalStatus = status
+  // Android notification channel (no dialog needed)
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'PAKT',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#d4a853',
+    })
   }
-  if (finalStatus !== 'granted') return null
+
+  // Request permission (iOS: shows system dialog once; Android 13+: shows once)
+  const { status } = await Notifications.requestPermissionsAsync()
+  if (status !== 'granted') {
+    console.log('[PUSH] Permission not granted')
+    return null
+  }
 
   try {
-    const tokenData = await Notifications.getExpoPushTokenAsync({
+    const { data: token } = await Notifications.getExpoPushTokenAsync({
       projectId: '9f4670fe-2401-4e85-905f-38368ff7edca',
     })
-    const token = tokenData.data
     const { data: { session } } = await supabase.auth.getSession()
-    if (session?.user?.id) {
+    if (session?.user?.id && token) {
       await supabase.from('profiles').update({ push_token: token } as any).eq('id', session.user.id)
-    }
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('default', {
-        name: 'PAKT', importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250], lightColor: '#d4a853',
-      })
+      console.log('[PUSH] Token registered:', token.substring(0, 20) + '...')
     }
     return token
   } catch (e) {

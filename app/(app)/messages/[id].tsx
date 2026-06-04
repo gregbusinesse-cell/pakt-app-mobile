@@ -778,12 +778,18 @@ export default function ChatDetailPage() {
     try {
       setSending(true)
 
-      const audioBuffer = await fetch(recordedAudio.uri).then(res => res.blob())
+      // Use expo-file-system to handle file:// URIs on Android
+      const base64 = await FileSystem.readAsStringAsync(recordedAudio.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      })
+      const binaryString = atob(base64)
+      const byteArray = new Uint8Array(binaryString.length)
+      for (let j = 0; j < binaryString.length; j++) byteArray[j] = binaryString.charCodeAt(j)
       const fileName = `audio_${Date.now()}.m4a`
 
       const { error: uploadError } = await supabase.storage
         .from('message_attachments')
-        .upload(`audio/${conversationId}/${fileName}`, audioBuffer)
+        .upload(`audio/${conversationId}/${fileName}`, byteArray, { contentType: 'audio/m4a', upsert: false })
 
       if (uploadError) throw uploadError
 
