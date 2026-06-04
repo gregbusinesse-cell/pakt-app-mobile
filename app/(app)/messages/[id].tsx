@@ -78,6 +78,8 @@ export default function ChatDetailPage() {
   const scrollViewRef = useRef<ScrollView>(null)
   const recordingRef = useRef<Audio.Recording | null>(null)
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const soundRef = useRef<Audio.Sound | null>(null)
+  const [playingUrl, setPlayingUrl] = useState<string | null>(null)
 
   const { isOnline, statusText } = useOnlineStatus(participant?.id || null)
 
@@ -490,6 +492,37 @@ export default function ChatDetailPage() {
     return date.toLocaleDateString('fr-FR')
   }
 
+  // ── Audio Playback ──────────────────────────────────────────────────────────
+  const playAudio = async (url: string) => {
+    try {
+      // Stop current sound if playing
+      if (soundRef.current) {
+        await soundRef.current.stopAsync()
+        await soundRef.current.unloadAsync()
+        soundRef.current = null
+        if (playingUrl === url) { setPlayingUrl(null); return }
+      }
+
+      setPlayingUrl(url)
+      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true, allowsRecordingIOS: false })
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: url },
+        { shouldPlay: true },
+        (status) => {
+          if ((status as any).didJustFinish) {
+            setPlayingUrl(null)
+            soundRef.current = null
+          }
+        }
+      )
+      soundRef.current = sound
+    } catch (err) {
+      console.error('[AUDIO] Playback error:', err)
+      showToast('Impossible de lire le message vocal', 'error')
+      setPlayingUrl(null)
+    }
+  }
+
   const handleBlockUser = async () => {
     if (!currentUser || !participant) return
 
@@ -556,18 +589,25 @@ export default function ChatDetailPage() {
   }
 
   const reportUserWithReason = async (reason: string) => {
-    if (!participant) return
+    if (!participant || !currentUser) return
 
     try {
-      // In production, this would send to a reports table or email
-      console.log('Report:', {
-        userId: participant.id,
-        userName: participant.first_name,
-        reason,
-        timestamp: new Date().toISOString()
+      // Send report via Edge Function (Brevo key is in Supabase secrets)
+      const SUPA_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
+      const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
+      await fetch(`${SUPA_URL}/functions/v1/report-user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
+        body: JSON.stringify({
+          reported_id: participant.id,
+          reported_name: participant.first_name,
+          reporter_id: currentUser.id,
+          reporter_name: currentUser.first_name,
+          reason,
+          conversation_id: conversationId,
+        }),
       })
-
-      showToast('Merci d\'avoir signalé cet utilisateur', 'success')
+      showToast('Signalement envoyé. Merci.', 'success')
     } catch (err) {
       showToast('Erreur lors du signalement', 'error')
     }
@@ -983,23 +1023,29 @@ export default function ChatDetailPage() {
                       </View>
                     </View>
                   ) : (msg as any).message_type === 'audio' && (msg as any).file_url ? (
-                    /* AUDIO message */
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 4 }}>
-                      <Ionicons name="play-circle" size={32} color={isOwn ? '#0a0a0a' : '#ffd700'} />
-                      <View>
+                    /* AUDIO message — tappable to play */
+                    <TouchableOpacity
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 4, paddingVertical: 4 }}
+                      onPress={() => playAudio((msg as any).file_url)}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons
+                        name={playingUrl === (msg as any).file_url ? 'pause-circle' : 'play-circle'}
+                        size={36}
+                        color={isOwn ? '#0a0a0a' : '#ffd700'}
+                      />
+                      <View style={{ flex: 1 }}>
                         <Text style={[styles.messageText, isOwn && styles.messageTextOwn]}>
-                          Message vocal
+                          {playingUrl === (msg as any).file_url ? 'En lecture...' : 'Message vocal'}
                         </Text>
                         <Text style={{ fontSize: 11, color: isOwn ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)' }}>
                           {displayContent?.replace('[AUDIO ', '').replace(']', '') || ''}
                         </Text>
                       </View>
-                      <View style={styles.messageFooter}>
-                        <Text style={[styles.messageTime, isOwn && styles.messageTimeOwn]}>
-                          {formatExactTime(msg.created_at)}
-                        </Text>
-                      </View>
-                    </View>
+                      <Text style={[styles.messageTime, isOwn && styles.messageTimeOwn]}>
+                        {formatExactTime(msg.created_at)}
+                      </Text>
+                    </TouchableOpacity>
                   ) : (
                     /* TEXT message */
                     <>
