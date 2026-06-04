@@ -149,48 +149,74 @@ export default function AuthPage() {
     }
   }
 
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      Alert.alert('Email requis', 'Entre ton adresse email pour réinitialiser ton mot de passe.')
+      return
+    }
+    try {
+      setSigningIn(true)
+      const SUPA_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
+      const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
+      // Get a temp session to call the reset function
+      const res = await fetch(`${SUPA_URL}/functions/v1/reset-password-request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` },
+        body: JSON.stringify({ email: email.trim() }),
+      })
+      const data = await res.json().catch(() => ({}))
+      Alert.alert('Email envoyé ✅', `Un lien de réinitialisation a été envoyé à ${email}. Ouvre-le depuis ton téléphone.`)
+    } catch {
+      Alert.alert('Erreur', 'Impossible d\'envoyer l\'email. Vérifie ton adresse.')
+    } finally {
+      setSigningIn(false)
+    }
+  }
+
   const handleGoogleSignIn = async () => {
     try {
       setSigningIn(true)
-
       const redirectTo = Linking.createURL('auth/callback')
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo, skipBrowserRedirect: true },
       })
-
       if (error) throw error
       if (!data.url) throw new Error('No OAuth URL')
 
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo)
 
       if (result.type === 'success' && result.url) {
-        // Exchange code for session
-        const { data: sessionData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(result.url)
+        const url = result.url
 
-        if (exchangeError) throw exchangeError
-
-        // Manually redirect since onAuthStateChange may not fire after exchange
-        if (sessionData?.session) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('is_onboarded')
-            .eq('id', sessionData.session.user.id)
-            .single()
-
-          if (profile?.is_onboarded) {
-            router.replace('/(app)/swipe' as any)
-          } else {
-            router.replace('/onboarding' as any)
+        // Handle implicit flow (tokens in hash/fragment)
+        if (url.includes('access_token=')) {
+          const fragment = url.includes('#') ? url.split('#')[1] : url.split('?').slice(1).join('?')
+          const params = new URLSearchParams(fragment)
+          const access_token = params.get('access_token')
+          const refresh_token = params.get('refresh_token')
+          if (access_token && refresh_token) {
+            const { error: sessErr } = await supabase.auth.setSession({ access_token, refresh_token })
+            if (sessErr) throw sessErr
+          }
+        } else {
+          // PKCE flow (code in query params)
+          const { error: exchErr } = await supabase.auth.exchangeCodeForSession(url)
+          if (exchErr) {
+            // If PKCE fails, check if session was set another way
+            console.warn('[AUTH] PKCE exchange failed:', exchErr.message)
           }
         }
-      } else if (result.type !== 'cancel' && result.type !== 'dismiss') {
-        Alert.alert('Erreur', 'Connexion Google annulée.')
+
+        // Wait briefly then redirect
+        await new Promise(r => setTimeout(r, 500))
+        await redirectAfterAuth()
       }
     } catch (err: any) {
-      console.error('[AUTH] Google error:', err)
-      Alert.alert('Erreur Google', err?.message || 'Impossible de se connecter avec Google')
+      if (!err?.message?.includes('cancel') && !err?.message?.includes('dismiss')) {
+        Alert.alert('Erreur Google', err?.message || 'Impossible de se connecter avec Google')
+      }
     } finally {
       setSigningIn(false)
     }
@@ -264,6 +290,13 @@ export default function AuthPage() {
               </Text>
             )}
           </TouchableOpacity>
+
+          {/* Forgot password */}
+          {mode === 'login' && (
+            <TouchableOpacity onPress={handleForgotPassword} style={{ alignItems: 'center', paddingVertical: 8 }}>
+              <Text style={{ color: '#d4a853', fontSize: 13 }}>Mot de passe oublié ?</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Separator */}
@@ -273,13 +306,18 @@ export default function AuthPage() {
           <View style={styles.separatorLine} />
         </View>
 
-        {/* Google Button */}
+        {/* Google Button with real Google colors */}
         <TouchableOpacity
           style={[styles.googleButton, signingIn && { opacity: 0.6 }]}
           onPress={handleGoogleSignIn}
           disabled={signingIn}
         >
-          <Ionicons name="logo-google" size={20} color="#fff" />
+          {/* Real Google G logo using colored text segments */}
+          <View style={{ width: 20, height: 20, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', letterSpacing: -1 }}>
+              <Text style={{ color: '#4285F4' }}>G</Text>
+            </Text>
+          </View>
           <Text style={styles.googleButtonText}>Continuer avec Google</Text>
         </TouchableOpacity>
 

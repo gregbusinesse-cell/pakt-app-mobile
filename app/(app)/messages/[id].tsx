@@ -604,12 +604,17 @@ export default function ChatDetailPage() {
         created_at: new Date().toISOString(),
       }).then(() => {}) // ignore if table doesn't exist yet
 
-      // 2. Send email notification via Edge Function
+      // 2. Send email notification via Edge Function (with auth header)
       const SUPA_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
       const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
+      const { data: { session: reportSession } } = await supabase.auth.getSession()
       fetch(`${SUPA_URL}/functions/v1/report-user`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': ANON_KEY,
+          'Authorization': `Bearer ${reportSession?.access_token || ANON_KEY}`,
+        },
         body: JSON.stringify({
           reported_id: participant.id,
           reported_name: participant.first_name,
@@ -618,7 +623,7 @@ export default function ChatDetailPage() {
           reason,
           conversation_id: conversationId,
         }),
-      }).catch(() => {}) // fire and forget
+      }).then(r => r.json()).then(d => console.log('[REPORT] Email result:', d)).catch(e => console.error('[REPORT] Error:', e))
 
       showToast('Signalement envoyé. Merci.', 'success')
     } catch (err) {

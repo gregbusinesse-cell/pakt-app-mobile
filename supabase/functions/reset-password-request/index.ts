@@ -18,27 +18,47 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   try {
-    const authHeader = req.headers.get('Authorization') || ''
-    const token = authHeader.replace('Bearer ', '').trim()
-    if (!token) return err('Non authentifié')
-
     const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { persistSession: false } })
 
-    const { data: { user }, error: authErr } = await sb.auth.getUser(token)
-    if (authErr || !user || !user.email) return err('Utilisateur introuvable')
+    // Support both: authenticated call (from settings) and email-only call (from forgot password)
+    const authHeader = req.headers.get('Authorization') || ''
+    const token = authHeader.replace('Bearer ', '').trim()
+    const body = await req.json().catch(() => ({}))
+    const emailFromBody = body?.email
+
+    let userEmail: string | null = null
+
+    if (token && token !== 'Bearer' && !token.startsWith('eyJhbG') === false) {
+      // Authenticated call — get user from JWT
+      const { data: { user } } = await sb.auth.getUser(token)
+      userEmail = user?.email || null
+    }
+
+    // If no user from JWT, use email from body (forgot password flow)
+    if (!userEmail && emailFromBody) {
+      userEmail = emailFromBody
+    }
+
+    if (!userEmail) return err('Email requis')
 
     // Generate reset token
     const tokenBytes = crypto.getRandomValues(new Uint8Array(32))
     const resetToken = Array.from(tokenBytes).map(b => b.toString(16).padStart(2, '0')).join('')
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString() // 1h
 
-    // Delete any existing tokens for this user first
-    await sb.from('password_reset_tokens').delete().eq('user_id', user.id)
+    // Find user by email if not authenticated
+    let userId: string | null = null
+    const { data: users } = await sb.auth.admin.listUsers()
+    const foundUser = users?.users?.find((u: any) => u.email === userEmail)
+    userId = foundUser?.id || null
+
+    // Delete any existing tokens for this email
+    await sb.from('password_reset_tokens').delete().eq('email', userEmail)
 
     // Insert fresh token
     const { error: insertErr } = await sb.from('password_reset_tokens').insert({
-      user_id: user.id,
-      email: user.email,
+      user_id: userId || '00000000-0000-0000-0000-000000000000',
+      email: userEmail,
       token: resetToken,
       expires_at: expiresAt,
     })
@@ -95,7 +115,7 @@ Deno.serve(async (req: Request) => {
       headers: { 'accept': 'application/json', 'content-type': 'application/json', 'api-key': BREVO_API_KEY },
       body: JSON.stringify({
         sender: { name: 'PAKT', email: 'paktsupport@gmail.com' },
-        to: [{ email: user.email }],
+        to: [{ email: userEmail }],
         subject: 'Réinitialisation de ton mot de passe PAKT',
         htmlContent: emailHtml,
       }),
