@@ -153,37 +153,44 @@ export default function AuthPage() {
     try {
       setSigningIn(true)
 
-      // Build the redirect URL back to the app
       const redirectTo = Linking.createURL('auth/callback')
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: {
-          redirectTo,
-          skipBrowserRedirect: true,
-        },
+        options: { redirectTo, skipBrowserRedirect: true },
       })
 
       if (error) throw error
-      if (!data.url) throw new Error('No OAuth URL returned')
+      if (!data.url) throw new Error('No OAuth URL')
 
-      // Open browser for Google login
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo)
 
       if (result.type === 'success' && result.url) {
-        // Exchange the code for a session
-        const url = new URL(result.url)
-        const code = url.searchParams.get('code')
-        if (code) {
-          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(result.url)
-          if (exchangeError) throw exchangeError
+        // Exchange code for session
+        const { data: sessionData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(result.url)
+
+        if (exchangeError) throw exchangeError
+
+        // Manually redirect since onAuthStateChange may not fire after exchange
+        if (sessionData?.session) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('is_onboarded')
+            .eq('id', sessionData.session.user.id)
+            .single()
+
+          if (profile?.is_onboarded) {
+            router.replace('/(app)/swipe' as any)
+          } else {
+            router.replace('/onboarding' as any)
+          }
         }
+      } else if (result.type !== 'cancel' && result.type !== 'dismiss') {
+        Alert.alert('Erreur', 'Connexion Google annulée.')
       }
     } catch (err: any) {
-      console.error('[AUTH] Google sign in error:', err)
-      if (err?.message !== 'The operation was cancelled.') {
-        Alert.alert('Erreur Google', err?.message || 'Impossible de se connecter avec Google')
-      }
+      console.error('[AUTH] Google error:', err)
+      Alert.alert('Erreur Google', err?.message || 'Impossible de se connecter avec Google')
     } finally {
       setSigningIn(false)
     }
