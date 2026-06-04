@@ -12,6 +12,7 @@ import {
   Modal,
   PanResponder,
   GestureResponderEvent,
+  Image,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
@@ -958,6 +959,7 @@ export default function ChatDetailPage() {
                     styles.messageBubble,
                     isOwn ? styles.messageBubbleOwn : styles.messageBubbleOther,
                     isEncouragement && !isOwn && styles.messageBubbleEncouragement,
+                    (msg as any).message_type === 'image' && { padding: 4, overflow: 'hidden' },
                   ]}
                 >
                   {isEncouragement && !isOwn && (
@@ -965,14 +967,52 @@ export default function ChatDetailPage() {
                       <Text style={styles.encouragementBadgeText}>Encouragement</Text>
                     </View>
                   )}
-                  <Text style={[styles.messageText, isOwn && styles.messageTextOwn]}>
-                    {displayContent}
-                  </Text>
-                  <View style={styles.messageFooter}>
-                    <Text style={[styles.messageTime, isOwn && styles.messageTimeOwn]}>
-                      {formatExactTime(msg.created_at)}
-                    </Text>
-                  </View>
+
+                  {/* IMAGE message */}
+                  {(msg as any).message_type === 'image' && (msg as any).file_url ? (
+                    <View>
+                      <Image
+                        source={{ uri: (msg as any).file_url }}
+                        style={{ width: 200, height: 200, borderRadius: 12 }}
+                        resizeMode="cover"
+                      />
+                      <View style={styles.messageFooter}>
+                        <Text style={[styles.messageTime, isOwn && styles.messageTimeOwn]}>
+                          {formatExactTime(msg.created_at)}
+                        </Text>
+                      </View>
+                    </View>
+                  ) : (msg as any).message_type === 'audio' && (msg as any).file_url ? (
+                    /* AUDIO message */
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 4 }}>
+                      <Ionicons name="play-circle" size={32} color={isOwn ? '#0a0a0a' : '#ffd700'} />
+                      <View>
+                        <Text style={[styles.messageText, isOwn && styles.messageTextOwn]}>
+                          Message vocal
+                        </Text>
+                        <Text style={{ fontSize: 11, color: isOwn ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)' }}>
+                          {displayContent?.replace('[AUDIO ', '').replace(']', '') || ''}
+                        </Text>
+                      </View>
+                      <View style={styles.messageFooter}>
+                        <Text style={[styles.messageTime, isOwn && styles.messageTimeOwn]}>
+                          {formatExactTime(msg.created_at)}
+                        </Text>
+                      </View>
+                    </View>
+                  ) : (
+                    /* TEXT message */
+                    <>
+                      <Text style={[styles.messageText, isOwn && styles.messageTextOwn]}>
+                        {displayContent}
+                      </Text>
+                      <View style={styles.messageFooter}>
+                        <Text style={[styles.messageTime, isOwn && styles.messageTimeOwn]}>
+                          {formatExactTime(msg.created_at)}
+                        </Text>
+                      </View>
+                    </>
+                  )}
                 </View>
 
                 {isOwn && <View style={styles.avatarColOwn} />}
@@ -1094,14 +1134,22 @@ export default function ChatDetailPage() {
               </View>
             )}
 
-            {/* Recording Timer */}
+            {/* Recording Timer — tap STOP to finish */}
             {isRecording && (
-              <View style={styles.recordingContainer}>
+              <TouchableOpacity
+                style={styles.recordingContainer}
+                onPress={stopRecording}
+                activeOpacity={0.8}
+              >
                 <View style={styles.recordingDot} />
                 <Text style={styles.recordingText}>
                   {String(Math.floor(recordingDuration / 60)).padStart(2, '0')}:{String(recordingDuration % 60).padStart(2, '0')}
                 </Text>
-              </View>
+                <View style={{ marginLeft: 'auto' as any, backgroundColor: '#ff4444', borderRadius: 20, padding: 6 }}>
+                  <Ionicons name="stop" size={16} color="#fff" />
+                </View>
+                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, marginLeft: 6 }}>Appuie pour arrêter</Text>
+              </TouchableOpacity>
             )}
 
             {/* Input Row */}
