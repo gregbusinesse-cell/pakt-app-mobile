@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
+import * as FileSystem from 'expo-file-system'
 import { Audio } from 'expo-av'
 import { supabase } from '@/lib/supabase/client'
 
@@ -362,6 +363,22 @@ export default function ChatDetailPage() {
 
       setMessageText('')
       await fetchMessages(conversationId)
+
+      // Push notification to the other participant
+      if (participant?.id) {
+        const SUPA = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
+        const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
+        fetch(`${SUPA}/functions/v1/send-push-notification`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': ANON },
+          body: JSON.stringify({
+            to_user_id: participant.id,
+            title: `💬 ${currentUser?.first_name || 'Message'}`,
+            body: messageText.length > 60 ? messageText.substring(0, 60) + '...' : messageText,
+            data: { type: 'message', conversation_id: conversationId },
+          }),
+        }).catch(() => {})
+      }
     } catch (err) {
       console.error('Error sending message:', err)
       showToast('Erreur lors de l\'envoi du message', 'error')
@@ -613,12 +630,21 @@ export default function ChatDetailPage() {
     try {
       setSending(true)
 
-      const imageBuffer = await fetch(selectedImage.uri).then(res => res.blob())
+      // Use expo-file-system to handle Android content:// URIs
+      const base64 = await FileSystem.readAsStringAsync(selectedImage.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      })
+      const binaryString = atob(base64)
+      const byteArray = new Uint8Array(binaryString.length)
+      for (let j = 0; j < binaryString.length; j++) byteArray[j] = binaryString.charCodeAt(j)
+
       const fileName = `img_${Date.now()}_${selectedImage.name}`
+      const ext = selectedImage.name.split('.').pop()?.toLowerCase() || 'jpg'
+      const contentType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg'
 
       const { error: uploadError } = await supabase.storage
         .from('message_attachments')
-        .upload(`images/${conversationId}/${fileName}`, imageBuffer)
+        .upload(`images/${conversationId}/${fileName}`, byteArray, { contentType, upsert: false })
 
       if (uploadError) throw uploadError
 
@@ -648,24 +674,29 @@ export default function ChatDetailPage() {
   // ─── Audio Recording Functions ───
   const startRecording = async () => {
     try {
-      // Prevent double-start
-      if (recordingRef.current || isRecording) {
-        console.log('[REC] Already recording, ignoring')
-        return
+      // Force-unload any existing recording first (fixes "Only one Recording" error)
+      if (recordingRef.current) {
+        try { await recordingRef.current.stopAndUnloadAsync() } catch {}
+        recordingRef.current = null
+      }
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current)
+        recordingTimerRef.current = null
       }
 
-      console.log('[REC] Starting recording...')
-
-      // Show UI feedback immediately
-      setRecordingDuration(0)
-      setIsRecording(true)
-
-      const { granted } = await Audio.requestPermissionsAsync()
-      if (!granted) {
-        showToast('Permission d\'accès au microphone refusée', 'error')
+      if (isRecording) {
         setIsRecording(false)
         return
       }
+
+      const { granted } = await Audio.requestPermissionsAsync()
+      if (!granted) {
+        showToast('Permission micro refusée', 'error')
+        return
+      }
+
+      setRecordingDuration(0)
+      setIsRecording(true)
 
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,

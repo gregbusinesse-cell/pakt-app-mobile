@@ -49,6 +49,14 @@
         }
       ],
       "expo-image-picker",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#d4a853",
+          "sounds": []
+        }
+      ],
       "expo-location",
       "expo-asset",
       "expo-av"

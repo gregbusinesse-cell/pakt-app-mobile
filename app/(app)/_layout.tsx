@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View, Platform } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useNotificationCount } from '@/lib/hooks/useNotificationCount'
 import { useActivityTracker } from '@/lib/hooks/useActivityTracker'
+import { usePushNotifications } from '@/lib/hooks/usePushNotifications'
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name']
 
@@ -36,6 +37,7 @@ export default function AppLayout() {
   const { messages, matchesAndLikes } = useNotificationCount()
 
   useActivityTracker()
+  usePushNotifications()
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={styles.root}>
