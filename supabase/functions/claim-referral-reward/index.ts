@@ -68,14 +68,24 @@ Deno.serve(async (req: Request) => {
 
     if (updateErr) throw updateErr
 
+    // Check if reward has already been claimed
+    const { data: existingClaim } = await sb.from('referral_rewards_claimed').select('*').eq('user_id', user.id).eq('required_count', requiredCount).single().then(r => r, () => ({ data: null }))
+
+    if (existingClaim) return err('Tu as déjà réclamé cette récompense.')
+
     // Record the claimed reward
-    await sb.from('referral_rewards_claimed').insert({
+    const { error: claimErr } = await sb.from('referral_rewards_claimed').insert({
       user_id: user.id,
       required_count: requiredCount,
       plan_type: planType,
       days_added: daysToAdd,
       claimed_at: new Date().toISOString(),
-    }).then(() => {}, () => {}) // Ignore errors if table doesn't exist yet
+    } as any)
+
+    if (claimErr && claimErr.message && !claimErr.message.includes('does not exist')) {
+      console.warn('[REWARD] Insert claim record error:', claimErr.message)
+      // Continue anyway, subscription has already been updated
+    }
 
     console.log(`[REWARD] ${user.id} claimed reward for ${requiredCount} referrals: ${daysToAdd} days ${planType}`)
     return ok({ message: `Récompense activée : ${planDays} !` })

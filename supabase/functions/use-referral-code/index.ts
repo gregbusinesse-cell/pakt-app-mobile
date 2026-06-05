@@ -42,18 +42,24 @@ Deno.serve(async (req: Request) => {
     // Can't use your own code
     if (referrer.id === user.id) return err('Tu ne peux pas utiliser ton propre code.')
 
-    // Record in referrals table (using actual schema)
-    await sb.from('referrals').insert({
+    // Record in referrals table — insert with referred_id and status
+    // This creates a NEW referral entry for the person who used the code
+    const { error: insertErr } = await sb.from('referrals').insert({
       referred_id: user.id,
       referral_code: cleanCode,
-      status: 'pending',
-    })
+      status: 'completed',
+    } as any)
+
+    if (insertErr) {
+      console.warn('[REFERRAL] Insert error (table schema may differ):', insertErr.message)
+      // Continue anyway, as the code has been recorded on the user's profile
+    }
 
     // Link on the new user's profile
     await sb.from('profiles').update({ referred_by_code: cleanCode } as any).eq('id', user.id)
 
-    // Count total referrals for the referrer
-    const { count } = await sb.from('referrals').select('*', { count: 'exact', head: true }).eq('referral_code', cleanCode)
+    // Count total referrals for the referrer by counting all referrals with this code
+    const { count } = await sb.from('referrals').select('*', { count: 'exact', head: true }).eq('referral_code', cleanCode).neq('status', 'pending')
 
     console.log(`[REFERRAL] ${user.id} used code ${cleanCode} from ${referrer.id}, total: ${count}`)
     return ok({ message: 'Code appliqué !', referral_count: count || 1 })
