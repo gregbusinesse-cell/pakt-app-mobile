@@ -85,29 +85,9 @@ export default function AuthPage() {
 
     checkSession()
 
-    // IMPORTANT: utilise session directement (pas getSession()) pour éviter le deadlock
-    // setSession() tient le lock interne → notifie onAuthStateChange →
-    // getSession() essaie d'acquérir le même lock → DEADLOCK
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user?.id) {
-          // Utilise session.user.id directement — aucun appel getSession()
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('is_onboarded')
-            .eq('id', session.user.id)
-            .single()
-
-          if (profile?.is_onboarded) {
-            router.replace('/(app)/swipe' as any)
-          } else {
-            router.replace('/onboarding' as any)
-          }
-        }
-      }
-    )
-
-    return () => subscription?.unsubscribe()
+    // onAuthStateChange est géré dans _layout.tsx (jamais démonté)
+    // auth.tsx est démonté quand Expo Router navigue vers auth/callback
+    // → on ne met PAS de subscriber ici pour éviter double redirect
   }, [router])
 
   const handleEmailAuth = async () => {
