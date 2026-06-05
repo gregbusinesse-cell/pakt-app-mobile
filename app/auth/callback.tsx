@@ -1,20 +1,16 @@
 // Handles OAuth redirect callback (Google Sign-In)
 import { useEffect } from 'react'
 import { View, ActivityIndicator } from 'react-native'
-import { useRouter, useLocalSearchParams } from 'expo-router'
+import { useRouter } from 'expo-router'
 import { supabase } from '@/lib/supabase/client'
 
 export default function AuthCallbackPage() {
   const router = useRouter()
-  const params = useLocalSearchParams()
 
   useEffect(() => {
-    const handleCallback = async () => {
-      // Session may take time to be set after OAuth redirect
-      // Wait and retry if session not immediately available
-      for (let i = 0; i < 10; i++) {
-        const { data: { session } } = await supabase.auth.getSession()
-
+    // Use onAuthStateChange to wait for session to be ready (more reliable than polling)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
         if (session?.user?.id) {
           // Session is ready! Check onboarding status
           const { data: profile } = await supabase
@@ -28,19 +24,11 @@ export default function AuthCallbackPage() {
           } else {
             router.replace('/onboarding' as any)
           }
-          return
         }
-
-        // Wait before retrying
-        await new Promise(r => setTimeout(r, 300))
       }
+    )
 
-      // Session never became available, return to auth
-      console.warn('[AUTH_CALLBACK] Session not available after retries, returning to auth')
-      router.replace('/auth' as any)
-    }
-
-    handleCallback()
+    return () => subscription?.unsubscribe()
   }, [])
 
   return (

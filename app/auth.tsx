@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, ScrollView, SafeAreaView, Alert, Modal } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, ScrollView, SafeAreaView, Alert, Modal, Image } from 'react-native'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'expo-router'
@@ -180,25 +180,18 @@ export default function AuthPage() {
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo, skipBrowserRedirect: true },
+        options: { redirectTo },
       })
       if (error) throw error
       if (!data.url) throw new Error('No OAuth URL')
 
-      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo)
-
-      // When deep link is triggered, WebBrowser closes but result.url may be empty
-      // Supabase client auto-handles session from deep link via the callback
-      // Wait for session to be established, then redirect
-      if (result.type === 'success' || result.type === 'cancel') {
-        await new Promise(r => setTimeout(r, 2500))
-        await redirectAfterAuth()
-      }
+      // Just open the browser - let auth/callback handle the rest
+      await WebBrowser.openAuthSessionAsync(data.url, redirectTo)
+      // If we get here, the browser closed - either auth succeeded or was cancelled
     } catch (err: any) {
       if (!err?.message?.includes('cancel') && !err?.message?.includes('dismiss')) {
         Alert.alert('Erreur Google', err?.message || 'Impossible de se connecter avec Google')
       }
-    } finally {
       setSigningIn(false)
     }
   }
@@ -293,17 +286,11 @@ export default function AuthPage() {
           onPress={handleGoogleSignIn}
           disabled={signingIn}
         >
-          {/* Official Google G logo */}
-          <View style={{ width: 20, height: 20, borderRadius: 3, overflow: 'hidden', position: 'relative' }}>
-            {/* Blue left section */}
-            <View style={{ position: 'absolute', left: 0, top: 0, width: 12, height: 20, backgroundColor: '#4285F4' }} />
-            {/* Red top-right */}
-            <View style={{ position: 'absolute', right: 0, top: 0, width: 8, height: 8, backgroundColor: '#EA4335' }} />
-            {/* Yellow bottom-right top part */}
-            <View style={{ position: 'absolute', right: 0, top: 8, width: 8, height: 6, backgroundColor: '#FBBC04' }} />
-            {/* Green bottom-right */}
-            <View style={{ position: 'absolute', right: 0, bottom: 0, width: 8, height: 6, backgroundColor: '#34A853' }} />
-          </View>
+          {/* Official Google G logo from CDN */}
+          <Image
+            source={{ uri: 'https://www.gstatic.com/images/branding/product/1x/googleg_standard_color_128dp.png' }}
+            style={{ width: 20, height: 20 }}
+          />
           <Text style={styles.googleButtonText}>Continuer avec Google</Text>
         </TouchableOpacity>
 
