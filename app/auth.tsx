@@ -190,36 +190,46 @@ export default function AuthPage() {
 
       if (result.type === 'success' && result.url) {
         const url = result.url
-        console.log('[AUTH] Google OAuth result URL:', url)
+        let userId: string | null = null
 
         if (url.includes('code=')) {
-          // PKCE flow — échange le code contre une session
-          console.log('[AUTH] PKCE flow — échange du code...')
-          const { error: exchErr } = await supabase.auth.exchangeCodeForSession(url)
+          // PKCE flow — échange le code et récupère la session directement
+          const { data: sessData, error: exchErr } = await supabase.auth.exchangeCodeForSession(url)
           if (exchErr) {
-            console.error('[AUTH] Erreur échange code:', exchErr.message)
-            Alert.alert('Erreur Google', 'Impossible de finaliser la connexion: ' + exchErr.message)
+            Alert.alert('Erreur Google', exchErr.message)
             return
           }
+          userId = sessData.session?.user?.id ?? null
         } else if (url.includes('access_token=')) {
           // Implicit flow — extrait les tokens directement
-          console.log('[AUTH] Implicit flow — extraction des tokens...')
           const fragment = url.includes('#') ? url.split('#')[1] : url.split('?').slice(1).join('?')
           const params = new URLSearchParams(fragment)
           const access_token = params.get('access_token')
           const refresh_token = params.get('refresh_token')
           if (access_token && refresh_token) {
-            const { error: sessErr } = await supabase.auth.setSession({ access_token, refresh_token })
+            const { data: sessData, error: sessErr } = await supabase.auth.setSession({ access_token, refresh_token })
             if (sessErr) {
-              console.error('[AUTH] Erreur setSession:', sessErr.message)
-              Alert.alert('Erreur Google', 'Impossible de créer la session: ' + sessErr.message)
+              Alert.alert('Erreur Google', sessErr.message)
               return
             }
+            userId = sessData.session?.user?.id ?? null
           }
         }
 
-        // Session créée — redirige vers l'app
-        await redirectAfterAuth()
+        if (userId) {
+          // Redirection directe avec userId — pas besoin de getSession() qui peut être en retard
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('is_onboarded')
+            .eq('id', userId)
+            .single()
+
+          if (profile?.is_onboarded) {
+            router.replace('/(app)/swipe' as any)
+          } else {
+            router.replace('/onboarding' as any)
+          }
+        }
       }
       // Si result.type === 'cancel' ou 'dismiss', l'utilisateur a annulé → ne rien faire
     } catch (err: any) {
