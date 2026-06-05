@@ -26,6 +26,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
-    flowType: 'pkce', // Force PKCE flow → redirect returns ?code= instead of #access_token=
+    // flowType par défaut (implicit) — PKCE cause 'invalid flow state' avec cette version
   },
 });
