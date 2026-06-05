@@ -2,8 +2,12 @@ import { Stack } from 'expo-router'
 import { useEffect } from 'react'
 import { useFonts } from 'expo-font'
 import * as SplashScreen from 'expo-splash-screen'
+import * as WebBrowser from 'expo-web-browser'
 
 SplashScreen.preventAutoHideAsync().catch(() => {})
+
+// Must be called at app startup to handle OAuth deep link callbacks
+WebBrowser.maybeCompleteAuthSession()
 
 export default function RootLayout() {
   // Load Ionicons font — required for @expo/vector-icons to render in release APK

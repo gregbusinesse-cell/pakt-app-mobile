@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, ScrollView, SafeAreaView, Alert, Modal, Image } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, ScrollView, SafeAreaView, Alert, Modal } from 'react-native'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'expo-router'
@@ -294,10 +294,16 @@ export default function AuthPage() {
           disabled={signingIn}
         >
           {/* Official Google G logo */}
-          <Image
-            source={{ uri: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB4PSIxIiB5PSIxIiB3aWR0aD0iMjIiIGhlaWdodD0iMjIiIHJ4PSI0IiBmaWxsPSJub25lIiBzdHJva2U9Im5vbmUiLz48cGF0aCBkPSJNMTIgNUM2LjQ4IDUgMiA5LjQ4IDIgMTVDMiAyMC41MiA2LjQ4IDI1IDEyIDI1QzE3LjUyIDI1IDIyIDIwLjUyIDIyIDE1QzIyIDkuNDggMTcuNTIgNSAxMiA1Wk0xMiAyM0M3LjU4IDIzIDQgMTkuNDIgNCAxNUg0QzQgMTAuNTggNy41OCA3IDEyIDdDMTYuNDIgNyAyMCAxMC41OCAyMCAxNUMyMCAxOS40MiAxNi40MiAyMyAxMiAyM1oiIGZpbGw9IiM0Mjg1RjQiLz48cGF0aCBkPSJNMTIgOEM4LjY2IDggNiAxMC42NiA2IDE0QzYgMTcuMzQgOC42NiAyMCAxMiAyMEMxNS4zNCAyMCAxOCAxNy4zNCAxOCAxNEMxOCAxMC42NiAxNS4zNCA4IDEyIDhaIiBmaWxsPSIjRUE0MzM1Ii8+PHBhdGggZD0iTTEyIDEwQzEwLjkgMTAgMTAgMTAuOSAxMCAxMkMxMCAxMy4xIDEwLjkgMTQgMTIgMTRDMTMuMSAxNCAxNCAxMy4xIDE0IDEyQzE0IDEwLjkgMTMuMSAxMCAxMiAxMFoiIGZpbGw9IiNGQkJDMDQiLz48cGF0aCBkPSJNMTYgMTJDMTYgMTMuMSAxNi45IDE0IDE4IDE0QzE5LjEgMTQgMjAgMTMuMSAyMCAxMkMyMCAxMC45IDE5LjEgMTAgMTggMTBDMTYuOSAxMCAxNiAxMC45IDE2IDEyWiIgZmlsbD0iIzM0QTg1MyIvPjwvc3ZnPg==' }}
-            style={{ width: 20, height: 20 }}
-          />
+          <View style={{ width: 20, height: 20, borderRadius: 3, overflow: 'hidden', position: 'relative' }}>
+            {/* Blue left section */}
+            <View style={{ position: 'absolute', left: 0, top: 0, width: 12, height: 20, backgroundColor: '#4285F4' }} />
+            {/* Red top-right */}
+            <View style={{ position: 'absolute', right: 0, top: 0, width: 8, height: 8, backgroundColor: '#EA4335' }} />
+            {/* Yellow bottom-right top part */}
+            <View style={{ position: 'absolute', right: 0, top: 8, width: 8, height: 6, backgroundColor: '#FBBC04' }} />
+            {/* Green bottom-right */}
+            <View style={{ position: 'absolute', right: 0, bottom: 0, width: 8, height: 6, backgroundColor: '#34A853' }} />
+          </View>
           <Text style={styles.googleButtonText}>Continuer avec Google</Text>
         </TouchableOpacity>
 
