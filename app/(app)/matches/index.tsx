@@ -296,30 +296,34 @@ export default function MatchesPage() {
                     activeOpacity={userPlan === 'business_pro' ? 0.8 : 1}
                   >
                     {!item.isViewed && <View style={styles.gridNewBadge} />}
-                    <ProfileImage
-                      photos={item.otherUser.photos as any}
-                      style={styles.gridImage}
-                      placeholder={styles.gridImagePlaceholder}
-                    />
 
-                    {/* Blur overlay for FREE/BUSINESS users */}
-                    {userPlan !== 'business_pro' && (
-                      <BlurView intensity={99} style={styles.blurOverlay}>
-                        <View style={styles.lockedContainer}>
-                          <Ionicons name="lock-closed" size={32} color="#ffd700" />
-                          <Text style={styles.lockedText}>Verrouillé</Text>
+                    {/* For Business Pro: Show photo */}
+                    {userPlan === 'business_pro' && (
+                      <>
+                        <ProfileImage
+                          photos={item.otherUser.photos as any}
+                          style={styles.gridImage}
+                          placeholder={styles.gridImagePlaceholder}
+                        />
+                        <View style={styles.gridOverlay}>
+                          <Text style={styles.gridName} numberOfLines={1}>
+                            {item.otherUser.first_name}, {item.otherUser.age}
+                          </Text>
+                          <Text style={styles.gridCity} numberOfLines={1}>
+                            {item.otherUser.city || 'Non spécifié'}
+                          </Text>
                         </View>
-                      </BlurView>
+                      </>
                     )}
 
-                    {userPlan === 'business_pro' && (
-                      <View style={styles.gridOverlay}>
-                        <Text style={styles.gridName} numberOfLines={1}>
-                          {item.otherUser.first_name}, {item.otherUser.age}
-                        </Text>
-                        <Text style={styles.gridCity} numberOfLines={1}>
-                          {item.otherUser.city || 'Non spécifié'}
-                        </Text>
+                    {/* For FREE/BUSINESS: Black screen + lock */}
+                    {userPlan !== 'business_pro' && (
+                      <View style={[styles.gridImage, styles.blackScreen]}>
+                        <View style={styles.lockedContainer}>
+                          <Ionicons name="lock-closed" size={40} color="#ffd700" />
+                          <Text style={styles.lockedText}>Verrouillé</Text>
+                          <Text style={styles.lockedSubtext}>Business Pro</Text>
+                        </View>
                       </View>
                     )}
                   </TouchableOpacity>
@@ -569,6 +573,15 @@ const styles = StyleSheet.create({
     color: '#ffd700',
     fontSize: 12,
     fontWeight: '600',
+  },
+  lockedSubtext: {
+    color: '#ffffff66',
+    fontSize: 11,
+  },
+  blackScreen: {
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   /* Paywall */

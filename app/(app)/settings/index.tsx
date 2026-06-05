@@ -97,8 +97,6 @@ export default function SettingsPage() {
   const [inputCode, setInputCode] = useState('')
   const [codeLoading, setCodeLoading] = useState(false)
   const [codeUsed, setCodeUsed] = useState(false)
-  const [claimedRewards, setClaimedRewards] = useState<number[]>([])
-  const [claimingReward, setClaimingReward] = useState<number | null>(null)
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -609,79 +607,28 @@ export default function SettingsPage() {
             </View>
 
             <View style={styles.benefitsContainer}>
-              <Text style={styles.benefitsTitle}>Vos récompenses</Text>
+              <Text style={styles.benefitsTitle}>Paliers de récompense</Text>
               {[
-                { count: 1, title: '1 ami invité', reward: '3 jours Business', days: '3J Business', icon: 'star' },
-                { count: 3, title: '3 amis invités', reward: '7 jours Business', days: '7J Business', icon: 'star-half' },
-                { count: 5, title: '5 amis invités', reward: '1 mois Business', days: '1M Business', icon: 'star-half' },
-                { count: 10, title: '10 amis invités', reward: '1 mois Business Pro', days: '1M Business Pro', icon: 'sparkles' },
-              ].map((benefit) => {
-                const isClaimed = claimedRewards.includes(benefit.count)
-                const canClaim = referralCount >= benefit.count && !isClaimed
-                return (
-                  <View key={benefit.count} style={[styles.benefitItem, isClaimed && styles.benefitItemClaimed]}>
-                    <Ionicons name={benefit.icon as any} size={20} color={isClaimed ? '#4caf50' : '#ffd700'} />
-                    <View style={styles.benefitContent}>
-                      <Text style={styles.benefitTitle}>{benefit.title}</Text>
-                      <Text style={[styles.benefitReward, isClaimed && styles.benefitRewardClaimed]}>
-                        {benefit.reward}
-                      </Text>
-                    </View>
-                    {canClaim && (
-                      <TouchableOpacity
-                        style={styles.claimButton}
-                        onPress={() => handleClaimReward(benefit.count, benefit.days)}
-                        disabled={claimingReward === benefit.count}
-                      >
-                        {claimingReward === benefit.count ? (
-                          <ActivityIndicator color="#000" size="small" />
-                        ) : (
-                          <Text style={styles.claimButtonText}>Réclamer</Text>
-                        )}
-                      </TouchableOpacity>
-                    )}
-                    {isClaimed && (
-                      <View style={styles.claimedBadge}>
-                        <Ionicons name="checkmark" size={14} color="#fff" />
-                      </View>
-                    )}
+                { count: 1, title: '1 ami invité', reward: '3 jours Business' },
+                { count: 3, title: '3 amis invités', reward: '7 jours Business' },
+                { count: 5, title: '5 amis invités', reward: '1 mois Business' },
+                { count: 10, title: '10 amis invités', reward: '1 mois Business Pro' },
+              ].map((benefit) => (
+                <View key={benefit.count} style={[styles.benefitItem, referralCount >= benefit.count && styles.benefitItemUnlocked]}>
+                  <Ionicons name="star" size={20} color={referralCount >= benefit.count ? '#4caf50' : '#ffd700'} />
+                  <View style={styles.benefitContent}>
+                    <Text style={styles.benefitTitle}>{benefit.title}</Text>
+                    <Text style={styles.benefitReward}>{benefit.reward}</Text>
                   </View>
-                )
-              })}
-            </View>
-
-            {/* Explanation note */}
-            <View style={styles.explanationBox}>
-              <Text style={styles.explanationText}>
-                <Text style={{ fontWeight: '700' }}>*</Text> À chaque ami invité qui se connecte avec votre code de parrainage, vous débloquez une récompense. Si vous avez déjà un abonnement Business ou Business Pro, les jours s'ajoutent à votre période actuelle.
-              </Text>
-            </View>
-
-            {/* Enter a friend's referral code */}
-            {!codeUsed && (
-              <View style={[styles.codeSection, { marginBottom: 16 }]}>
-                <Text style={styles.codeLabel}>Tu as un code d'un ami ?</Text>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <TextInput
-                    style={[styles.codeBox, { flex: 1, color: '#fff', fontSize: 13 }]}
-                    placeholder="Entre le code ici (ex: REF-XXXXXXX)"
-                    placeholderTextColor="rgba(255,255,255,0.3)"
-                    value={inputCode}
-                    onChangeText={t => setInputCode(t.toUpperCase())}
-                    autoCapitalize="characters"
-                    returnKeyType="done"
-                    onSubmitEditing={handleUseCode}
-                  />
-                  <TouchableOpacity
-                    style={{ backgroundColor: '#d4a853', borderRadius: 10, paddingHorizontal: 14, justifyContent: 'center', opacity: codeLoading ? 0.6 : 1 }}
-                    onPress={handleUseCode}
-                    disabled={codeLoading}
-                  >
-                    {codeLoading ? <ActivityIndicator color="#000" size="small" /> : <Text style={{ color: '#000', fontWeight: '700', fontSize: 13 }}>OK</Text>}
-                  </TouchableOpacity>
+                  {referralCount >= benefit.count && (
+                    <View style={styles.unlockedBadge}>
+                      <Ionicons name="checkmark" size={14} color="#fff" />
+                    </View>
+                  )}
                 </View>
-              </View>
-            )}
+              ))}
+            </View>
+
 
             {/* Referral Code — tap to copy full message */}
             <View style={styles.codeSection}>
