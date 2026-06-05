@@ -8,6 +8,25 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "scheme": "pakt",
+    "linking": {
+      "enabled": true,
+      "prefixes": ["pakt://"],
+      "config": {
+        "screens": {
+          "auth": "auth",
+          "auth/callback": "auth/callback",
+          "(app)": {
+            "screens": {
+              "swipe/index": "swipe",
+              "matches/index": "matches",
+              "messages/index": "messages",
+              "messages/[id]": "messages/:id",
+              "profile/index": "profile"
+            }
+          }
+        }
+      }
+    },
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",

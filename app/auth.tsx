@@ -289,16 +289,16 @@ export default function AuthPage() {
           onPress={handleGoogleSignIn}
           disabled={signingIn}
         >
-          {/* Official Google G logo */}
-          <View style={{ width: 20, height: 20, position: 'relative', justifyContent: 'center', alignItems: 'center' }}>
-            {/* Blue section (top-left) */}
-            <View style={{ position: 'absolute', top: 0, left: 0, width: 10, height: 10, backgroundColor: '#4285F4', borderRadius: 2 }} />
-            {/* Red section (top-right) */}
-            <View style={{ position: 'absolute', top: 0, right: 0, width: 10, height: 10, backgroundColor: '#EA4335', borderRadius: 2 }} />
-            {/* Yellow section (bottom-left) */}
-            <View style={{ position: 'absolute', bottom: 0, left: 0, width: 10, height: 10, backgroundColor: '#FBBC04', borderRadius: 2 }} />
-            {/* Green section (bottom-right) */}
-            <View style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, backgroundColor: '#34A853', borderRadius: 2 }} />
+          {/* Official Google G logo - proper colors */}
+          <View style={{ width: 20, height: 20, position: 'relative' }}>
+            {/* Red arc (top) */}
+            <View style={{ position: 'absolute', top: 0, left: 5, width: 10, height: 8, backgroundColor: '#EA4335', borderRadius: 10 }} />
+            {/* Yellow arc (left) */}
+            <View style={{ position: 'absolute', top: 5, left: 0, width: 8, height: 10, backgroundColor: '#FBBC04', borderRadius: 10 }} />
+            {/* Green arc (bottom) */}
+            <View style={{ position: 'absolute', bottom: 0, left: 5, width: 10, height: 8, backgroundColor: '#34A853', borderRadius: 10 }} />
+            {/* Blue G (right) */}
+            <View style={{ position: 'absolute', top: 2, right: 0, width: 10, height: 16, backgroundColor: '#4285F4', borderRadius: 2 }} />
           </View>
           <Text style={styles.googleButtonText}>Continuer avec Google</Text>
         </TouchableOpacity>
