@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, ScrollView, SafeAreaView, Alert, Modal, Image } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, ScrollView, SafeAreaView, Alert, Modal } from 'react-native'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'expo-router'
@@ -289,11 +289,17 @@ export default function AuthPage() {
           onPress={handleGoogleSignIn}
           disabled={signingIn}
         >
-          {/* Official Google G logo from CDN */}
-          <Image
-            source={{ uri: 'https://www.gstatic.com/images/branding/product/1x/googleg_standard_color_128dp.png' }}
-            style={{ width: 20, height: 20 }}
-          />
+          {/* Official Google G logo */}
+          <View style={{ width: 20, height: 20, position: 'relative', justifyContent: 'center', alignItems: 'center' }}>
+            {/* Blue section (top-left) */}
+            <View style={{ position: 'absolute', top: 0, left: 0, width: 10, height: 10, backgroundColor: '#4285F4', borderRadius: 2 }} />
+            {/* Red section (top-right) */}
+            <View style={{ position: 'absolute', top: 0, right: 0, width: 10, height: 10, backgroundColor: '#EA4335', borderRadius: 2 }} />
+            {/* Yellow section (bottom-left) */}
+            <View style={{ position: 'absolute', bottom: 0, left: 0, width: 10, height: 10, backgroundColor: '#FBBC04', borderRadius: 2 }} />
+            {/* Green section (bottom-right) */}
+            <View style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, backgroundColor: '#34A853', borderRadius: 2 }} />
+          </View>
           <Text style={styles.googleButtonText}>Continuer avec Google</Text>
         </TouchableOpacity>
 
