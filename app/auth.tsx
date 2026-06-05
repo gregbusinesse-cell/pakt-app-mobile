@@ -188,41 +188,51 @@ export default function AuthPage() {
       // Open browser — openAuthSessionAsync intercepte le deep link et retourne result.url
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo)
 
+      // 🔍 DEBUG — affiche le résultat brut du browser
+      Alert.alert(
+        'DEBUG étape 1',
+        'type: ' + result.type + '\n' +
+        'url: ' + ((result as any).url ? (result as any).url.substring(0, 100) : 'VIDE')
+      )
+
       if (result.type === 'success' && result.url) {
         const url = result.url
         let userId: string | null = null
 
         if (url.includes('code=')) {
-          // PKCE flow — échange le code et récupère la session directement
           const { data: sessData, error: exchErr } = await supabase.auth.exchangeCodeForSession(url)
+          Alert.alert('DEBUG étape 2', 'exchangeCode - error: ' + (exchErr?.message || 'none') + ' userId: ' + (sessData.session?.user?.id || 'NULL'))
           if (exchErr) {
             Alert.alert('Erreur Google', exchErr.message)
             return
           }
           userId = sessData.session?.user?.id ?? null
         } else if (url.includes('access_token=')) {
-          // Implicit flow — extrait les tokens directement
           const fragment = url.includes('#') ? url.split('#')[1] : url.split('?').slice(1).join('?')
           const params = new URLSearchParams(fragment)
           const access_token = params.get('access_token')
           const refresh_token = params.get('refresh_token')
           if (access_token && refresh_token) {
             const { data: sessData, error: sessErr } = await supabase.auth.setSession({ access_token, refresh_token })
+            Alert.alert('DEBUG étape 2b', 'setSession - error: ' + (sessErr?.message || 'none') + ' userId: ' + (sessData.session?.user?.id || 'NULL'))
             if (sessErr) {
               Alert.alert('Erreur Google', sessErr.message)
               return
             }
             userId = sessData.session?.user?.id ?? null
           }
+        } else {
+          Alert.alert('DEBUG étape 2', 'URL sans code ni access_token!\nurl: ' + url.substring(0, 150))
         }
 
         if (userId) {
-          // Redirection directe avec userId — pas besoin de getSession() qui peut être en retard
           const { data: profile } = await supabase
             .from('profiles')
             .select('is_onboarded')
             .eq('id', userId)
             .single()
+
+          Alert.alert('DEBUG étape 3', 'userId: ' + userId + '\nis_onboarded: ' + profile?.is_onboarded)
 
           if (profile?.is_onboarded) {
             router.replace('/(app)/swipe' as any)
@@ -231,7 +241,10 @@ export default function AuthPage() {
           }
         }
       }
-      // Si result.type === 'cancel' ou 'dismiss', l'utilisateur a annulé → ne rien faire
+      // Si result.type !== 'success' — affiche aussi pour debug
+      if (result.type !== 'success') {
+        Alert.alert('DEBUG', 'Browser fermé sans succès. type: ' + result.type)
+      }
     } catch (err: any) {
       if (!err?.message?.includes('cancel') && !err?.message?.includes('dismiss')) {
         Alert.alert('Erreur Google', err?.message || 'Impossible de se connecter avec Google')
