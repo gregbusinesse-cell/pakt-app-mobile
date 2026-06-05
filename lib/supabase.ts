@@ -25,6 +25,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     storage: storage,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: Platform.OS === 'web', // Detect OAuth callback on web
+    detectSessionInUrl: false,
+    flowType: 'pkce', // Force PKCE flow → redirect returns ?code= instead of #access_token=
   },
 });
