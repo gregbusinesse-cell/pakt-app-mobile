@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, ScrollView, SafeAreaView, Alert, Modal } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, ScrollView, SafeAreaView, Alert, Modal, Image } from 'react-native'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'expo-router'
@@ -287,23 +287,17 @@ export default function AuthPage() {
           <View style={styles.separatorLine} />
         </View>
 
-        {/* Google Button with real Google colors */}
+        {/* Google Button with official Google logo */}
         <TouchableOpacity
           style={[styles.googleButton, signingIn && { opacity: 0.6 }]}
           onPress={handleGoogleSignIn}
           disabled={signingIn}
         >
-          {/* Real Google G logo - 4 colored squares */}
-          <View style={{ width: 20, height: 20, position: 'relative' }}>
-            {/* Blue square (top-left) */}
-            <View style={{ position: 'absolute', top: 0, left: 0, width: 10, height: 10, backgroundColor: '#4285F4', borderRadius: 1 }} />
-            {/* Red square (top-right) */}
-            <View style={{ position: 'absolute', top: 0, right: 0, width: 10, height: 10, backgroundColor: '#EA4335', borderRadius: 1 }} />
-            {/* Yellow square (bottom-left) */}
-            <View style={{ position: 'absolute', bottom: 0, left: 0, width: 10, height: 10, backgroundColor: '#FBBC04', borderRadius: 1 }} />
-            {/* Green square (bottom-right) */}
-            <View style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, backgroundColor: '#34A853', borderRadius: 1 }} />
-          </View>
+          {/* Official Google G logo */}
+          <Image
+            source={{ uri: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB4PSIxIiB5PSIxIiB3aWR0aD0iMjIiIGhlaWdodD0iMjIiIHJ4PSI0IiBmaWxsPSJub25lIiBzdHJva2U9Im5vbmUiLz48cGF0aCBkPSJNMTIgNUM2LjQ4IDUgMiA5LjQ4IDIgMTVDMiAyMC41MiA2LjQ4IDI1IDEyIDI1QzE3LjUyIDI1IDIyIDIwLjUyIDIyIDE1QzIyIDkuNDggMTcuNTIgNSAxMiA1Wk0xMiAyM0M3LjU4IDIzIDQgMTkuNDIgNCAxNUg0QzQgMTAuNTggNy41OCA3IDEyIDdDMTYuNDIgNyAyMCAxMC41OCAyMCAxNUMyMCAxOS40MiAxNi40MiAyMyAxMiAyM1oiIGZpbGw9IiM0Mjg1RjQiLz48cGF0aCBkPSJNMTIgOEM4LjY2IDggNiAxMC42NiA2IDE0QzYgMTcuMzQgOC42NiAyMCAxMiAyMEMxNS4zNCAyMCAxOCAxNy4zNCAxOCAxNEMxOCAxMC42NiAxNS4zNCA4IDEyIDhaIiBmaWxsPSIjRUE0MzM1Ii8+PHBhdGggZD0iTTEyIDEwQzEwLjkgMTAgMTAgMTAuOSAxMCAxMkMxMCAxMy4xIDEwLjkgMTQgMTIgMTRDMTMuMSAxNCAxNCAxMy4xIDE0IDEyQzE0IDEwLjkgMTMuMSAxMCAxMiAxMFoiIGZpbGw9IiNGQkJDMDQiLz48cGF0aCBkPSJNMTYgMTJDMTYgMTMuMSAxNi45IDE0IDE4IDE0QzE5LjEgMTQgMjAgMTMuMSAyMCAxMkMyMCAxMC45IDE5LjEgMTAgMTggMTBDMTYuOSAxMCAxNiAxMC45IDE2IDEyWiIgZmlsbD0iIzM0QTg1MyIvPjwvc3ZnPg==' }}
+            style={{ width: 20, height: 20 }}
+          />
           <Text style={styles.googleButtonText}>Continuer avec Google</Text>
         </TouchableOpacity>
 

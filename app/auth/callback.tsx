@@ -10,26 +10,34 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     const handleCallback = async () => {
-      // Session is automatically handled by Supabase client
-      // Just wait a moment then redirect
-      const { data: { session } } = await supabase.auth.getSession()
+      // Session may take time to be set after OAuth redirect
+      // Wait and retry if session not immediately available
+      for (let i = 0; i < 10; i++) {
+        const { data: { session } } = await supabase.auth.getSession()
 
-      if (session) {
-        // Check onboarding status
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('is_onboarded')
-          .eq('id', session.user.id)
-          .single()
+        if (session?.user?.id) {
+          // Session is ready! Check onboarding status
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('is_onboarded')
+            .eq('id', session.user.id)
+            .single()
 
-        if (profile?.is_onboarded) {
-          router.replace('/(app)/swipe' as any)
-        } else {
-          router.replace('/onboarding' as any)
+          if (profile?.is_onboarded) {
+            router.replace('/(app)/swipe' as any)
+          } else {
+            router.replace('/onboarding' as any)
+          }
+          return
         }
-      } else {
-        router.replace('/auth' as any)
+
+        // Wait before retrying
+        await new Promise(r => setTimeout(r, 300))
       }
+
+      // Session never became available, return to auth
+      console.warn('[AUTH_CALLBACK] Session not available after retries, returning to auth')
+      router.replace('/auth' as any)
     }
 
     handleCallback()
