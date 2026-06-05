@@ -180,18 +180,18 @@ export default function AuthPage() {
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo, skipBrowserRedirect: false },
+        options: { redirectTo, skipBrowserRedirect: true },
       })
       if (error) throw error
       if (!data.url) throw new Error('No OAuth URL')
 
-      // Open browser and wait for redirect to auth/callback deep link
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo)
 
-      if (result.type === 'success') {
-        // Supabase client automatically handles session from deep link
-        // Just wait for session to be set
-        await new Promise(r => setTimeout(r, 1000))
+      // When deep link is triggered, WebBrowser closes but result.url may be empty
+      // Supabase client auto-handles session from deep link via the callback
+      // Wait for session to be established, then redirect
+      if (result.type === 'success' || result.type === 'cancel') {
+        await new Promise(r => setTimeout(r, 2500))
         await redirectAfterAuth()
       }
     } catch (err: any) {
@@ -293,11 +293,16 @@ export default function AuthPage() {
           onPress={handleGoogleSignIn}
           disabled={signingIn}
         >
-          {/* Real Google G logo using colored text segments */}
-          <View style={{ width: 20, height: 20, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: 16, fontWeight: '700', letterSpacing: -1 }}>
-              <Text style={{ color: '#4285F4' }}>G</Text>
-            </Text>
+          {/* Real Google G logo - 4 colored squares */}
+          <View style={{ width: 20, height: 20, position: 'relative' }}>
+            {/* Blue square (top-left) */}
+            <View style={{ position: 'absolute', top: 0, left: 0, width: 10, height: 10, backgroundColor: '#4285F4', borderRadius: 1 }} />
+            {/* Red square (top-right) */}
+            <View style={{ position: 'absolute', top: 0, right: 0, width: 10, height: 10, backgroundColor: '#EA4335', borderRadius: 1 }} />
+            {/* Yellow square (bottom-left) */}
+            <View style={{ position: 'absolute', bottom: 0, left: 0, width: 10, height: 10, backgroundColor: '#FBBC04', borderRadius: 1 }} />
+            {/* Green square (bottom-right) */}
+            <View style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, backgroundColor: '#34A853', borderRadius: 1 }} />
           </View>
           <Text style={styles.googleButtonText}>Continuer avec Google</Text>
         </TouchableOpacity>
