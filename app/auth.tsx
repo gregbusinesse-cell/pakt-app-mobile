@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, ScrollView, SafeAreaView, Alert, Modal } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, ScrollView, SafeAreaView, Alert, Modal, Image } from 'react-native'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'expo-router'
@@ -185,16 +185,48 @@ export default function AuthPage() {
       if (error) throw error
       if (!data.url) throw new Error('No OAuth URL')
 
-      // Open browser and wait for deep link callback
+      // Open browser — openAuthSessionAsync intercepte le deep link et retourne result.url
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo)
 
-      // Browser closed - either success or cancelled
-      // Stop spinner regardless - auth/callback will handle redirect if successful
-      setSigningIn(false)
+      if (result.type === 'success' && result.url) {
+        const url = result.url
+        console.log('[AUTH] Google OAuth result URL:', url)
+
+        if (url.includes('code=')) {
+          // PKCE flow — échange le code contre une session
+          console.log('[AUTH] PKCE flow — échange du code...')
+          const { error: exchErr } = await supabase.auth.exchangeCodeForSession(url)
+          if (exchErr) {
+            console.error('[AUTH] Erreur échange code:', exchErr.message)
+            Alert.alert('Erreur Google', 'Impossible de finaliser la connexion: ' + exchErr.message)
+            return
+          }
+        } else if (url.includes('access_token=')) {
+          // Implicit flow — extrait les tokens directement
+          console.log('[AUTH] Implicit flow — extraction des tokens...')
+          const fragment = url.includes('#') ? url.split('#')[1] : url.split('?').slice(1).join('?')
+          const params = new URLSearchParams(fragment)
+          const access_token = params.get('access_token')
+          const refresh_token = params.get('refresh_token')
+          if (access_token && refresh_token) {
+            const { error: sessErr } = await supabase.auth.setSession({ access_token, refresh_token })
+            if (sessErr) {
+              console.error('[AUTH] Erreur setSession:', sessErr.message)
+              Alert.alert('Erreur Google', 'Impossible de créer la session: ' + sessErr.message)
+              return
+            }
+          }
+        }
+
+        // Session créée — redirige vers l'app
+        await redirectAfterAuth()
+      }
+      // Si result.type === 'cancel' ou 'dismiss', l'utilisateur a annulé → ne rien faire
     } catch (err: any) {
       if (!err?.message?.includes('cancel') && !err?.message?.includes('dismiss')) {
         Alert.alert('Erreur Google', err?.message || 'Impossible de se connecter avec Google')
       }
+    } finally {
       setSigningIn(false)
     }
   }
@@ -289,17 +321,10 @@ export default function AuthPage() {
           onPress={handleGoogleSignIn}
           disabled={signingIn}
         >
-          {/* Official Google G logo - proper colors */}
-          <View style={{ width: 20, height: 20, position: 'relative' }}>
-            {/* Red arc (top) */}
-            <View style={{ position: 'absolute', top: 0, left: 5, width: 10, height: 8, backgroundColor: '#EA4335', borderRadius: 10 }} />
-            {/* Yellow arc (left) */}
-            <View style={{ position: 'absolute', top: 5, left: 0, width: 8, height: 10, backgroundColor: '#FBBC04', borderRadius: 10 }} />
-            {/* Green arc (bottom) */}
-            <View style={{ position: 'absolute', bottom: 0, left: 5, width: 10, height: 8, backgroundColor: '#34A853', borderRadius: 10 }} />
-            {/* Blue G (right) */}
-            <View style={{ position: 'absolute', top: 2, right: 0, width: 10, height: 16, backgroundColor: '#4285F4', borderRadius: 2 }} />
-          </View>
+          <Image
+            source={require('../assets/google-logo.png')}
+            style={{ width: 22, height: 22 }}
+          />
           <Text style={styles.googleButtonText}>Continuer avec Google</Text>
         </TouchableOpacity>
 
