@@ -176,9 +176,7 @@ export default function AuthPage() {
   const handleGoogleSignIn = async () => {
     try {
       setSigningIn(true)
-      // Utilise une URL de redirect qui ne correspond à aucune route Expo Router
-      // pour éviter que le router navigue vers auth/callback en même temps
-      const redirectTo = 'pakt://google-auth-done'
+      const redirectTo = Linking.createURL('auth/callback')
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -187,53 +185,10 @@ export default function AuthPage() {
       if (error) throw error
       if (!data.url) throw new Error('No OAuth URL')
 
-      // openAuthSessionAsync intercepte le deep link et retourne result.url directement
-      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo)
-
-      if (result.type === 'success' && result.url) {
-        const url = result.url
-
-        if (url.includes('code=')) {
-          // PKCE flow (flowType: 'pkce') — échange le code et récupère la session
-          const { data: sessData, error: exchErr } = await supabase.auth.exchangeCodeForSession(url)
-          if (exchErr) throw exchErr
-
-          const userId = sessData.session?.user?.id
-          if (userId) {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('is_onboarded')
-              .eq('id', userId)
-              .single()
-
-            router.replace(profile?.is_onboarded ? '/(app)/swipe' as any : '/onboarding' as any)
-          }
-        } else if (url.includes('access_token=')) {
-          // Fallback implicit flow — extrait les tokens
-          const fragment = url.includes('#') ? url.split('#')[1] : url.split('?').slice(1).join('?')
-          const params = new URLSearchParams(fragment)
-          const access_token = params.get('access_token')
-          const refresh_token = params.get('refresh_token') ?? ''
-          if (access_token) {
-            const { data: sessData, error: sessErr } = await supabase.auth.setSession({
-              access_token,
-              refresh_token,
-            })
-            if (sessErr) throw sessErr
-
-            const userId = sessData.session?.user?.id
-            if (userId) {
-              const { data: profile } = await supabase
-                .from('profiles')
-                .select('is_onboarded')
-                .eq('id', userId)
-                .single()
-
-              router.replace(profile?.is_onboarded ? '/(app)/swipe' as any : '/onboarding' as any)
-            }
-          }
-        }
-      }
+      // openBrowserAsync ouvre le browser SANS intercepter le deep link de retour
+      // → Expo Router reçoit seul le deep link → auth/callback.tsx gère tout
+      await WebBrowser.openBrowserAsync(data.url)
+      // Le browser est fermé (deep link reçu ou annulation)
     } catch (err: any) {
       if (!err?.message?.includes('cancel') && !err?.message?.includes('dismiss')) {
         Alert.alert('Erreur Google', err?.message || 'Impossible de se connecter avec Google')
