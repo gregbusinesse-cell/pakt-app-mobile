@@ -97,6 +97,7 @@ export default function SettingsPage() {
   const [inputCode, setInputCode] = useState('')
   const [codeLoading, setCodeLoading] = useState(false)
   const [codeUsed, setCodeUsed] = useState(false)
+  const [claimingReward, setClaimingReward] = useState<number | null>(null)
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -196,6 +197,32 @@ export default function SettingsPage() {
       Alert.alert('Erreur', err.message || 'Impossible de contacter le serveur.')
     }
     finally { setCodeLoading(false) }
+  }
+
+  // ── Claim reward ───────────────────────────────────────────────────────────────
+  const handleClaimReward = async (requiredCount: number, planDays: string) => {
+    setClaimingReward(requiredCount)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user?.id) throw new Error('Non connecté')
+
+      const SUPA_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
+      const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
+
+      const res = await fetch(`${SUPA_URL}/functions/v1/claim-referral-reward`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY, 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ requiredCount, planDays }),
+      })
+      const data = await res.json()
+      if (!data.success) throw new Error(data.error || 'Erreur serveur')
+
+      Alert.alert('Récompense activée ✅', `${planDays} a été activé !`)
+    } catch (err: any) {
+      Alert.alert('Erreur', err.message || 'Impossible de réclamer.')
+    } finally {
+      setClaimingReward(null)
+    }
   }
 
   const handleCopyReferral = async () => {
@@ -609,24 +636,35 @@ export default function SettingsPage() {
             <View style={styles.benefitsContainer}>
               <Text style={styles.benefitsTitle}>Paliers de récompense</Text>
               {[
-                { count: 1, title: '1 ami invité', reward: '3 jours Business' },
-                { count: 3, title: '3 amis invités', reward: '7 jours Business' },
-                { count: 5, title: '5 amis invités', reward: '1 mois Business' },
-                { count: 10, title: '10 amis invités', reward: '1 mois Business Pro' },
-              ].map((benefit) => (
-                <View key={benefit.count} style={[styles.benefitItem, referralCount >= benefit.count && styles.benefitItemUnlocked]}>
-                  <Ionicons name="star" size={20} color={referralCount >= benefit.count ? '#4caf50' : '#ffd700'} />
-                  <View style={styles.benefitContent}>
-                    <Text style={styles.benefitTitle}>{benefit.title}</Text>
-                    <Text style={styles.benefitReward}>{benefit.reward}</Text>
-                  </View>
-                  {referralCount >= benefit.count && (
-                    <View style={styles.unlockedBadge}>
-                      <Ionicons name="checkmark" size={14} color="#fff" />
+                { count: 1, title: '1 ami invité', reward: '3 jours Business', days: '3J Business' },
+                { count: 3, title: '3 amis invités', reward: '7 jours Business', days: '7J Business' },
+                { count: 5, title: '5 amis invités', reward: '1 mois Business', days: '1M Business' },
+                { count: 10, title: '10 amis invités', reward: '1 mois Business Pro', days: '1M Business Pro' },
+              ].map((benefit) => {
+                const canClaim = referralCount >= benefit.count
+                return (
+                  <View key={benefit.count} style={[styles.benefitItem, canClaim && styles.benefitItemUnlocked]}>
+                    <Ionicons name="star" size={20} color={canClaim ? '#4caf50' : '#ffd700'} />
+                    <View style={styles.benefitContent}>
+                      <Text style={styles.benefitTitle}>{benefit.title}</Text>
+                      <Text style={styles.benefitReward}>{benefit.reward}</Text>
                     </View>
-                  )}
-                </View>
-              ))}
+                    {canClaim && (
+                      <TouchableOpacity
+                        style={styles.claimButton}
+                        onPress={() => handleClaimReward(benefit.count, benefit.days)}
+                        disabled={claimingReward === benefit.count}
+                      >
+                        {claimingReward === benefit.count ? (
+                          <ActivityIndicator color="#000" size="small" />
+                        ) : (
+                          <Text style={styles.claimButtonText}>Réclamer</Text>
+                        )}
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )
+              })}
             </View>
 
 
@@ -1069,6 +1107,21 @@ const styles = StyleSheet.create({
   benefitReward: {
     color: '#ffd700',
     fontSize: 12,
+  },
+  claimButton: {
+    backgroundColor: '#ffd700',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  claimButtonText: {
+    color: '#000',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  benefitItemUnlocked: {
+    backgroundColor: '#4caf5015',
+    borderColor: '#4caf5044',
   },
   benefitRewardClaimed: {
     color: '#4caf50',
