@@ -1,29 +1,42 @@
 // Handles OAuth redirect callback (Google Sign-In)
-// Expo Router navigue ici quand le deep link pakt://auth/callback?code=xxx est reçu
+// pakt://auth/callback?code=xxx → Expo Router navigue ici avec code en paramètre
 import { useEffect, useState } from 'react'
 import { View, ActivityIndicator, Text } from 'react-native'
-import { useRouter } from 'expo-router'
+import { useRouter, useLocalSearchParams } from 'expo-router'
 import { supabase } from '@/lib/supabase/client'
-import * as Linking from 'expo-linking'
 
 export default function AuthCallbackPage() {
   const router = useRouter()
+  // Expo Router parse automatiquement ?code=xxx en params
+  const params = useLocalSearchParams<{
+    code?: string
+    access_token?: string
+    refresh_token?: string
+    error?: string
+    error_description?: string
+  }>()
   const [status, setStatus] = useState('Connexion en cours...')
 
   useEffect(() => {
-    const processUrl = async (url: string | null) => {
-      if (!url) {
-        // Pas d'URL initiale — attendre le listener
-        return
-      }
-
-      console.log('[CALLBACK] URL reçue:', url)
-
+    const handleOAuth = async () => {
       try {
-        if (url.includes('code=')) {
-          // PKCE flow — échange le code contre une session complète
+        // Erreur OAuth (ex: utilisateur a annulé)
+        if (params.error) {
+          console.error('[CALLBACK] OAuth error:', params.error, params.error_description)
+          router.replace('/auth' as any)
+          return
+        }
+
+        const code = params.code as string | undefined
+
+        if (code) {
+          // PKCE flow — échange le code contre une session Supabase
           setStatus('Échange du code...')
-          const { data, error } = await supabase.auth.exchangeCodeForSession(url)
+          console.log('[CALLBACK] Code PKCE reçu, échange...')
+
+          const { data, error } = await supabase.auth.exchangeCodeForSession(
+            `pakt://auth/callback?code=${code}`
+          )
 
           if (error) {
             console.error('[CALLBACK] Erreur PKCE:', error.message)
@@ -36,62 +49,47 @@ export default function AuthCallbackPage() {
           if (userId) {
             await redirectUser(userId)
           } else {
+            console.warn('[CALLBACK] Session créée mais pas de userId')
             router.replace('/auth' as any)
           }
+          return
+        }
 
-        } else if (url.includes('access_token=')) {
-          // Implicit flow fallback
+        // Implicit flow fallback (access_token dans query params)
+        const access_token = params.access_token as string | undefined
+        const refresh_token = (params.refresh_token as string | undefined) ?? ''
+
+        if (access_token) {
           setStatus('Connexion...')
-          const fragment = url.includes('#')
-            ? url.split('#')[1]
-            : url.split('?').slice(1).join('?')
-
-          // Parse manuellement pour éviter les problèmes avec = dans les JWT
-          const parsed: Record<string, string> = {}
-          fragment.split('&').forEach(part => {
-            const idx = part.indexOf('=')
-            if (idx > -1) {
-              parsed[part.substring(0, idx)] = decodeURIComponent(part.substring(idx + 1))
-            }
+          const { data, error } = await supabase.auth.setSession({
+            access_token,
+            refresh_token,
           })
-
-          const access_token = parsed['access_token']
-          const refresh_token = parsed['refresh_token'] ?? ''
-
-          if (access_token) {
-            const { data, error } = await supabase.auth.setSession({
-              access_token,
-              refresh_token,
-            })
-
-            if (error) {
-              console.error('[CALLBACK] Erreur setSession:', error.message)
-              router.replace('/auth' as any)
-              return
-            }
-
-            const userId = data.session?.user?.id
-            if (userId) {
-              await redirectUser(userId)
-            } else {
-              router.replace('/auth' as any)
-            }
-          } else {
+          if (error) {
+            console.error('[CALLBACK] setSession error:', error.message)
             router.replace('/auth' as any)
+            return
           }
-
-        } else {
-          // URL sans tokens — essaie la session existante
-          const { data } = await supabase.auth.getSession()
-          if (data.session?.user?.id) {
-            await redirectUser(data.session.user.id)
-          } else {
-            router.replace('/auth' as any)
+          const userId = data.session?.user?.id
+          if (userId) {
+            await redirectUser(userId)
+            return
           }
         }
-      } catch (err) {
+
+        // Aucun token dans les params — vérifie si une session existe déjà
+        const { data } = await supabase.auth.getSession()
+        if (data.session?.user?.id) {
+          await redirectUser(data.session.user.id)
+        } else {
+          console.warn('[CALLBACK] Aucun token et aucune session')
+          router.replace('/auth' as any)
+        }
+
+      } catch (err: any) {
         console.error('[CALLBACK] Erreur inattendue:', err)
-        router.replace('/auth' as any)
+        setStatus('Erreur: ' + (err.message ?? 'inconnue'))
+        setTimeout(() => router.replace('/auth' as any), 2000)
       }
     }
 
@@ -110,21 +108,7 @@ export default function AuthCallbackPage() {
       }
     }
 
-    // Écoute les URLs reçues pendant que le composant est monté
-    // (cas principal: app en foreground quand le deep link arrive)
-    const sub = Linking.addEventListener('url', ({ url }) => {
-      console.log('[CALLBACK] URL event reçue:', url)
-      processUrl(url)
-    })
-
-    // Aussi vérifier getInitialURL (cas: app ouverte depuis le deep link)
-    Linking.getInitialURL().then(url => {
-      if (url && (url.includes('code=') || url.includes('access_token='))) {
-        processUrl(url)
-      }
-    })
-
-    return () => sub.remove()
+    handleOAuth()
   }, [])
 
   return (
