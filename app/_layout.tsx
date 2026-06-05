@@ -43,24 +43,31 @@ export default function RootLayout() {
     // En mettant le subscriber ici (_layout jamais démonté), la redirection
     // fonctionne même quand auth.tsx n'est plus dans la stack
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('[LAYOUT] Auth event:', event, session?.user?.id ?? 'no user')
 
         if (event === 'SIGNED_IN' && session?.user?.id) {
-          // Utilise session directement — JAMAIS getSession() ici pour éviter deadlock
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('is_onboarded')
-            .eq('id', session.user.id)
-            .single()
+          const userId = session.user.id
+          const accessToken = session.access_token
 
-          console.log('[LAYOUT] Profile is_onboarded:', profile?.is_onboarded)
+          // setTimeout(0) libère le lock Supabase AVANT de faire la requête DB
+          // Sans ça: setSession tient le lock → requête DB attend le lock → deadlock
+          setTimeout(async () => {
+            console.log('[LAYOUT] Fetching profile for:', userId)
+            const { data: profile, error } = await supabase
+              .from('profiles')
+              .select('is_onboarded')
+              .eq('id', userId)
+              .single()
 
-          if (profile?.is_onboarded) {
-            router.replace('/(app)/swipe' as any)
-          } else {
-            router.replace('/onboarding' as any)
-          }
+            console.log('[LAYOUT] Profile result:', profile?.is_onboarded, error?.message)
+
+            if (profile?.is_onboarded) {
+              router.replace('/(app)/swipe' as any)
+            } else {
+              router.replace('/onboarding' as any)
+            }
+          }, 0)
         }
       }
     )
