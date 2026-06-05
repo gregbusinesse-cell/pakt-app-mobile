@@ -302,9 +302,9 @@ export default function MatchesPage() {
                       placeholder={styles.gridImagePlaceholder}
                     />
 
-                    {/* Blur overlay for FREE users */}
+                    {/* Blur overlay for FREE/BUSINESS users */}
                     {userPlan !== 'business_pro' && (
-                      <BlurView intensity={90} style={styles.blurOverlay}>
+                      <BlurView intensity={99} style={styles.blurOverlay}>
                         <View style={styles.lockedContainer}>
                           <Ionicons name="lock-closed" size={32} color="#ffd700" />
                           <Text style={styles.lockedText}>Verrouillé</Text>

@@ -97,6 +97,8 @@ export default function SettingsPage() {
   const [inputCode, setInputCode] = useState('')
   const [codeLoading, setCodeLoading] = useState(false)
   const [codeUsed, setCodeUsed] = useState(false)
+  const [claimedRewards, setClaimedRewards] = useState<number[]>([])
+  const [claimingReward, setClaimingReward] = useState<number | null>(null)
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -172,27 +174,34 @@ export default function SettingsPage() {
     setCodeLoading(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user?.id) throw new Error('Non connecté')
+
       const SUPA_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
       const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
       const res = await fetch(`${SUPA_URL}/functions/v1/use-referral-code`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY, 'Authorization': `Bearer ${session?.access_token || ''}` },
+        headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY, 'Authorization': `Bearer ${session.access_token}` },
         body: JSON.stringify({ code: inputCode.trim() }),
       })
       const data = await res.json()
-      if (!data.success) Alert.alert('Erreur', data.error || 'Code invalide.')
-      else {
+      if (!data.success) {
+        Alert.alert('Erreur', data.error || 'Code invalide.')
+      } else {
         Alert.alert('Code appliqué ✅', 'Le code de parrainage a bien été enregistré !')
         setCodeUsed(true)
         setInputCode('')
+
+        // Refetch referral count for the referrer (the person who owns the code being used)
+        // This would need to be done on the referrer's side when they next refresh
       }
-    } catch { Alert.alert('Erreur réseau', 'Impossible de contacter le serveur.') }
+    } catch (err: any) {
+      Alert.alert('Erreur', err.message || 'Impossible de contacter le serveur.')
+    }
     finally { setCodeLoading(false) }
   }
 
   const handleCopyReferral = async () => {
     try {
-      // Simple message with just the code — mobile app, no web links
       const message = `🚀 Rejoins-moi sur PAKT — le Tinder du business !\n\nTélécharge l'app PAKT, crée ton compte et entre mon code de parrainage dans l'onglet Parrainage :\n\n👉 ${referralCode}\n\nDispo sur Android et bientôt sur iOS.`
       await Clipboard.setStringAsync(message)
       if (Platform.OS === 'android') {
@@ -202,6 +211,33 @@ export default function SettingsPage() {
       }
     } catch {
       Alert.alert('Erreur', 'Impossible de copier.')
+    }
+  }
+
+  // ── Claim reward ───────────────────────────────────────────────────────────────
+  const handleClaimReward = async (requiredCount: number, planDays: string) => {
+    setClaimingReward(requiredCount)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user?.id) throw new Error('Non connecté')
+
+      const SUPA_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
+      const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
+
+      const res = await fetch(`${SUPA_URL}/functions/v1/claim-referral-reward`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY, 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ requiredCount, planDays }),
+      })
+      const data = await res.json()
+      if (!data.success) throw new Error(data.error || 'Erreur serveur')
+
+      setClaimedRewards([...claimedRewards, requiredCount])
+      Alert.alert('Récompense activée ✅', `Ton plan ${planDays} a été activé !`)
+    } catch (err: any) {
+      Alert.alert('Erreur', err.message || 'Impossible de réclamer la récompense.')
+    } finally {
+      setClaimingReward(null)
     }
   }
 
@@ -575,18 +611,50 @@ export default function SettingsPage() {
             <View style={styles.benefitsContainer}>
               <Text style={styles.benefitsTitle}>Vos récompenses</Text>
               {[
-                { title: '1 ami invité', reward: '1 mois Business offert', icon: 'star' },
-                { title: '3 amis invités', reward: '3 mois Business Pro offert', icon: 'star-half' },
-                { title: '5 amis invités', reward: 'Accès VIP + support prioritaire', icon: 'sparkles' },
-              ].map((benefit, idx) => (
-                <View key={idx} style={styles.benefitItem}>
-                  <Ionicons name={benefit.icon as any} size={20} color="#ffd700" />
-                  <View style={styles.benefitContent}>
-                    <Text style={styles.benefitTitle}>{benefit.title}</Text>
-                    <Text style={styles.benefitReward}>{benefit.reward}</Text>
+                { count: 1, title: '1 ami invité', reward: '3 jours Business', days: '3J Business', icon: 'star' },
+                { count: 3, title: '3 amis invités', reward: '7 jours Business', days: '7J Business', icon: 'star-half' },
+                { count: 5, title: '5 amis invités', reward: '1 mois Business', days: '1M Business', icon: 'star-half' },
+                { count: 10, title: '10 amis invités', reward: '1 mois Business Pro', days: '1M Business Pro', icon: 'sparkles' },
+              ].map((benefit) => {
+                const isClaimed = claimedRewards.includes(benefit.count)
+                const canClaim = referralCount >= benefit.count && !isClaimed
+                return (
+                  <View key={benefit.count} style={[styles.benefitItem, isClaimed && styles.benefitItemClaimed]}>
+                    <Ionicons name={benefit.icon as any} size={20} color={isClaimed ? '#4caf50' : '#ffd700'} />
+                    <View style={styles.benefitContent}>
+                      <Text style={styles.benefitTitle}>{benefit.title}</Text>
+                      <Text style={[styles.benefitReward, isClaimed && styles.benefitRewardClaimed]}>
+                        {benefit.reward}
+                      </Text>
+                    </View>
+                    {canClaim && (
+                      <TouchableOpacity
+                        style={styles.claimButton}
+                        onPress={() => handleClaimReward(benefit.count, benefit.days)}
+                        disabled={claimingReward === benefit.count}
+                      >
+                        {claimingReward === benefit.count ? (
+                          <ActivityIndicator color="#000" size="small" />
+                        ) : (
+                          <Text style={styles.claimButtonText}>Réclamer</Text>
+                        )}
+                      </TouchableOpacity>
+                    )}
+                    {isClaimed && (
+                      <View style={styles.claimedBadge}>
+                        <Ionicons name="checkmark" size={14} color="#fff" />
+                      </View>
+                    )}
                   </View>
-                </View>
-              ))}
+                )
+              })}
+            </View>
+
+            {/* Explanation note */}
+            <View style={styles.explanationBox}>
+              <Text style={styles.explanationText}>
+                <Text style={{ fontWeight: '700' }}>*</Text> À chaque ami invité qui se connecte avec votre code de parrainage, vous débloquez une récompense. Si vous avez déjà un abonnement Business ou Business Pro, les jours s'ajoutent à votre période actuelle.
+              </Text>
             </View>
 
             {/* Enter a friend's referral code */}
@@ -1038,6 +1106,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2a2a2a',
   },
+  benefitItemClaimed: {
+    backgroundColor: '#4caf5015',
+    borderColor: '#4caf5044',
+  },
   benefitContent: {
     flex: 1,
   },
@@ -1050,6 +1122,41 @@ const styles = StyleSheet.create({
   benefitReward: {
     color: '#ffd700',
     fontSize: 12,
+  },
+  benefitRewardClaimed: {
+    color: '#4caf50',
+  },
+  claimButton: {
+    backgroundColor: '#ffd700',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  claimButtonText: {
+    color: '#000',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  claimedBadge: {
+    backgroundColor: '#4caf50',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  explanationBox: {
+    backgroundColor: '#ffd70015',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#ffd70044',
+  },
+  explanationText: {
+    color: '#ffffff88',
+    fontSize: 12,
+    lineHeight: 18,
   },
 
   referralButton: {
