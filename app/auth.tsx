@@ -185,9 +185,12 @@ export default function AuthPage() {
       if (error) throw error
       if (!data.url) throw new Error('No OAuth URL')
 
-      // Just open the browser - let auth/callback handle the rest
-      await WebBrowser.openAuthSessionAsync(data.url, redirectTo)
-      // If we get here, the browser closed - either auth succeeded or was cancelled
+      // Open browser and wait for deep link callback
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo)
+
+      // Browser closed - either success or cancelled
+      // Stop spinner regardless - auth/callback will handle redirect if successful
+      setSigningIn(false)
     } catch (err: any) {
       if (!err?.message?.includes('cancel') && !err?.message?.includes('dismiss')) {
         Alert.alert('Erreur Google', err?.message || 'Impossible de se connecter avec Google')
