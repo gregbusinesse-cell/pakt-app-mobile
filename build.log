@@ -1,0 +1,26 @@
+★ eas-cli@20.1.0 is now available.
+To upgrade, run:
+npm install -g eas-cli
+Proceeding with outdated version.
+
+Resolved "preview" environment for the build. Learn more: https://docs.expo.dev/eas/environment-variables/#setting-the-environment-for-your-builds
+No environment variables with visibility "Plain text" and "Sensitive" found for the "preview" environment on EAS.
+
+
+
+✔ Using remote Android credentials (Expo server)
+✔ Using Keystore from configuration: Build Credentials B-ag1x9DeP (default)
+
+Compressing project files and uploading to EAS Build. Learn more: https://expo.fyi/eas-build-archive
+- Uploading to EAS Build (0 / 588 KB)
+✔ Uploaded to EAS 
+Skipping project fingerprint
+
+See logs: https://expo.dev/accounts/devexpogreg/projects/pakt/builds/4cdba018-2e64-46b6-bc9f-78f63757965c
+
+Waiting for build to complete. You can press Ctrl+C to exit.
+- Waiting for build to complete.
+✖ Build failed
+
+🤖 Android build failed:
+Unknown error. See logs of the Bundle JavaScript build phase for more information.

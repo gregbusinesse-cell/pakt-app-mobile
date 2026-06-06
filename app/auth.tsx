@@ -474,201 +474,223 @@ export default function AuthPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#0a0a0a',
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 32,
     justifyContent: 'center',
   },
 
-  // Header
+  // Header — modern & minimal
   header: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 56,
   },
   logo: {
-    color: '#ffd700',
-    fontSize: 56,
-    fontWeight: '900',
-    letterSpacing: 4,
-    marginBottom: 4,
+    color: '#D4AF37',
+    fontSize: 48,
+    fontWeight: '800',
+    letterSpacing: 3,
+    marginBottom: 8,
+    textShadowColor: 'rgba(212, 175, 55, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
   },
   tagline: {
-    color: '#ffffff66',
-    fontSize: 13,
-    letterSpacing: 1,
+    color: '#ffffff99',
+    fontSize: 12,
+    letterSpacing: 2,
     textTransform: 'uppercase',
+    fontWeight: '500',
   },
 
-  // Mode Toggle
+  // Mode Toggle — modern glassmorphism
   modeToggle: {
     flexDirection: 'row',
     backgroundColor: '#1a1a1a',
-    borderRadius: 16,
-    padding: 4,
-    marginBottom: 32,
-    gap: 4,
+    borderRadius: 12,
+    padding: 6,
+    marginBottom: 40,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#333333',
   },
   modeButton: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: 10,
     alignItems: 'center',
+    backgroundColor: 'transparent',
   },
   modeButtonActive: {
-    backgroundColor: '#ffd700',
+    backgroundColor: '#D4AF37',
+    shadowColor: '#D4AF37',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   modeButtonText: {
-    color: '#ffffff80',
-    fontSize: 14,
+    color: '#ffffff77',
+    fontSize: 13,
     fontWeight: '600',
+    letterSpacing: 0.5,
   },
   modeButtonTextActive: {
-    color: '#000',
-  },
-
-  // Form
-  form: {
-    gap: 12,
-    marginBottom: 24,
-  },
-  input: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#333',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '500',
-  },
-
-  primaryButton: {
-    backgroundColor: '#ffd700',
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  primaryButtonText: {
-    color: '#000',
-    fontSize: 15,
+    color: '#0a0a0a',
     fontWeight: '700',
   },
 
-  // Separator
+  // Form — modern & spacious
+  form: {
+    gap: 16,
+    marginBottom: 32,
+  },
+  input: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#333333',
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '500',
+    letterSpacing: 0.3,
+  },
+
+  // Primary Button — modern with shadow
+  primaryButton: {
+    backgroundColor: '#D4AF37',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 8,
+    shadowColor: '#D4AF37',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+  },
+  primaryButtonText: {
+    color: '#0a0a0a',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+
+  // Separator — minimal
   separator: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 28,
-    gap: 12,
+    marginVertical: 32,
+    gap: 16,
   },
   separatorLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#333',
+    backgroundColor: '#2a2a2a',
   },
   separatorText: {
-    color: '#ffffff50',
-    fontSize: 12,
+    color: '#ffffff66',
+    fontSize: 11,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1.5,
+    fontWeight: '600',
   },
 
-  // Google Button
+  // Google Button — modern outline style
   googleButton: {
     flexDirection: 'row',
     backgroundColor: '#1a1a1a',
-    borderWidth: 1,
-    borderColor: '#333',
-    borderRadius: 14,
-    paddingVertical: 14,
+    borderWidth: 1.5,
+    borderColor: '#D4AF37',
+    borderRadius: 12,
+    paddingVertical: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
     gap: 12,
+    shadowColor: '#D4AF37',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
   },
   googleButtonText: {
-    color: '#fff',
+    color: '#ffffff',
     fontSize: 15,
     fontWeight: '600',
+    letterSpacing: 0.3,
   },
 
-  // Apple Button
+  // Apple Button (removed)
   appleButton: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    paddingVertical: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 32,
-    gap: 8,
+    display: 'none',
   },
   appleButtonText: {
-    color: '#000',
-    fontSize: 15,
-    fontWeight: '600',
+    display: 'none',
   },
 
-  // Modals
+  // Modals — modern
   modalContainer: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#0a0a0a',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    borderBottomColor: '#2a2a2a',
   },
   modalTitle: {
-    color: '#fff',
+    color: '#ffffff',
     fontSize: 18,
     fontWeight: '700',
+    letterSpacing: 0.3,
   },
   modalContent: {
     flex: 1,
   },
   modalScrollContent: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 24,
   },
   modalText: {
-    color: '#ffffffcc',
+    color: '#ffffffbb',
     fontSize: 14,
-    lineHeight: 22,
-    letterSpacing: 0.3,
+    lineHeight: 24,
+    letterSpacing: 0.4,
+    fontWeight: '400',
   },
 
-  // Disclaimer
+  // Disclaimer — modern minimal
   disclaimerContainer: {
-    marginBottom: 12,
+    marginBottom: 16,
+    paddingHorizontal: 4,
   },
   disclaimer: {
-    color: '#ffffff66',
-    fontSize: 12,
+    color: '#ffffff77',
+    fontSize: 11,
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 20,
     letterSpacing: 0.3,
+    fontWeight: '400',
   },
   disclaimerLink: {
-    color: '#ffd700',
+    color: '#D4AF37',
     textDecorationLine: 'underline',
+    fontWeight: '600',
   },
   clickable: {
-    opacity: 0.8,
+    opacity: 0.9,
   },
 
   // Disabled state
   buttonDisabled: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
 })
 

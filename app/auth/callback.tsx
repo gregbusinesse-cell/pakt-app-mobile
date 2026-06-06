@@ -97,9 +97,9 @@ export default function AuthCallbackPage() {
   }, [])
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', gap: 16 }}>
-      <ActivityIndicator size="large" color="#d4a853" />
-      <Text style={{ color: error ? '#ff4444' : '#ffffff66', fontSize: 13, textAlign: 'center', paddingHorizontal: 32 }}>
+    <View style={{ flex: 1, backgroundColor: '#0a0a0a', justifyContent: 'center', alignItems: 'center', gap: 20 }}>
+      <ActivityIndicator size="large" color="#D4AF37" />
+      <Text style={{ color: error ? '#FF6B6B' : '#ffffff99', fontSize: 13, textAlign: 'center', paddingHorizontal: 40, lineHeight: 20, fontWeight: '500' }}>
         {error ? 'Erreur: ' + error : status}
       </Text>
     </View>
