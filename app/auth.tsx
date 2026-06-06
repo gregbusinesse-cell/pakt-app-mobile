@@ -360,15 +360,7 @@ export default function AuthPage() {
           <Text style={styles.googleButtonText}>Continuer avec Google</Text>
         </TouchableOpacity>
 
-        {/* Apple Button */}
-        <TouchableOpacity
-          style={[styles.appleButton, signingIn && { opacity: 0.6 }]}
-          onPress={handleAppleSignIn}
-          disabled={signingIn}
-        >
-          <Ionicons name="logo-apple" size={20} color="#000" style={{ marginRight: 8 }} />
-          <Text style={styles.appleButtonText}>Continuer avec Apple</Text>
-        </TouchableOpacity>
+        {/* Apple Button - temporairement désactivé */}
 
         {/* Disclaimer */}
         <View style={styles.disclaimerContainer}>
