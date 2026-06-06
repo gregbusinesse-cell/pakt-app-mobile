@@ -25,14 +25,19 @@ export default function RootLayout() {
     // ─── Capture l'URL OAuth avant qu'Expo Router navigue ───────────────────
     // _layout est TOUJOURS monté → pas de timing issue
     const linkingSub = Linking.addEventListener('url', ({ url }) => {
+      console.log('[LAYOUT] Deep link reçu:', url)
       if (url && url.includes('auth/callback')) {
-        console.log('[LAYOUT] OAuth URL capturée:', url.substring(0, 80))
+        console.log('[LAYOUT] ✅ OAuth URL capturée (auth/callback trouvé)')
+        console.log('[LAYOUT] Paramètres dans l\'URL:', url.includes('access_token') ? 'access_token présent' : 'AUCUN access_token')
+        console.log('[LAYOUT] Paramètres dans l\'URL:', url.includes('error') ? 'error présent' : 'pas d\'error')
         setPendingOAuthUrl(url)
       }
     })
 
     Linking.getInitialURL().then(url => {
+      console.log('[LAYOUT] Initial URL:', url)
       if (url && url.includes('auth/callback')) {
+        console.log('[LAYOUT] ✅ Initial URL is auth/callback')
         setPendingOAuthUrl(url)
       }
     })

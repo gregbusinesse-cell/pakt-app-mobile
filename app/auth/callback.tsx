@@ -14,22 +14,30 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const handleOAuth = async () => {
       try {
+        console.log('[CALLBACK] ✨ Callback page loaded')
         // Attend 200ms pour que _layout.tsx ait le temps de capturer l'URL
         await new Promise(r => setTimeout(r, 200))
 
         const url = getPendingOAuthUrl()
+        console.log('[CALLBACK] URL reçue du store:', url)
         clearPendingOAuthUrl()
 
         if (!url) {
+          console.log('[CALLBACK] ⚠️  Pas d\'URL OAuth dans le store, vérification session directe...')
           // Pas d'URL OAuth — vérifie si une session existe déjà
           const { data } = await supabase.auth.getSession()
+          console.log('[CALLBACK] Session directe:', data.session?.user?.id ? '✅ USER LOGGED' : '❌ NO USER')
           if (data.session?.user?.id) {
             // Session déjà valide — onAuthStateChange va rediriger
+            console.log('[CALLBACK] Session trouvée, onAuthStateChange va rediriger')
             return
           }
+          console.log('[CALLBACK] Pas de session, retour à /auth')
           router.replace('/auth' as any)
           return
         }
+
+        console.log('[CALLBACK] ✅ URL trouvée dans le store')
 
         // Parse le fragment de l'URL (implicit flow: #access_token=xxx&refresh_token=yyy)
         const fragment = url.includes('#')
@@ -38,6 +46,8 @@ export default function AuthCallbackPage() {
           ? url.split('?')[1]
           : ''
 
+        console.log('[CALLBACK] Fragment parsé:', fragment.substring(0, 100) + '...')
+
         // Parse manuel pour gérer les = dans les JWT
         const parsed: Record<string, string> = {}
         fragment.split('&').forEach(part => {
@@ -45,6 +55,12 @@ export default function AuthCallbackPage() {
           if (idx > -1) {
             parsed[part.substring(0, idx)] = decodeURIComponent(part.substring(idx + 1))
           }
+        })
+
+        console.log('[CALLBACK] Tokens trouvés:', {
+          access_token: parsed['access_token'] ? '✅ présent' : '❌ manquant',
+          refresh_token: parsed['refresh_token'] ? '✅ présent' : '❌ manquant',
+          error: parsed['error'] ? `⚠️ ${parsed['error']}` : 'aucun'
         })
 
         const access_token = parsed['access_token']

@@ -196,16 +196,24 @@ export default function AuthPage() {
     try {
       setSigningIn(true)
       const redirectTo = Linking.createURL('auth/callback')
+      console.log('[AUTH] Apple Sign In started')
+      console.log('[AUTH] Redirect URL:', redirectTo)
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: { redirectTo, skipBrowserRedirect: true },
       })
+
+      console.log('[AUTH] OAuth response:', { data, error })
+
       if (error) throw error
       if (!data.url) throw new Error('No OAuth URL')
 
+      console.log('[AUTH] Opening browser with URL:', data.url.substring(0, 100) + '...')
       await WebBrowser.openBrowserAsync(data.url)
+      console.log('[AUTH] Browser closed')
     } catch (err: any) {
+      console.error('[AUTH] Apple Sign In error:', err)
       if (!err?.message?.includes('cancel') && !err?.message?.includes('dismiss')) {
         Alert.alert('Erreur Apple', err?.message || 'Impossible de se connecter avec Apple')
       }
