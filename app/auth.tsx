@@ -192,6 +192,28 @@ export default function AuthPage() {
     }
   }
 
+  const handleAppleSignIn = async () => {
+    try {
+      setSigningIn(true)
+      const redirectTo = Linking.createURL('auth/callback')
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'apple',
+        options: { redirectTo, skipBrowserRedirect: true },
+      })
+      if (error) throw error
+      if (!data.url) throw new Error('No OAuth URL')
+
+      await WebBrowser.openBrowserAsync(data.url)
+    } catch (err: any) {
+      if (!err?.message?.includes('cancel') && !err?.message?.includes('dismiss')) {
+        Alert.alert('Erreur Apple', err?.message || 'Impossible de se connecter avec Apple')
+      }
+    } finally {
+      setSigningIn(false)
+    }
+  }
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -287,6 +309,15 @@ export default function AuthPage() {
             style={{ width: 22, height: 22 }}
           />
           <Text style={styles.googleButtonText}>Continuer avec Google</Text>
+        </TouchableOpacity>
+
+        {/* Apple Button */}
+        <TouchableOpacity
+          style={[styles.appleButton, signingIn && { opacity: 0.6 }]}
+          onPress={handleAppleSignIn}
+          disabled={signingIn}
+        >
+          <Text style={styles.appleButtonText}>🍎 Continuer avec Apple</Text>
         </TouchableOpacity>
 
         {/* Disclaimer */}
@@ -515,11 +546,26 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 12,
     gap: 12,
   },
   googleButtonText: {
     color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+
+  // Apple Button
+  appleButton: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    paddingVertical: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  appleButtonText: {
+    color: '#000',
     fontSize: 15,
     fontWeight: '600',
   },
