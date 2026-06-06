@@ -196,24 +196,61 @@ export default function AuthPage() {
     try {
       setSigningIn(true)
       const redirectTo = Linking.createURL('auth/callback')
-      console.log('[AUTH] Apple Sign In started')
-      console.log('[AUTH] Redirect URL:', redirectTo)
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: { redirectTo, skipBrowserRedirect: true },
       })
 
-      console.log('[AUTH] OAuth response:', { data, error })
-
       if (error) throw error
       if (!data.url) throw new Error('No OAuth URL')
 
-      console.log('[AUTH] Opening browser with URL:', data.url.substring(0, 100) + '...')
-      await WebBrowser.openBrowserAsync(data.url)
-      console.log('[AUTH] Browser closed')
+      // openAuthSessionAsync (vs openBrowserAsync) intercepte DIRECTEMENT l'URL de retour
+      // → pas de race condition avec Linking.addEventListener
+      // → on reçoit l'URL complète avec les tokens dans la promesse
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo)
+
+      if (result.type !== 'success') return // annulation silencieuse
+
+      const returnUrl = result.url
+
+      // Parse l'URL retournée (fragment #access_token ou query ?code pour PKCE)
+      const fragment = returnUrl.includes('#')
+        ? returnUrl.split('#')[1]
+        : returnUrl.includes('?') ? returnUrl.split('?')[1] : ''
+
+      const parsed: Record<string, string> = {}
+      fragment.split('&').forEach(part => {
+        const idx = part.indexOf('=')
+        if (idx > -1) parsed[part.slice(0, idx)] = decodeURIComponent(part.slice(idx + 1))
+      })
+
+      if (parsed['error']) {
+        throw new Error(parsed['error_description'] || parsed['error'])
+      }
+
+      if (parsed['access_token']) {
+        // Implicit flow → setSession directement
+        const { error: sessErr } = await supabase.auth.setSession({
+          access_token: parsed['access_token'],
+          refresh_token: parsed['refresh_token'] ?? '',
+        })
+        if (sessErr) throw sessErr
+        // onAuthStateChange dans _layout.tsx gère la redirection
+        return
+      }
+
+      if (parsed['code']) {
+        // PKCE flow → échange le code contre une session
+        const { error: exchErr } = await supabase.auth.exchangeCodeForSession(returnUrl)
+        if (exchErr) throw exchErr
+        // onAuthStateChange dans _layout.tsx gère la redirection
+        return
+      }
+
+      throw new Error('Aucun token reçu après authentification Apple')
+
     } catch (err: any) {
-      console.error('[AUTH] Apple Sign In error:', err)
       if (!err?.message?.includes('cancel') && !err?.message?.includes('dismiss')) {
         Alert.alert('Erreur Apple', err?.message || 'Impossible de se connecter avec Apple')
       }
