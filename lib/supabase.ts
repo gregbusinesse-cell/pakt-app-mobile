@@ -26,8 +26,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
-    // PKCE requis pour Apple Sign In (Apple ne supporte pas l'implicit flow)
-    // Google fonctionne aussi avec PKCE
-    flowType: 'pkce',
+    // implicit flow — PKCE cause 'invalid flow state' sur React Native mobile
+    // La config Apple (Services ID + Secret Key) est maintenant correcte
+    flowType: 'implicit',
   },
 });
