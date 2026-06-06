@@ -25,15 +25,29 @@ export default function AuthCallbackPage() {
         if (!url) {
           console.log('[CALLBACK] ⚠️  Pas d\'URL OAuth dans le store, vérification session directe...')
           // Pas d'URL OAuth — vérifie si une session existe déjà
-          const { data } = await supabase.auth.getSession()
-          console.log('[CALLBACK] Session directe:', data.session?.user?.id ? '✅ USER LOGGED' : '❌ NO USER')
-          if (data.session?.user?.id) {
-            // Session déjà valide — onAuthStateChange va rediriger
-            console.log('[CALLBACK] Session trouvée, onAuthStateChange va rediriger')
-            return
+          // Apple Sign In nécessite plusieurs tentatives (timing issue)
+          let sessionFound = false
+          for (let attempt = 1; attempt <= 5; attempt++) {
+            console.log(`[CALLBACK] Tentative ${attempt}/5 pour obtenir la session...`)
+            const { data } = await supabase.auth.getSession()
+            console.log(`[CALLBACK] Tentative ${attempt}:`, data.session?.user?.id ? '✅ USER LOGGED' : '❌ NO USER')
+
+            if (data.session?.user?.id) {
+              sessionFound = true
+              console.log('[CALLBACK] ✅ Session trouvée, onAuthStateChange va rediriger')
+              break
+            }
+
+            // Attendre avant la prochaine tentative (sauf après la dernière)
+            if (attempt < 5) {
+              await new Promise(r => setTimeout(r, 500))
+            }
           }
-          console.log('[CALLBACK] Pas de session, retour à /auth')
-          router.replace('/auth' as any)
+
+          if (!sessionFound) {
+            console.log('[CALLBACK] ❌ Pas de session après 5 tentatives, retour à /auth')
+            router.replace('/auth' as any)
+          }
           return
         }
 
@@ -67,30 +81,33 @@ export default function AuthCallbackPage() {
         const refresh_token = parsed['refresh_token'] ?? ''
 
         // Si pas de token dans l'URL, essayer de récupérer la session directement
-        // (parfois Apple Sign In ne passe pas les tokens via deep link)
+        // (Apple Sign In ne passe pas les tokens via deep link - auth-code flow)
         if (!access_token) {
-          console.log('[CALLBACK] No token in URL, checking session directly...')
-          const { data: { session: directSession }, error: sessionErr } = await supabase.auth.getSession()
+          console.log('[CALLBACK] ⚠️  Pas de token dans l\'URL, tentatives retry pour getSession()...')
 
-          if (directSession?.access_token) {
-            console.log('[CALLBACK] Found session via getSession()')
-            setStatus('Connexion...')
-            const { error: sessErr } = await supabase.auth.setSession({
-              access_token: directSession.access_token,
-              refresh_token: directSession.refresh_token ?? '',
-            })
+          let sessionFound = false
+          for (let attempt = 1; attempt <= 5; attempt++) {
+            console.log(`[CALLBACK] getSession() tentative ${attempt}/5...`)
+            const { data: { session: directSession }, error: sessionErr } = await supabase.auth.getSession()
 
-            if (sessErr) {
-              setError(sessErr.message)
-              setTimeout(() => router.replace('/auth' as any), 2000)
+            if (directSession?.access_token) {
+              console.log(`[CALLBACK] ✅ Session trouvée à tentative ${attempt}!`)
+              sessionFound = true
+              setStatus('Redirection...')
+              // Session est déjà valide - onAuthStateChange va rediriger
               return
             }
 
-            setStatus('Redirection...')
-            return
+            console.log(`[CALLBACK] ❌ Tentative ${attempt}: pas de session`)
+
+            // Attendre avant la prochaine tentative (sauf après la dernière)
+            if (attempt < 5) {
+              await new Promise(r => setTimeout(r, 500))
+            }
           }
 
-          setError('Pas de token dans l\'URL')
+          console.log('[CALLBACK] ❌ Pas de session après 5 tentatives')
+          setError('Pas de token dans l\'URL et pas de session')
           setTimeout(() => router.replace('/auth' as any), 2000)
           return
         }
