@@ -199,32 +199,6 @@ export default function SettingsPage() {
     finally { setCodeLoading(false) }
   }
 
-  // ── Claim reward ───────────────────────────────────────────────────────────────
-  const handleClaimReward = async (requiredCount: number, planDays: string) => {
-    setClaimingReward(requiredCount)
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user?.id) throw new Error('Non connecté')
-
-      const SUPA_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
-      const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
-
-      const res = await fetch(`${SUPA_URL}/functions/v1/claim-referral-reward`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY, 'Authorization': `Bearer ${session.access_token}` },
-        body: JSON.stringify({ requiredCount, planDays }),
-      })
-      const data = await res.json()
-      if (!data.success) throw new Error(data.error || 'Erreur serveur')
-
-      Alert.alert('Récompense activée ✅', `${planDays} a été activé !`)
-    } catch (err: any) {
-      Alert.alert('Erreur', err.message || 'Impossible de réclamer.')
-    } finally {
-      setClaimingReward(null)
-    }
-  }
-
   const handleCopyReferral = async () => {
     try {
       const message = `🚀 Rejoins-moi sur PAKT — le Tinder du business !\n\nTélécharge l'app PAKT, crée ton compte et entre mon code de parrainage dans l'onglet Parrainage :\n\n👉 ${referralCode}\n\nDispo sur Android et bientôt sur iOS.`
