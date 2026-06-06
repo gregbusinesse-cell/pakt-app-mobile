@@ -50,7 +50,30 @@ export default function AuthCallbackPage() {
         const access_token = parsed['access_token']
         const refresh_token = parsed['refresh_token'] ?? ''
 
+        // Si pas de token dans l'URL, essayer de récupérer la session directement
+        // (parfois Apple Sign In ne passe pas les tokens via deep link)
         if (!access_token) {
+          console.log('[CALLBACK] No token in URL, checking session directly...')
+          const { data: { session: directSession }, error: sessionErr } = await supabase.auth.getSession()
+
+          if (directSession?.access_token) {
+            console.log('[CALLBACK] Found session via getSession()')
+            setStatus('Connexion...')
+            const { error: sessErr } = await supabase.auth.setSession({
+              access_token: directSession.access_token,
+              refresh_token: directSession.refresh_token ?? '',
+            })
+
+            if (sessErr) {
+              setError(sessErr.message)
+              setTimeout(() => router.replace('/auth' as any), 2000)
+              return
+            }
+
+            setStatus('Redirection...')
+            return
+          }
+
           setError('Pas de token dans l\'URL')
           setTimeout(() => router.replace('/auth' as any), 2000)
           return

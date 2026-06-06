@@ -317,7 +317,8 @@ export default function AuthPage() {
           onPress={handleAppleSignIn}
           disabled={signingIn}
         >
-          <Text style={styles.appleButtonText}>🍎 Continuer avec Apple</Text>
+          <Ionicons name="logo-apple" size={20} color="#000" style={{ marginRight: 8 }} />
+          <Text style={styles.appleButtonText}>Continuer avec Apple</Text>
         </TouchableOpacity>
 
         {/* Disclaimer */}
@@ -557,12 +558,14 @@ const styles = StyleSheet.create({
 
   // Apple Button
   appleButton: {
+    flexDirection: 'row',
     backgroundColor: '#fff',
     borderRadius: 14,
     paddingVertical: 14,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 32,
+    gap: 8,
   },
   appleButtonText: {
     color: '#000',
