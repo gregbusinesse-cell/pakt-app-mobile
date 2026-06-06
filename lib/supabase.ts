@@ -26,6 +26,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
-    // flowType par défaut (implicit) — PKCE cause 'invalid flow state' avec cette version
+    // PKCE requis pour Apple Sign In (Apple ne supporte pas l'implicit flow)
+    // Google fonctionne aussi avec PKCE
+    flowType: 'pkce',
   },
 });
