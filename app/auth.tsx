@@ -222,11 +222,15 @@ export default function AuthPage() {
       const parsed: Record<string, string> = {}
       fragment.split('&').forEach(part => {
         const idx = part.indexOf('=')
-        if (idx > -1) parsed[part.slice(0, idx)] = decodeURIComponent(part.slice(idx + 1))
+        if (idx > -1) {
+          // Decode both %XX and + (form-urlencoded space)
+          parsed[part.slice(0, idx)] = decodeURIComponent(part.slice(idx + 1).replace(/\+/g, ' '))
+        }
       })
 
       if (parsed['error']) {
-        throw new Error(parsed['error_description'] || parsed['error'])
+        const desc = parsed['error_description'] || parsed['error']
+        throw new Error(desc)
       }
 
       if (parsed['access_token']) {
