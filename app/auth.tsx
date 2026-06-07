@@ -158,7 +158,7 @@ export default function AuthPage() {
             {/* Header */}
             <View style={styles.header}>
               <Text style={styles.logo}>PAKT</Text>
-              <Text style={styles.tagline}>Business Network</Text>
+              <Text style={styles.tagline}>Le Tinder du business</Text>
             </View>
 
             {/* Mode Toggle */}

@@ -7,6 +7,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useFocusEffect } from '@react-navigation/native'
 import { supabase } from '@/lib/supabase/client'
 import { LEGAL_SECTIONS, SUPPORT_EMAIL, LEGAL_CONTENT } from '@/lib/constants/legal-content'
+import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme'
 
 // ─── Coming Soon component ────────────────────────────────────────────────────
 function ComingSoon({ icon, title, subtitle }: { icon: string; title: string; subtitle: string }) {
@@ -28,50 +29,51 @@ function ComingSoon({ icon, title, subtitle }: { icon: string; title: string; su
 const csStyles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 32,
-    gap: 12,
+    paddingVertical: spacing.xxxl,
+    paddingHorizontal: spacing.xl,
+    gap: spacing.lg,
   },
   iconCircle: {
     width: 88,
     height: 88,
     borderRadius: 44,
-    backgroundColor: 'rgba(212,168,83,0.12)',
+    backgroundColor: 'rgba(212, 175, 55, 0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(212,168,83,0.25)',
+    borderColor: 'rgba(212, 175, 55, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.md,
   },
   label: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#d4a853',
+    color: colors.primary,
     textTransform: 'uppercase',
-    letterSpacing: 2,
+    letterSpacing: 1.5,
   },
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '800',
-    color: '#ffffff',
+    color: colors.text.primary,
     textAlign: 'center',
+    letterSpacing: 0.3,
   },
   subtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.45)',
+    fontSize: 13,
+    color: colors.text.secondary,
     textAlign: 'center',
     lineHeight: 22,
   },
   dotsRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 8,
+    gap: spacing.md,
+    marginTop: spacing.md,
   },
   dot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: 'rgba(212,168,83,0.4)',
+    backgroundColor: 'rgba(212, 175, 55, 0.3)',
   },
 })
 
@@ -478,7 +480,7 @@ export default function SettingsPage() {
           <View style={styles.plansContainer}>
             {loading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#ffd700" />
+                <ActivityIndicator size="large" color="${colors.primary}" />
               </View>
             ) : (
               <>
@@ -516,7 +518,7 @@ export default function SettingsPage() {
                     <View style={styles.featuresList}>
                       {plan.features.map((feature, idx) => (
                         <View key={idx} style={styles.featureItem}>
-                          <Ionicons name="checkmark" size={16} color="#ffd700" style={styles.featureIcon} />
+                          <Ionicons name="checkmark" size={16} color="${colors.primary}" style={styles.featureIcon} />
                           <Text style={styles.featureText}>{feature}</Text>
                         </View>
                       ))}
@@ -537,7 +539,7 @@ export default function SettingsPage() {
                       disabled={currentPlan === plan.name || plan.id === 'free' || !!checkoutLoading}
                     >
                       {checkoutLoading === plan.id ? (
-                        <ActivityIndicator color="#000" size="small" />
+                        <ActivityIndicator color="${colors.bg.primary}" size="small" />
                       ) : (
                         <Text
                           style={[
@@ -571,7 +573,7 @@ export default function SettingsPage() {
             <Text style={styles.sectionHeader}>Programme de Parrainage</Text>
 
             <View style={styles.referralCard}>
-              <Ionicons name="gift" size={32} color="#ffd700" style={styles.referralIcon} />
+              <Ionicons name="gift" size={32} color="${colors.primary}" style={styles.referralIcon} />
               <Text style={styles.referralTitle}>Gagnez des récompenses</Text>
               <Text style={styles.referralText}>
                 Invitez vos amis sur PAKT et recevez des avantages exclusifs
@@ -618,7 +620,7 @@ export default function SettingsPage() {
                 const canClaim = referralCount >= benefit.count
                 return (
                   <View key={benefit.count} style={[styles.benefitItem, canClaim && styles.benefitItemUnlocked]}>
-                    <Ionicons name="star" size={20} color={canClaim ? '#4caf50' : '#ffd700'} />
+                    <Ionicons name="star" size={20} color={canClaim ? '#4caf50' : '${colors.primary}'} />
                     <View style={styles.benefitContent}>
                       <Text style={styles.benefitTitle}>{benefit.title}</Text>
                       <Text style={styles.benefitReward}>{benefit.reward}</Text>
@@ -630,7 +632,7 @@ export default function SettingsPage() {
                         disabled={claimingReward === benefit.count}
                       >
                         {claimingReward === benefit.count ? (
-                          <ActivityIndicator color="#000" size="small" />
+                          <ActivityIndicator color="${colors.bg.primary}" size="small" />
                         ) : (
                           <Text style={styles.claimButtonText}>Réclamer</Text>
                         )}
@@ -648,7 +650,7 @@ export default function SettingsPage() {
               <TouchableOpacity style={styles.codeBox} onPress={handleCopyReferral} activeOpacity={0.7}>
                 <Text style={styles.codeText}>{referralCode || '...'}</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Ionicons name="copy-outline" size={20} color="#ffd700" />
+                  <Ionicons name="copy-outline" size={20} color="${colors.primary}" />
                 </View>
               </TouchableOpacity>
               <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 8, textAlign: 'center', lineHeight: 18 }}>
@@ -671,9 +673,9 @@ export default function SettingsPage() {
 
             {/* Change Password */}
             <TouchableOpacity style={styles.accountButton} onPress={handleChangePassword}>
-              <Ionicons name="lock-closed-outline" size={18} color="#ffd700" />
+              <Ionicons name="lock-closed-outline" size={18} color="${colors.primary}" />
               <Text style={styles.accountButtonText}>Modifier mon mot de passe</Text>
-              <Ionicons name="chevron-forward" size={18} color="#ffffff44" />
+              <Ionicons name="chevron-forward" size={18} color="${colors.text.primary}fff44" />
             </TouchableOpacity>
 
             {/* Suspend/Reactivate Account */}
@@ -687,7 +689,7 @@ export default function SettingsPage() {
                   {isSuspended ? '⏸ Ton profil est actuellement masqué' : 'Ton profil ne sera plus visible par les autres'}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#ffffff44" />
+              <Ionicons name="chevron-forward" size={18} color="${colors.text.primary}fff44" />
             </TouchableOpacity>
 
             {/* Delete Account */}
@@ -697,7 +699,7 @@ export default function SettingsPage() {
                 <Text style={[styles.accountButtonText, { color: '#ff4444' }]}>Supprimer mon compte</Text>
                 <Text style={[styles.accountButtonSubtext, { color: '#ff444488' }]}>Action définitive et irréversible</Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#ffffff44" />
+              <Ionicons name="chevron-forward" size={18} color="${colors.text.primary}fff44" />
             </TouchableOpacity>
 
             {/* Logout */}
@@ -705,7 +707,7 @@ export default function SettingsPage() {
               style={styles.logoutButtonAlt}
               onPress={handleSignOut}
             >
-              <Ionicons name="log-out-outline" size={18} color="#fff" />
+              <Ionicons name="log-out-outline" size={18} color="${colors.text.primary}" />
               <Text style={styles.logoutButtonTextAlt}>Se déconnecter</Text>
             </TouchableOpacity>
           </View>
@@ -721,7 +723,7 @@ export default function SettingsPage() {
                 onPress={() => setSelectedLegal(section.id)}
               >
                 <Text style={styles.legalTitle}>{section.label}</Text>
-                <Ionicons name="chevron-forward" size={20} color="#ffffff44" />
+                <Ionicons name="chevron-forward" size={20} color="${colors.text.primary}fff44" />
               </TouchableOpacity>
             ))}
 
@@ -751,7 +753,7 @@ export default function SettingsPage() {
               {LEGAL_SECTIONS.find(s => s.id === selectedLegal)?.label || ''}
             </Text>
             <TouchableOpacity onPress={() => setSelectedLegal(null)}>
-              <Ionicons name="close" size={24} color="#fff" />
+              <Ionicons name="close" size={24} color="${colors.text.primary}" />
             </TouchableOpacity>
           </View>
 
@@ -769,16 +771,16 @@ export default function SettingsPage() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: '${colors.bg.primary}' },
 
   header: {
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
+    borderBottomColor: '${colors.bg.tertiary}',
   },
   headerTitle: {
-    color: '#ffd700',
+    color: '${colors.primary}',
     fontSize: 32,
     fontWeight: 'bold',
   },
@@ -786,7 +788,7 @@ const styles = StyleSheet.create({
   tabsContainer: {
     maxHeight: 50,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
+    borderBottomColor: '${colors.bg.tertiary}',
   },
   tabsContent: {
     paddingHorizontal: 16,
@@ -799,15 +801,15 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabActive: {
-    borderBottomColor: '#ffd700',
+    borderBottomColor: '${colors.primary}',
   },
   tabText: {
-    color: '#ffffff66',
+    color: '${colors.text.tertiary}',
     fontSize: 14,
     fontWeight: '600',
   },
   tabTextActive: {
-    color: '#ffd700',
+    color: '${colors.primary}',
   },
 
   content: { flex: 1, paddingHorizontal: 16, paddingVertical: 20 },
@@ -824,24 +826,24 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   currentPlanLabel: {
-    color: '#fff',
+    color: '${colors.text.primary}',
     fontSize: 14,
     fontWeight: '600',
   },
   currentPlanBadge: {
-    backgroundColor: '#ffd700',
+    backgroundColor: '${colors.primary}',
     borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 4,
   },
   currentPlanText: {
-    color: '#000',
+    color: '${colors.bg.primary}',
     fontSize: 12,
     fontWeight: '700',
   },
 
   planCard: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '${colors.bg.tertiary}',
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -855,8 +857,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   planBadge: {
-    backgroundColor: '#ffd70033',
-    color: '#ffd700',
+    backgroundColor: '${colors.primary}33',
+    color: '${colors.primary}',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
@@ -866,7 +868,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   planTitle: {
-    color: '#fff',
+    color: '${colors.text.primary}',
     fontSize: 20,
     fontWeight: 'bold',
   },
@@ -874,12 +876,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   price: {
-    color: '#ffd700',
+    color: '${colors.primary}',
     fontSize: 18,
     fontWeight: 'bold',
   },
   priceSubtext: {
-    color: '#ffffff66',
+    color: '${colors.text.tertiary}',
     fontSize: 12,
   },
 
@@ -896,13 +898,13 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   featureText: {
-    color: '#ffffff99',
+    color: '${colors.text.primary}fff99',
     fontSize: 13,
     flex: 1,
   },
 
   planButton: {
-    backgroundColor: '#ffd700',
+    backgroundColor: '${colors.primary}',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 10,
@@ -917,12 +919,12 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   planButtonText: {
-    color: '#000',
+    color: '${colors.bg.primary}',
     fontSize: 14,
     fontWeight: '700',
   },
   planButtonTextCurrent: {
-    color: '#fff',
+    color: '${colors.text.primary}',
   },
 
   logoutButton: {
@@ -936,30 +938,30 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   logoutButtonText: {
-    color: '#fff',
+    color: '${colors.text.primary}',
     fontSize: 14,
     fontWeight: '600',
   },
 
   sectionHeader: {
-    color: '#ffd700',
+    color: '${colors.primary}',
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 16,
   },
 
   eventCard: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '${colors.bg.tertiary}',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+    borderColor: '${colors.bg.quaternary}',
     flexDirection: 'row',
     gap: 12,
   },
   eventDateBadge: {
-    backgroundColor: '#ffd70033',
+    backgroundColor: '${colors.primary}33',
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
@@ -968,7 +970,7 @@ const styles = StyleSheet.create({
     minWidth: 70,
   },
   eventDate: {
-    color: '#ffd700',
+    color: '${colors.primary}',
     fontSize: 11,
     fontWeight: '700',
   },
@@ -976,7 +978,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   eventTitle: {
-    color: '#fff',
+    color: '${colors.text.primary}',
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 6,
@@ -988,59 +990,59 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   eventLocation: {
-    color: '#ffd700',
+    color: '${colors.primary}',
     fontSize: 12,
   },
   eventDescription: {
-    color: '#ffffff88',
+    color: '${colors.text.secondary}',
     fontSize: 12,
   },
 
   newsCard: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '${colors.bg.tertiary}',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+    borderColor: '${colors.bg.quaternary}',
   },
   newsDate: {
-    color: '#ffffff66',
+    color: '${colors.text.tertiary}',
     fontSize: 11,
     marginBottom: 6,
   },
   newsTitle: {
-    color: '#fff',
+    color: '${colors.text.primary}',
     fontSize: 15,
     fontWeight: '600',
     marginBottom: 8,
   },
   newsDescription: {
-    color: '#ffffff88',
+    color: '${colors.text.secondary}',
     fontSize: 13,
     lineHeight: 18,
   },
 
   referralCard: {
-    backgroundColor: '#ffd70015',
+    backgroundColor: '${colors.primary}15',
     borderRadius: 12,
     padding: 20,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#ffd70044',
+    borderColor: '${colors.primary}44',
     alignItems: 'center',
   },
   referralIcon: {
     marginBottom: 12,
   },
   referralTitle: {
-    color: '#ffd700',
+    color: '${colors.primary}',
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 8,
   },
   referralText: {
-    color: '#ffffff88',
+    color: '${colors.text.secondary}',
     fontSize: 13,
     textAlign: 'center',
   },
@@ -1049,7 +1051,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   benefitsTitle: {
-    color: '#ffd700',
+    color: '${colors.primary}',
     fontSize: 14,
     fontWeight: '700',
     marginBottom: 12,
@@ -1057,13 +1059,13 @@ const styles = StyleSheet.create({
   benefitItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '${colors.bg.tertiary}',
     borderRadius: 10,
     padding: 12,
     marginBottom: 10,
     gap: 12,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+    borderColor: '${colors.bg.quaternary}',
   },
   benefitItemClaimed: {
     backgroundColor: '#4caf5015',
@@ -1073,23 +1075,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   benefitTitle: {
-    color: '#fff',
+    color: '${colors.text.primary}',
     fontSize: 13,
     fontWeight: '600',
     marginBottom: 2,
   },
   benefitReward: {
-    color: '#ffd700',
+    color: '${colors.primary}',
     fontSize: 12,
   },
   claimButton: {
-    backgroundColor: '#ffd700',
+    backgroundColor: '${colors.primary}',
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 6,
   },
   claimButtonText: {
-    color: '#000',
+    color: '${colors.bg.primary}',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -1101,13 +1103,13 @@ const styles = StyleSheet.create({
     color: '#4caf50',
   },
   claimButton: {
-    backgroundColor: '#ffd700',
+    backgroundColor: '${colors.primary}',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
   },
   claimButtonText: {
-    color: '#000',
+    color: '${colors.bg.primary}',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -1120,15 +1122,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   explanationBox: {
-    backgroundColor: '#ffd70015',
+    backgroundColor: '${colors.primary}15',
     borderRadius: 10,
     padding: 12,
     marginTop: 16,
     borderWidth: 1,
-    borderColor: '#ffd70044',
+    borderColor: '${colors.primary}44',
   },
   explanationText: {
-    color: '#ffffff88',
+    color: '${colors.text.secondary}',
     fontSize: 12,
     lineHeight: 18,
   },
@@ -1137,34 +1139,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffd700',
+    backgroundColor: '${colors.primary}',
     borderRadius: 10,
     paddingVertical: 12,
     gap: 10,
   },
   referralButtonText: {
-    color: '#000',
+    color: '${colors.bg.primary}',
     fontSize: 14,
     fontWeight: '700',
   },
 
   /* Account Tab */
   accountSection: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '${colors.bg.tertiary}',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+    borderColor: '${colors.bg.quaternary}',
   },
   accountLabel: {
-    color: '#ffffff66',
+    color: '${colors.text.tertiary}',
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 8,
   },
   accountValue: {
-    color: '#ffd700',
+    color: '${colors.primary}',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -1172,13 +1174,13 @@ const styles = StyleSheet.create({
   accountButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '${colors.bg.tertiary}',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+    borderColor: '${colors.bg.quaternary}',
     gap: 12,
   },
   accountButtonSuccess: {
@@ -1218,12 +1220,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   accountButtonText: {
-    color: '#fff',
+    color: '${colors.text.primary}',
     fontSize: 15,
     fontWeight: '600',
   },
   accountButtonSubtext: {
-    color: '#ffffff66',
+    color: '${colors.text.tertiary}',
     fontSize: 12,
     marginTop: 4,
   },
@@ -1232,7 +1234,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2a2a2a',
+    backgroundColor: '${colors.bg.quaternary}',
     borderRadius: 10,
     paddingVertical: 14,
     marginTop: 8,
@@ -1241,7 +1243,7 @@ const styles = StyleSheet.create({
     borderColor: '#3a3a3a',
   },
   logoutButtonTextAlt: {
-    color: '#fff',
+    color: '${colors.text.primary}',
     fontSize: 14,
     fontWeight: '700',
   },
@@ -1250,36 +1252,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '${colors.bg.tertiary}',
     borderRadius: 10,
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+    borderColor: '${colors.bg.quaternary}',
   },
   legalTitle: {
-    color: '#fff',
+    color: '${colors.text.primary}',
     fontSize: 14,
     fontWeight: '600',
   },
 
   supportSection: {
-    backgroundColor: '#ffd70015',
+    backgroundColor: '${colors.primary}15',
     borderRadius: 10,
     padding: 16,
     marginTop: 20,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#ffd70044',
+    borderColor: '${colors.primary}44',
   },
   supportLabel: {
-    color: '#ffd700',
+    color: '${colors.primary}',
     fontSize: 12,
     fontWeight: '700',
     marginBottom: 6,
   },
   supportEmail: {
-    color: '#fff',
+    color: '${colors.text.primary}',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -1288,16 +1290,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 20,
     borderTopWidth: 1,
-    borderTopColor: '#1a1a1a',
+    borderTopColor: '${colors.bg.tertiary}',
   },
   footerText: {
-    color: '#ffffff44',
+    color: '${colors.text.primary}fff44',
     fontSize: 11,
   },
 
   modalContainer: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '${colors.bg.primary}',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1306,10 +1308,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
+    borderBottomColor: '${colors.bg.tertiary}',
   },
   modalTitle: {
-    color: '#fff',
+    color: '${colors.text.primary}',
     fontSize: 20,
     fontWeight: 'bold',
   },
@@ -1319,19 +1321,19 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   modalText: {
-    color: '#ffffff88',
+    color: '${colors.text.secondary}',
     fontSize: 13,
     lineHeight: 20,
   },
 
   // Referral Progress Styles
   progressSection: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '${colors.bg.tertiary}',
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#ffd70044',
+    borderColor: '${colors.primary}44',
   },
   progressHeader: {
     flexDirection: 'row',
@@ -1340,14 +1342,14 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   progressLabel: {
-    color: '#ffd700',
+    color: '${colors.primary}',
     fontSize: 13,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   progressCount: {
-    color: '#fff',
+    color: '${colors.text.primary}',
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -1360,7 +1362,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#ffd700',
+    backgroundColor: '${colors.primary}',
     borderRadius: 3,
   },
   milestoneContainer: {
@@ -1379,26 +1381,26 @@ const styles = StyleSheet.create({
     borderColor: '#555',
   },
   milestoneDone: {
-    backgroundColor: '#ffd700',
-    borderColor: '#ffd700',
+    backgroundColor: '${colors.primary}',
+    borderColor: '${colors.primary}',
   },
   milestoneText: {
-    color: '#fff',
+    color: '${colors.text.primary}',
     fontSize: 12,
     fontWeight: 'bold',
   },
 
   // Code Section Styles
   codeSection: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '${colors.bg.tertiary}',
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#ffd70044',
+    borderColor: '${colors.primary}44',
   },
   codeLabel: {
-    color: '#ffd700',
+    color: '${colors.primary}',
     fontSize: 13,
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -1417,7 +1419,7 @@ const styles = StyleSheet.create({
     borderColor: '#333',
   },
   codeText: {
-    color: '#fff',
+    color: '${colors.text.primary}',
     fontSize: 14,
     fontWeight: '600',
     fontFamily: 'monospace',

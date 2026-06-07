@@ -1,3 +1,4 @@
+import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme'
 import { useEffect, useRef, useState } from 'react'
 import {
   View, Text, StyleSheet, ScrollView, TextInput,
@@ -477,7 +478,7 @@ export default function EditProfilePage() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#ffd700" />
+          <ActivityIndicator size="large" color="colors.primary" />
         </View>
       </SafeAreaView>
     )
@@ -492,11 +493,11 @@ export default function EditProfilePage() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBack} hitSlop={16} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={26} color="#fff" />
+          <Ionicons name="arrow-back" size={26} color="colors.text.primary" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Modifier mon profil</Text>
         <View style={styles.savingIndicator}>
-          {saveStatus === 'saving' && <ActivityIndicator size="small" color="#ffd700" />}
+          {saveStatus === 'saving' && <ActivityIndicator size="small" color="colors.primary" />}
           {saveStatus === 'saved' && <Text style={styles.savedText}>Sauvegardé</Text>}
         </View>
       </View>
@@ -517,8 +518,8 @@ export default function EditProfilePage() {
           {photos.length < MAX_PHOTOS && (
             <TouchableOpacity style={[styles.photoCell, styles.photoCellAdd]} onPress={pickPhoto} disabled={uploading} activeOpacity={0.7}>
               {uploading
-                ? <ActivityIndicator size="large" color="#ffd700" />
-                : <><Ionicons name="add" size={36} color="#ffd700" /><Text style={styles.photoCellAddText}>Ajouter</Text></>
+                ? <ActivityIndicator size="large" color="colors.primary" />
+                : <><Ionicons name="add" size={36} color="colors.primary" /><Text style={styles.photoCellAddText}>Ajouter</Text></>
               }
             </TouchableOpacity>
           )}
@@ -535,8 +536,8 @@ export default function EditProfilePage() {
         {/* Ville */}
         <Text style={styles.sectionLabel}>Ville</Text>
         <View style={{ marginBottom: showCitySuggestions ? 0 : 12 }}>
-          <View style={[styles.cityInputWrap, showCitySuggestions && { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderColor: '#ffd70055' }]}>
-            <Ionicons name="location-outline" size={16} color="#ffd700" style={styles.cityIcon} />
+          <View style={[styles.cityInputWrap, showCitySuggestions && { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderColor: 'colors.primary55' }]}>
+            <Ionicons name="location-outline" size={16} color="colors.primary" style={styles.cityIcon} />
             <TextInput
               style={styles.cityInput}
               value={city}
@@ -546,7 +547,7 @@ export default function EditProfilePage() {
               onBlur={() => setTimeout(() => setShowCitySuggestions(false), 200)}
               onFocus={() => city.length >= 2 && citySuggestions.length > 0 && setShowCitySuggestions(true)}
             />
-            {cityLoading && <ActivityIndicator size="small" color="#ffd700" style={{ marginRight: 10 }} />}
+            {cityLoading && <ActivityIndicator size="small" color="colors.primary" style={{ marginRight: 10 }} />}
             {city.length > 0 && !cityLoading && (
               <TouchableOpacity onPress={() => { setCity(''); setCitySuggestions([]); setShowCitySuggestions(false) }} hitSlop={10} style={{ marginRight: 10 }}>
                 <Ionicons name="close-circle" size={18} color="#555" />
@@ -562,7 +563,7 @@ export default function EditProfilePage() {
                   onPress={() => selectCity(suggestion)}
                   activeOpacity={0.75}
                 >
-                  <Ionicons name="location" size={14} color="#ffd700" style={{ marginRight: 8, flexShrink: 0 }} />
+                  <Ionicons name="location" size={14} color="colors.primary" style={{ marginRight: 8, flexShrink: 0 }} />
                   <Text style={styles.suggestionText} numberOfLines={1}>{suggestion}</Text>
                 </TouchableOpacity>
               ))}
@@ -580,7 +581,7 @@ export default function EditProfilePage() {
         <View style={styles.bubblesRow}>
           {availableInterests.map(interest => (
             <TouchableOpacity key={interest} style={styles.bubbleInterest} onPress={() => addInterest(interest)}>
-              <Ionicons name="add-circle-outline" size={14} color="#ffd700" />
+              <Ionicons name="add-circle-outline" size={14} color="colors.primary" />
               <Text style={styles.bubbleText}>{interest}</Text>
             </TouchableOpacity>
           ))}
@@ -588,14 +589,14 @@ export default function EditProfilePage() {
         <View style={styles.inputRow}>
           <TextInput style={[styles.input, { flex: 1, marginBottom: 0 }]} value={interestInput} onChangeText={setInterestInput} placeholder="Intérêt personnalisé..." placeholderTextColor="#555" returnKeyType="done" onSubmitEditing={addInterestCustom} />
           <TouchableOpacity style={[styles.addBtn, interests.length >= MAX_INTERESTS && styles.addBtnDisabled]} onPress={addInterestCustom} disabled={interests.length >= MAX_INTERESTS}>
-            <Ionicons name="add" size={20} color="#000" />
+            <Ionicons name="add" size={20} color="colors.bg.primary" />
           </TouchableOpacity>
         </View>
         <View style={styles.tagsRow}>
           {interests.map((it, idx) => (
             <TouchableOpacity key={`int-${idx}`} style={styles.tagActive} onPress={() => removeInterest(idx)}>
               <Text style={styles.tagActiveText}>{it}</Text>
-              <Ionicons name="close" size={13} color="#ffd700" />
+              <Ionicons name="close" size={13} color="colors.primary" />
             </TouchableOpacity>
           ))}
         </View>
@@ -613,7 +614,7 @@ export default function EditProfilePage() {
         <View style={styles.inputRow}>
           <TextInput style={[styles.input, { flex: 1, marginBottom: 0 }]} value={skillInput} onChangeText={setSkillInput} placeholder="Compétence personnalisée..." placeholderTextColor="#555" returnKeyType="done" onSubmitEditing={addSkillCustom} />
           <TouchableOpacity style={[styles.addBtn, skills.length >= MAX_SKILLS && styles.addBtnDisabled]} onPress={addSkillCustom} disabled={skills.length >= MAX_SKILLS}>
-            <Ionicons name="add" size={20} color="#000" />
+            <Ionicons name="add" size={20} color="colors.bg.primary" />
           </TouchableOpacity>
         </View>
         <View style={styles.skillCards}>
@@ -736,7 +737,7 @@ export default function EditProfilePage() {
           {/* Cadenas + Bandeau pour non-Business Pro */}
           {userPlan !== 'business_pro' && (
             <View style={styles.filterLockedOverlay}>
-              <Ionicons name="lock-closed" size={32} color="#ffd700" />
+              <Ionicons name="lock-closed" size={32} color="colors.primary" />
               <Text style={styles.filterLockedText}>Filtres avancés</Text>
               <Text style={styles.filterLockedSubtext}>Réservé aux Business Pro</Text>
               <TouchableOpacity style={styles.filterUnlockBtn} onPress={() => router.push('/settings?scroll=pro' as any)}>
@@ -754,7 +755,7 @@ export default function EditProfilePage() {
             <View style={styles.modalTop}>
               <Text style={styles.modalTitle}>Ajouter une compétence</Text>
               <TouchableOpacity onPress={() => setShowSkillModal(false)} hitSlop={12}>
-                <Ionicons name="close" size={24} color="#fff" />
+                <Ionicons name="close" size={24} color="colors.text.primary" />
               </TouchableOpacity>
             </View>
             {selectedSkillName && (
@@ -785,7 +786,7 @@ export default function EditProfilePage() {
             <View style={styles.modalTop}>
               <Text style={styles.modalTitle}>Compétence recherchée</Text>
               <TouchableOpacity onPress={() => setShowDesiredSkillModal(false)} hitSlop={12}>
-                <Ionicons name="close" size={24} color="#fff" />
+                <Ionicons name="close" size={24} color="colors.text.primary" />
               </TouchableOpacity>
             </View>
             {selectedDesiredSkillName && (
@@ -813,7 +814,7 @@ export default function EditProfilePage() {
       <Modal visible={uploading} transparent animationType="fade" onRequestClose={() => {}}>
         <View style={styles.uploadModalBg}>
           <View style={styles.uploadModalBox}>
-            <ActivityIndicator size="large" color="#ffd700" />
+            <ActivityIndicator size="large" color="colors.primary" />
             <Text style={styles.uploadModalText}>Veuillez patienter</Text>
             <Text style={styles.uploadModalSubtext}>Votre profil est en cours de modification</Text>
           </View>
@@ -825,49 +826,49 @@ export default function EditProfilePage() {
 
 // ─── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: 'colors.bg.primary' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#1a1a1a' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'colors.bg.tertiary' },
   backBtn: { padding: 4 },
-  headerTitle: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  headerTitle: { color: 'colors.text.primary', fontSize: 17, fontWeight: '700' },
   savingIndicator: { width: 80, alignItems: 'flex-end' },
-  savedText: { color: '#ffd700', fontSize: 12, fontWeight: '600' },
+  savedText: { color: 'colors.primary', fontSize: 12, fontWeight: '600' },
   scroll: { flex: 1, paddingHorizontal: 16 },
-  sectionLabel: { color: '#ffd700', fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginTop: 16, marginBottom: 10 },
+  sectionLabel: { color: 'colors.primary', fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginTop: 16, marginBottom: 10 },
   carousel: { height: 200, marginBottom: 16 },
-  photoCell: { width: 140, height: 190, marginRight: 10, borderRadius: 12, overflow: 'hidden', backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a', position: 'relative' },
+  photoCell: { width: 140, height: 190, marginRight: 10, borderRadius: 12, overflow: 'hidden', backgroundColor: 'colors.bg.tertiary', borderWidth: 1, borderColor: 'colors.bg.quaternary', position: 'relative' },
   photoCellImg: { width: '100%', height: '100%' },
   photoCellRemove: { position: 'absolute', top: 6, right: 6 },
-  photoCellAdd: { alignItems: 'center', justifyContent: 'center', borderStyle: 'dashed', borderColor: '#ffd70055', borderWidth: 1, backgroundColor: '#ffd70008', gap: 6 },
-  photoCellAddText: { color: '#ffd700', fontSize: 12, fontWeight: '600' },
-  input: { backgroundColor: '#141414', borderColor: '#2a2a2a', borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, color: '#fff', fontSize: 15, marginBottom: 12 },
+  photoCellAdd: { alignItems: 'center', justifyContent: 'center', borderStyle: 'dashed', borderColor: 'colors.primary55', borderWidth: 1, backgroundColor: 'colors.primary08', gap: 6 },
+  photoCellAddText: { color: 'colors.primary', fontSize: 12, fontWeight: '600' },
+  input: { backgroundColor: '#141414', borderColor: 'colors.bg.quaternary', borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, color: 'colors.text.primary', fontSize: 15, marginBottom: 12 },
   textarea: { minHeight: 120, textAlignVertical: 'top', paddingTop: 12 },
-  counter: { color: '#ffffff33', fontSize: 11, textAlign: 'right', marginBottom: 4 },
+  counter: { color: 'colors.text.primaryfff33', fontSize: 11, textAlign: 'right', marginBottom: 4 },
   bubblesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginBottom: 12 },
-  bubbleInterest: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#ffd70012', borderColor: '#ffd70066', borderWidth: 1, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
-  bubbleSkill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#1a1a1a', borderColor: '#333', borderWidth: 1, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
+  bubbleInterest: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'colors.primary12', borderColor: 'colors.primary66', borderWidth: 1, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
+  bubbleSkill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'colors.bg.tertiary', borderColor: '#333', borderWidth: 1, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
   bubbleText: { color: '#ddd', fontSize: 12, fontWeight: '500' },
   inputRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  addBtn: { width: 46, height: 46, backgroundColor: '#ffd700', borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  addBtn: { width: 46, height: 46, backgroundColor: 'colors.primary', borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   addBtnDisabled: { backgroundColor: '#555' },
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
-  tagActive: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#ffd70018', borderColor: '#ffd700', borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
-  tagActiveText: { color: '#ffd700', fontSize: 13, fontWeight: '500' },
+  tagActive: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'colors.primary18', borderColor: 'colors.primary', borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
+  tagActiveText: { color: 'colors.primary', fontSize: 13, fontWeight: '500' },
   skillCards: { marginTop: 4, gap: 10, marginBottom: 16 },
-  skillCard: { backgroundColor: '#141414', borderColor: '#2a2a2a', borderWidth: 1, borderRadius: 12, padding: 14 },
+  skillCard: { backgroundColor: '#141414', borderColor: 'colors.bg.quaternary', borderWidth: 1, borderRadius: 12, padding: 14 },
   skillCardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  skillCardName: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  skillCardName: { color: 'colors.text.primary', fontSize: 15, fontWeight: '600' },
   levelLabel: { color: '#aaa', fontSize: 13, marginBottom: 8 },
-  levelValue: { color: '#ffd700', fontWeight: '700' },
+  levelValue: { color: 'colors.primary', fontWeight: '700' },
   levelBtns: { flexDirection: 'row', gap: 4, marginBottom: 8 },
   levelBtn: { flex: 1, paddingVertical: 7, borderRadius: 6, backgroundColor: '#1e1e1e', borderColor: '#333', borderWidth: 1, alignItems: 'center' },
-  levelBtnOn: { backgroundColor: '#ffd700', borderColor: '#ffd700' },
+  levelBtnOn: { backgroundColor: 'colors.primary', borderColor: 'colors.primary' },
   levelBtnTxt: { color: '#888', fontSize: 10, fontWeight: '700' },
-  levelBtnTxtOn: { color: '#000' },
+  levelBtnTxtOn: { color: 'colors.bg.primary' },
   levelDesc: { color: '#666', fontSize: 12 },
-  filterInfo: { color: '#ffffff66', fontSize: 13, marginBottom: 12 },
+  filterInfo: { color: 'colors.text.primaryfff66', fontSize: 13, marginBottom: 12 },
   rangeRow: { flexDirection: 'row', marginBottom: 12, gap: 8 },
-  rangeInput: { flex: 1, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a', borderRadius: 8, color: '#fff', fontSize: 14 },
+  rangeInput: { flex: 1, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: 'colors.bg.tertiary', borderWidth: 1, borderColor: 'colors.bg.quaternary', borderRadius: 8, color: 'colors.text.primary', fontSize: 14 },
   filterLockedOverlay: {
     position: 'absolute',
     top: 0,
@@ -880,26 +881,26 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 20,
   },
-  filterLockedText: { color: '#ffd700', fontSize: 16, fontWeight: '700', marginTop: 12 },
-  filterLockedSubtext: { color: '#ffffff88', fontSize: 13, marginTop: 6, textAlign: 'center' },
-  filterUnlockBtn: { backgroundColor: '#ffd700', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 8, marginTop: 16 },
-  filterUnlockBtnText: { color: '#000', fontWeight: '700', fontSize: 13 },
+  filterLockedText: { color: 'colors.primary', fontSize: 16, fontWeight: '700', marginTop: 12 },
+  filterLockedSubtext: { color: 'colors.text.primaryfff88', fontSize: 13, marginTop: 6, textAlign: 'center' },
+  filterUnlockBtn: { backgroundColor: 'colors.primary', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 8, marginTop: 16 },
+  filterUnlockBtnText: { color: 'colors.bg.primary', fontWeight: '700', fontSize: 13 },
   modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
-  modalBox: { backgroundColor: '#141414', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 36, borderTopWidth: 1, borderColor: '#2a2a2a' },
+  modalBox: { backgroundColor: '#141414', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 36, borderTopWidth: 1, borderColor: 'colors.bg.quaternary' },
   modalTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-  modalTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  modalSkillName: { color: '#ffd700', fontSize: 20, fontWeight: '800', textAlign: 'center', marginBottom: 16 },
-  confirmBtn: { backgroundColor: '#ffd700', borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
-  confirmBtnTxt: { color: '#000', fontSize: 16, fontWeight: '700' },
+  modalTitle: { color: 'colors.text.primary', fontSize: 18, fontWeight: '700' },
+  modalSkillName: { color: 'colors.primary', fontSize: 20, fontWeight: '800', textAlign: 'center', marginBottom: 16 },
+  confirmBtn: { backgroundColor: 'colors.primary', borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
+  confirmBtnTxt: { color: 'colors.bg.primary', fontSize: 16, fontWeight: '700' },
   uploadModalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center' },
-  uploadModalBox: { backgroundColor: '#141414', borderRadius: 16, padding: 32, alignItems: 'center', borderWidth: 1, borderColor: '#2a2a2a' },
-  uploadModalText: { color: '#fff', fontSize: 16, fontWeight: '700', marginTop: 20, textAlign: 'center' },
+  uploadModalBox: { backgroundColor: '#141414', borderRadius: 16, padding: 32, alignItems: 'center', borderWidth: 1, borderColor: 'colors.bg.quaternary' },
+  uploadModalText: { color: 'colors.text.primary', fontSize: 16, fontWeight: '700', marginTop: 20, textAlign: 'center' },
   uploadModalSubtext: { color: '#888', fontSize: 14, marginTop: 8, textAlign: 'center' },
   cityInputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#141414',
-    borderColor: '#2a2a2a',
+    borderColor: 'colors.bg.quaternary',
     borderWidth: 1,
     borderRadius: 10,
   },
@@ -908,14 +909,14 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 8,
     paddingVertical: 12,
-    color: '#fff',
+    color: 'colors.text.primary',
     fontSize: 15,
   },
   suggestionsBox: {
     backgroundColor: '#1c1c1c',
     borderWidth: 1,
     borderTopWidth: 0,
-    borderColor: '#ffd70055',
+    borderColor: 'colors.primary55',
     borderBottomLeftRadius: 10,
     borderBottomRightRadius: 10,
     overflow: 'hidden',
@@ -929,11 +930,12 @@ const styles = StyleSheet.create({
   },
   suggestionRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: '#2a2a2a',
+    borderBottomColor: 'colors.bg.quaternary',
   },
   suggestionText: {
-    color: '#fff',
+    color: 'colors.text.primary',
     fontSize: 14,
     flex: 1,
   },
 })
+

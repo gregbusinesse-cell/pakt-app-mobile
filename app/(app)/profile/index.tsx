@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   View, Text, StyleSheet, TouchableOpacity, TouchableWithoutFeedback,
-  ActivityIndicator, ScrollView, Dimensions,
+  ActivityIndicator, ScrollView, Dimensions, Animated,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
@@ -9,9 +9,10 @@ import { Ionicons } from '@expo/vector-icons'
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser'
 import { ProfileImage } from '@/components/ProfileImage'
 import { supabase } from '@/lib/supabase/client'
+import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme'
 
 const { width: SW } = Dimensions.get('window')
-const PHOTO_HEIGHT = Math.min(360, Math.round((SW - 32) * 1.3))
+const PHOTO_HEIGHT = Math.min(400, Math.round((SW - spacing.lg * 2) * 1.3))
 
 const LEVEL_LABELS: Record<number, string> = {
   1: 'Débutant', 2: 'Débutant', 3: 'Débutant +',
@@ -24,6 +25,8 @@ export default function ProfilePage() {
   const { profile, loading } = useCurrentUser()
   const [photoIdx, setPhotoIdx] = useState(0)
   const [userPlan, setUserPlan] = useState<'free' | 'business' | 'business_pro'>('free')
+
+  const fadeAnim = useRef(new Animated.Value(0)).current
 
   useEffect(() => {
     const fetchUserPlan = async () => {
@@ -48,11 +51,22 @@ export default function ProfilePage() {
     fetchUserPlan()
   }, [])
 
+  useEffect(() => {
+    if (!loading) {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: transitions.normal,
+        useNativeDriver: true,
+      }).start()
+    }
+  }, [loading])
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#ffd700" />
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Chargement du profil...</Text>
         </View>
       </SafeAreaView>
     )
@@ -62,7 +76,8 @@ export default function ProfilePage() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
-          <Text style={styles.emptyText}>Non connecté</Text>
+          <Ionicons name="alert-circle" size={48} color={colors.text.disabled} />
+          <Text style={styles.emptyText}>Profil non disponible</Text>
         </View>
       </SafeAreaView>
     )
@@ -78,16 +93,19 @@ export default function ProfilePage() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* ── Barre du haut fixe ── */}
+      {/* Header Bar */}
       <View style={styles.topBar}>
-        <Text style={styles.topTitle}>Mon profil</Text>
+        <View>
+          <Text style={styles.topTitle}>Mon Profil</Text>
+          <Text style={styles.topSubtitle}>Découvre ton profil</Text>
+        </View>
         <View style={styles.buttonGroup}>
           <TouchableOpacity
             style={styles.editBtn}
             onPress={() => router.push('/profile/edit' as any)}
             activeOpacity={0.75}
           >
-            <Ionicons name="create-outline" size={16} color="#ffd700" />
+            <Ionicons name="pencil" size={16} color={colors.primary} />
             <Text style={styles.editBtnText}>Modifier</Text>
           </TouchableOpacity>
 
@@ -97,19 +115,19 @@ export default function ProfilePage() {
               onPress={() => router.push('/profile/preferences' as any)}
               activeOpacity={0.75}
             >
-              <Ionicons name="filter" size={16} color="#4caf50" />
+              <Ionicons name="sliders" size={16} color={colors.success} />
               <Text style={styles.filterBtnText}>Filtres</Text>
             </TouchableOpacity>
           )}
         </View>
       </View>
 
-      <ScrollView
-        style={styles.scroll}
+      <Animated.ScrollView
+        style={[styles.scroll, { opacity: fadeAnim }]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Prénom, âge ── */}
+        {/* Name + Age */}
         <View style={styles.nameRow}>
           <Text style={styles.name}>
             {profile.first_name || 'Utilisateur'}
@@ -117,17 +135,16 @@ export default function ProfilePage() {
           </Text>
         </View>
 
-        {/* ── Ville ── */}
+        {/* City Badge */}
         {profile.city ? (
-          <View style={styles.cityRow}>
-            <Ionicons name="location" size={14} color="#ffd700" />
+          <View style={styles.cityBadgeContainer}>
+            <Ionicons name="location" size={14} color={colors.primary} />
             <Text style={styles.cityText}>{profile.city}</Text>
           </View>
         ) : null}
 
-        {/* ── Carte photo ── */}
+        {/* Photo Card */}
         <View style={[styles.photoCard, { height: PHOTO_HEIGHT }]}>
-          {/* Image */}
           <ProfileImage
             photos={currentPhoto ? [currentPhoto] : []}
             style={styles.photoImg}
@@ -136,12 +153,12 @@ export default function ProfilePage() {
 
           {photos.length === 0 && (
             <View style={styles.noPhotoOverlay}>
-              <Ionicons name="camera-outline" size={48} color="#ffffff33" />
-              <Text style={styles.noPhotoText}>Aucune photo</Text>
+              <Ionicons name="camera" size={52} color={colors.text.disabled} />
+              <Text style={styles.noPhotoText}>Ajoute des photos</Text>
             </View>
           )}
 
-          {/* Barres de progression (style Tinder) */}
+          {/* Photo Progress Bars */}
           {photos.length > 1 && (
             <View style={styles.photoBars}>
               {photos.map((_, i) => (
@@ -152,7 +169,7 @@ export default function ProfilePage() {
             </View>
           )}
 
-          {/* Zones de tap gauche / droite */}
+          {/* Tap Zones */}
           {photos.length > 1 && (
             <>
               <TouchableWithoutFeedback onPress={goPrev}>
@@ -165,18 +182,18 @@ export default function ProfilePage() {
           )}
         </View>
 
-        {/* ── Biographie ── */}
+        {/* Bio Section */}
         {profile.bio ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Biographie</Text>
+            <Text style={styles.sectionTitle}>À propos de toi</Text>
             <Text style={styles.bioText}>{profile.bio}</Text>
           </View>
         ) : null}
 
-        {/* ── Centres d'intérêt ── */}
+        {/* Interests Section */}
         {interests.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Centres d'intérêt</Text>
+            <Text style={styles.sectionTitle}>Intérêts</Text>
             <View style={styles.tagsRow}>
               {interests.map((it, i) => (
                 <View key={i} style={styles.interestTag}>
@@ -187,7 +204,7 @@ export default function ProfilePage() {
           </View>
         )}
 
-        {/* ── Compétences ── */}
+        {/* Skills Section */}
         {skills.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Compétences</Text>
@@ -212,120 +229,139 @@ export default function ProfilePage() {
           </View>
         )}
 
-        <View style={{ height: 32 }} />
-      </ScrollView>
+        <View style={{ height: spacing.xxxl }} />
+      </Animated.ScrollView>
     </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyText: { color: '#fff', fontSize: 18, fontWeight: '600' },
+  container: { flex: 1, backgroundColor: colors.bg.primary },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.lg },
+  emptyText: { color: colors.text.primary, fontSize: 18, fontWeight: '700', letterSpacing: 0.2 },
+  loadingText: { color: colors.text.secondary, marginTop: spacing.lg, fontSize: 14, fontWeight: '500' },
 
   // Top bar
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.secondary,
   },
-  topTitle: { color: '#fff', fontSize: 22, fontWeight: 'bold' },
-  buttonGroup: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  topTitle: {
+    color: colors.primary,
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+    marginBottom: spacing.xs,
+  },
+  topSubtitle: {
+    color: colors.text.secondary,
+    fontSize: 12,
+    fontWeight: '500',
+    letterSpacing: 0.2,
+  },
+  buttonGroup: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
   editBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    backgroundColor: '#ffd70015',
-    borderColor: '#ffd700',
-    borderWidth: 1,
-    paddingHorizontal: 13,
-    paddingVertical: 7,
-    borderRadius: 20,
+    gap: spacing.sm,
+    backgroundColor: 'rgba(212, 175, 55, 0.12)',
+    borderColor: colors.primary,
+    borderWidth: 1.5,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.full,
+    ...shadows.sm,
   },
-  editBtnText: { color: '#ffd700', fontSize: 13, fontWeight: '600' },
+  editBtnText: { color: colors.primary, fontSize: 13, fontWeight: '700', letterSpacing: 0.2 },
   filterBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    backgroundColor: '#4caf5015',
-    borderColor: '#4caf50',
-    borderWidth: 1,
-    paddingHorizontal: 13,
-    paddingVertical: 7,
-    borderRadius: 20,
+    gap: spacing.sm,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderColor: colors.success,
+    borderWidth: 1.5,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.full,
+    ...shadows.sm,
   },
-  filterBtnText: { color: '#4caf50', fontSize: 13, fontWeight: '600' },
+  filterBtnText: { color: colors.success, fontSize: 13, fontWeight: '700', letterSpacing: 0.2 },
 
   // Scroll
   scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 20 },
+  scrollContent: { paddingBottom: spacing.lg },
 
-  // Nom + âge
-  nameRow: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 2 },
-  name: { color: '#fff', fontSize: 32, fontWeight: '700' },
-  age: { color: '#ffffffcc', fontSize: 32, fontWeight: '400' },
+  // Name + Age
+  nameRow: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  name: { color: colors.text.primary, fontSize: 32, fontWeight: '800', letterSpacing: 0.3 },
+  age: { color: colors.text.secondary, fontSize: 32, fontWeight: '500' },
 
-  // Ville
-  cityRow: {
+  // City Badge
+  cityBadgeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 20,
-    paddingBottom: 14,
+    gap: spacing.xs,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
   },
-  cityText: { color: '#ffffff99', fontSize: 16, fontWeight: '400' },
+  cityText: { color: colors.text.secondary, fontSize: 14, fontWeight: '600', letterSpacing: 0.2 },
 
   // Photo card
   photoCard: {
-    marginHorizontal: 16,
-    borderRadius: 20,
+    marginHorizontal: spacing.lg,
+    borderRadius: borderRadius.xxl,
     overflow: 'hidden',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.bg.tertiary,
     position: 'relative',
+    ...shadows.md,
   },
   photoImg: { width: '100%', height: '100%' },
-  photoPlaceholder: { width: '100%', height: '100%', backgroundColor: '#1a1a1a' },
+  photoPlaceholder: { width: '100%', height: '100%', backgroundColor: colors.bg.quaternary },
   noPhotoOverlay: {
     position: 'absolute',
     inset: 0 as any,
     top: 0, left: 0, right: 0, bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 10,
+    gap: spacing.lg,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
-  noPhotoText: { color: '#ffffff33', fontSize: 13 },
+  noPhotoText: { color: colors.text.disabled, fontSize: 14, fontWeight: '600' },
 
-  // Barres tinder
+  // Photo Progress Bars
   photoBars: {
     position: 'absolute',
-    top: 10,
-    left: 10,
-    right: 10,
+    top: spacing.md,
+    left: spacing.md,
+    right: spacing.md,
     flexDirection: 'row',
-    gap: 4,
+    gap: spacing.xs,
     zIndex: 10,
   },
   photoBarTrack: {
     flex: 1,
     height: 3,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    borderRadius: 1.5,
     overflow: 'hidden',
   },
   photoBarFill: {
     height: '100%',
     width: '0%',
     backgroundColor: 'transparent',
-    borderRadius: 2,
+    borderRadius: 1.5,
   },
   photoBarFillActive: {
     width: '100%',
-    backgroundColor: '#fff',
+    backgroundColor: colors.primary,
   },
 
-  // Zones de tap
+  // Tap Zones
   tapLeft: {
     position: 'absolute',
     left: 0, top: 0, bottom: 0,
@@ -341,59 +377,60 @@ const styles = StyleSheet.create({
 
   // Sections
   section: {
-    marginTop: 22,
-    paddingHorizontal: 20,
+    marginTop: spacing.xxl,
+    paddingHorizontal: spacing.lg,
   },
   sectionTitle: {
-    color: '#ffd700',
-    fontSize: 13,
+    color: colors.primary,
+    fontSize: 11,
     fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 12,
+    letterSpacing: 1.5,
+    marginBottom: spacing.lg,
   },
   bioText: {
-    color: '#ffffffcc',
-    fontSize: 16,
-    fontWeight: '400',
+    color: colors.text.secondary,
+    fontSize: 14,
+    fontWeight: '500',
     lineHeight: 24,
+    letterSpacing: 0.2,
   },
 
-  // Intérêts
+  // Interests
   tagsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: spacing.md,
   },
   interestTag: {
-    backgroundColor: '#ffd70018',
-    borderRadius: 20,
-    paddingHorizontal: 13,
-    paddingVertical: 8,
+    backgroundColor: 'rgba(212, 175, 55, 0.12)',
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
     borderWidth: 1,
-    borderColor: '#ffd700',
+    borderColor: 'rgba(212, 175, 55, 0.4)',
   },
-  interestText: { color: '#ffd700', fontSize: 15, fontWeight: '600' },
+  interestText: { color: colors.primary, fontSize: 13, fontWeight: '600', letterSpacing: 0.2 },
 
-  // Compétences
-  skillsList: { gap: 12 },
-  skillRow: { gap: 6 },
+  // Skills
+  skillsList: { gap: spacing.lg },
+  skillRow: { gap: spacing.sm },
   skillInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  skillName: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  skillLevel: { color: '#ffffff66', fontSize: 14, fontWeight: '400' },
+  skillName: { color: colors.text.primary, fontSize: 14, fontWeight: '700', letterSpacing: 0.2 },
+  skillLevel: { color: colors.text.tertiary, fontSize: 12, fontWeight: '500' },
   levelBarTrack: {
-    height: 4,
-    backgroundColor: '#2a2a2a',
-    borderRadius: 2,
+    height: 5,
+    backgroundColor: colors.bg.quaternary,
+    borderRadius: 2.5,
     overflow: 'hidden',
   },
   levelBarFill: {
     height: '100%',
-    backgroundColor: '#ffd700',
-    borderRadius: 2,
+    backgroundColor: colors.primary,
+    borderRadius: 2.5,
   },
 })

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   View,
   Text,
@@ -9,11 +9,13 @@ import {
   Modal,
   ScrollView,
   Dimensions,
+  Animated,
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '@/lib/supabase/client'
 import { ProfileImage } from '@/components/ProfileImage'
+import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme'
 import type { Database } from '@/lib/supabase/types'
 
 type Profile = Database['public']['Tables']['profiles']['Row']
@@ -39,6 +41,9 @@ export default function SwipePage() {
   const [showMatchModal, setShowMatchModal] = useState(false)
   const [showUndoPaywall, setShowUndoPaywall] = useState(false)
   const [lastSwiped, setLastSwiped] = useState<{ profile: Profile; dir: 'left' | 'right' } | null>(null)
+
+  // Animations
+  const cardScaleAnim = useRef(new Animated.Value(1)).current
 
   // ── 1. GET SESSION ──────────────────────────────────────────
   useEffect(() => {
@@ -160,6 +165,13 @@ export default function SwipePage() {
 
     const target = profiles[0]
     console.log('[SWIPE] →', dir, target.first_name, target.id)
+
+    // Animate card
+    Animated.timing(cardScaleAnim, {
+      toValue: 0.8,
+      duration: 200,
+      useNativeDriver: true,
+    }).start()
 
     // Immediately remove from UI
     setProfiles(prev => prev.slice(1))
@@ -298,8 +310,8 @@ export default function SwipePage() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#ffd700" />
-          <Text style={styles.loadingText}>Chargement...</Text>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Chargement des profils...</Text>
         </View>
       </SafeAreaView>
     )
@@ -309,10 +321,10 @@ export default function SwipePage() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
-          <Ionicons name="eye-outline" size={48} color="#ffffff44" />
+          <Ionicons name="eye-outline" size={56} color={colors.text.disabled} />
           <Text style={styles.emptyTitle}>Aucun profil disponible</Text>
-          <Text style={styles.emptyText}>Reviens plus tard pour découvrir de nouveaux profils</Text>
-          <TouchableOpacity style={styles.reloadBtn} onPress={loadProfiles}>
+          <Text style={styles.emptyText}>Reviens plus tard pour découvrir de nouveaux talents</Text>
+          <TouchableOpacity style={styles.reloadBtn} onPress={loadProfiles} activeOpacity={0.8}>
             <Text style={styles.reloadBtnText}>Actualiser</Text>
           </TouchableOpacity>
         </View>
@@ -328,7 +340,6 @@ export default function SwipePage() {
 
   return (
     <SafeAreaView style={styles.container}>
-
       {/* ── SCROLLABLE CONTENT ── */}
       <ScrollView
         style={styles.scroll}
@@ -338,26 +349,13 @@ export default function SwipePage() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>PAKT</Text>
-        </View>
-
-        {/* Name / Age / City */}
-        <View style={styles.profileHeader}>
-          <Text style={styles.name}>
-            {current?.first_name || 'Utilisateur'}
-            {current?.age ? <Text style={styles.age}>, {current.age}</Text> : null}
-          </Text>
-          {current?.city ? (
-            <View style={styles.cityRow}>
-              <Ionicons name="location" size={13} color="#ffd700" />
-              <Text style={styles.city}>{current.city}</Text>
-            </View>
-          ) : null}
+          <Text style={styles.headerTitle}>Découvrir</Text>
+          <Text style={styles.headerSubtitle}>Trouve tes talents</Text>
         </View>
 
         {/* Photo Card */}
-        <View style={styles.card}>
-          <View style={[styles.photoContainer, { height: PHOTO_HEIGHT }]}>
+        <Animated.View style={[styles.cardContainer, { transform: [{ scale: cardScaleAnim }] }]}>
+          <View style={[styles.card, { height: PHOTO_HEIGHT }]}>
             <ProfileImage
               photos={currentPhoto ? [currentPhoto] : []}
               style={styles.photo}
@@ -375,16 +373,14 @@ export default function SwipePage() {
               </View>
             )}
 
-            {/* Photo nav — tap zones left/right (above action buttons) */}
+            {/* Photo nav — tap zones left/right */}
             {photos.length > 1 && (
               <>
-                {/* Left tap zone */}
                 <TouchableOpacity
                   style={styles.photoTapLeft}
                   onPress={() => setPhotoIdx(i => Math.max(0, i - 1))}
                   activeOpacity={1}
                 />
-                {/* Right tap zone */}
                 <TouchableOpacity
                   style={styles.photoTapRight}
                   onPress={() => setPhotoIdx(i => Math.min(photos.length - 1, i + 1))}
@@ -393,16 +389,32 @@ export default function SwipePage() {
               </>
             )}
 
-            {/* Action Buttons - Bottom of photo */}
-            <View style={styles.photoBottomButtons}>
-              {/* Undo - always visible, dimmed if no history */}
+            {/* Profile Info - Overlay on photo */}
+            <View style={styles.profileOverlay}>
+              <View>
+                <Text style={styles.profileName}>
+                  {current?.first_name || 'Utilisateur'}
+                  {current?.age ? <Text style={styles.profileAge}>, {current.age}</Text> : null}
+                </Text>
+                {current?.city ? (
+                  <View style={styles.cityBadge}>
+                    <Ionicons name="location" size={11} color={colors.primary} />
+                    <Text style={styles.cityText}>{current.city}</Text>
+                  </View>
+                ) : null}
+              </View>
+            </View>
+
+            {/* Action Buttons */}
+            <View style={styles.photoActionButtons}>
+              {/* Undo */}
               <TouchableOpacity
                 style={[styles.btn, styles.btnUndo, (isPro && !lastSwiped) && { opacity: 0.35 }]}
                 onPress={handleUndo}
                 activeOpacity={0.75}
                 disabled={isPro && !lastSwiped}
               >
-                <Ionicons name="arrow-undo" size={22} color="rgba(255,255,255,0.85)" />
+                <Ionicons name="arrow-undo" size={20} color={colors.text.primary} />
               </TouchableOpacity>
 
               {/* Dislike / Nope */}
@@ -411,7 +423,7 @@ export default function SwipePage() {
                 onPress={() => handleSwipe('left')}
                 activeOpacity={0.75}
               >
-                <Ionicons name="close" size={32} color="#ff4444" />
+                <Ionicons name="close" size={32} color="#FF6B6B" />
               </TouchableOpacity>
 
               {/* Like */}
@@ -420,25 +432,24 @@ export default function SwipePage() {
                 onPress={() => handleSwipe('right')}
                 activeOpacity={0.75}
               >
-                <Ionicons name="heart" size={28} color="#0a0a0a" />
+                <Ionicons name="heart" size={28} color={colors.bg.primary} />
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </Animated.View>
 
         {/* ── BIOGRAPHIE ── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Biographie</Text>
-          {current?.bio
-            ? <Text style={styles.bioText}>{current.bio}</Text>
-            : <Text style={styles.emptyMsg}>Cette personne n'a pas encore rédigé sa biographie</Text>
-          }
-        </View>
+        {current?.bio && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>À propos</Text>
+            <Text style={styles.bioText}>{current.bio}</Text>
+          </View>
+        )}
 
         {/* ── CENTRES D'INTÉRÊT ── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Centres d'intérêt</Text>
-          {interests.length > 0 ? (
+        {interests.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Intérêts</Text>
             <View style={styles.tagsRow}>
               {interests.map((it, i) => (
                 <View key={i} style={styles.tag}>
@@ -446,15 +457,13 @@ export default function SwipePage() {
                 </View>
               ))}
             </View>
-          ) : (
-            <Text style={styles.emptyMsg}>Cette personne n'a pas renseigné ses centres d'intérêt</Text>
-          )}
-        </View>
+          </View>
+        )}
 
         {/* ── COMPÉTENCES ── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Compétences</Text>
-          {skills.length > 0 ? (
+        {skills.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Compétences</Text>
             <View style={styles.skillsList}>
               {skills.map((skill: any, i: number) => {
                 const name = typeof skill === 'string' ? skill : skill?.name || ''
@@ -473,10 +482,8 @@ export default function SwipePage() {
                 )
               })}
             </View>
-          ) : (
-            <Text style={styles.emptyMsg}>Cette personne n'a pas renseigné ses compétences</Text>
-          )}
-        </View>
+          </View>
+        )}
 
         <View style={{ height: 120 }} />
       </ScrollView>
@@ -485,6 +492,7 @@ export default function SwipePage() {
       <Modal visible={showMatchModal} transparent animationType="fade" onRequestClose={() => setShowMatchModal(false)}>
         <View style={styles.overlay}>
           <View style={styles.matchCard}>
+            <Text style={styles.matchEmoji}>🎉</Text>
             <Text style={styles.matchTitle}>C'est un Match !</Text>
             <ProfileImage
               photos={(matchedProfile?.photos as any) || []}
@@ -498,10 +506,12 @@ export default function SwipePage() {
               <TouchableOpacity
                 style={[styles.matchBtn, styles.matchBtnPrimary]}
                 onPress={() => { setShowMatchModal(false); router.push('/messages' as any) }}
+                activeOpacity={0.8}
               >
+                <Ionicons name="chatbubble" size={18} color={colors.bg.primary} />
                 <Text style={styles.matchBtnPrimaryTxt}>Envoyer un message</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.matchBtn, styles.matchBtnSecondary]} onPress={() => setShowMatchModal(false)}>
+              <TouchableOpacity style={[styles.matchBtn, styles.matchBtnSecondary]} onPress={() => setShowMatchModal(false)} activeOpacity={0.8}>
                 <Text style={styles.matchBtnSecondaryTxt}>Continuer à swiper</Text>
               </TouchableOpacity>
             </View>
@@ -513,13 +523,15 @@ export default function SwipePage() {
       <Modal visible={showUndoPaywall} transparent animationType="fade" onRequestClose={() => setShowUndoPaywall(false)}>
         <View style={styles.overlay}>
           <View style={styles.paywallCard}>
-            <Ionicons name="arrow-undo" size={40} color="#ffd700" />
+            <Ionicons name="arrow-undo" size={44} color={colors.primary} />
             <Text style={styles.paywallTitle}>Revenir en arrière</Text>
             <Text style={styles.paywallText}>
-              Tu as swipé trop vite ? Le retour en arrière te permet de revoir le profil que tu viens de passer. Fonctionnalité réservée aux membres Business Pro.
+              Tu as swipé trop vite ? Le retour en arrière te permet de revoir le profil que tu viens de passer.
             </Text>
-            <TouchableOpacity style={styles.paywallBtn} onPress={() => { setShowUndoPaywall(false); router.push('/settings?scroll=pro' as any) }}>
-              <Text style={styles.paywallBtnTxt}>Passer Business Pro →</Text>
+            <Text style={styles.paywallFeature}>💎 Fonctionnalité exclusive Business Pro</Text>
+            <TouchableOpacity style={styles.paywallBtn} onPress={() => { setShowUndoPaywall(false); router.push('/settings?scroll=pro' as any) }} activeOpacity={0.8}>
+              <Ionicons name="crown" size={18} color={colors.bg.primary} />
+              <Text style={styles.paywallBtnTxt}>Passer Business Pro</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.paywallBtnSec} onPress={() => setShowUndoPaywall(false)}>
               <Text style={styles.paywallBtnSecTxt}>Fermer</Text>
@@ -534,86 +546,97 @@ export default function SwipePage() {
 
 // ─────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  loadingText: { color: '#fff', marginTop: 12 },
+  container: { flex: 1, backgroundColor: colors.bg.primary },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: spacing.lg },
+  loadingText: { color: colors.text.secondary, marginTop: spacing.lg, fontSize: 14, fontWeight: '500' },
 
   scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 20 },
+  scrollContent: { paddingVertical: spacing.lg, paddingHorizontal: spacing.md },
 
-  header: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6 },
-  title: { color: '#ffd700', fontSize: 22, fontWeight: '700' },
+  // Header
+  header: { marginBottom: spacing.xxl, paddingHorizontal: spacing.sm },
+  headerTitle: { color: colors.primary, fontSize: 32, fontWeight: '800', letterSpacing: 0.5, marginBottom: spacing.xs },
+  headerSubtitle: { color: colors.text.secondary, fontSize: 13, fontWeight: '500', letterSpacing: 0.3 },
 
-  profileHeader: { paddingHorizontal: 20, paddingBottom: 10 },
-  name: { color: '#fff', fontSize: 28, fontWeight: '700' },
-  age: { color: '#ffffff88', fontSize: 28, fontWeight: '400' },
-  cityRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  city: { color: '#ffffff99', fontSize: 14 },
-
-  card: { marginHorizontal: 16, borderRadius: 16, overflow: 'hidden', backgroundColor: '#111' },
-  photoContainer: { width: '100%', position: 'relative' },
+  // Card Container
+  cardContainer: { marginBottom: spacing.xxl },
+  card: { borderRadius: borderRadius.xxl, overflow: 'hidden', backgroundColor: colors.bg.tertiary },
   photo: { width: '100%', height: '100%' },
-  photoPlaceholder: { width: '100%', height: '100%', backgroundColor: '#1a1a1a' },
+  photoPlaceholder: { width: '100%', height: '100%', backgroundColor: colors.bg.quaternary },
 
-  photoBars: { position: 'absolute', top: 10, left: 10, right: 10, flexDirection: 'row', gap: 4, zIndex: 10 },
-  photoBarTrack: { flex: 1, height: 2, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 1, overflow: 'hidden' },
+  // Photo Bars
+  photoBars: { position: 'absolute', top: spacing.md, left: spacing.md, right: spacing.md, flexDirection: 'row', gap: spacing.xs, zIndex: 10 },
+  photoBarTrack: { flex: 1, height: 2.5, backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 1.5, overflow: 'hidden' },
   photoBarFill: { height: '100%', backgroundColor: 'transparent' },
-  photoBarFillActive: { backgroundColor: '#fff' },
+  photoBarFillActive: { backgroundColor: colors.primary },
 
-  // Tap zones for photo navigation (covers top 60% of photo, below bars)
-  photoTapLeft:  { position: 'absolute', left: 0,   top: 30, bottom: 90, width: '38%', zIndex: 25 },
-  photoTapRight: { position: 'absolute', right: 0,  top: 30, bottom: 90, width: '38%', zIndex: 25 },
+  // Photo Navigation
+  photoTapLeft: { position: 'absolute', left: 0, top: 30, bottom: 90, width: '38%', zIndex: 25 },
+  photoTapRight: { position: 'absolute', right: 0, top: 30, bottom: 90, width: '38%', zIndex: 25 },
 
-  photoBottomButtons: { position: 'absolute', bottom: 12, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 20, paddingHorizontal: 20, zIndex: 30 },
+  // Profile Overlay
+  profileOverlay: { position: 'absolute', bottom: 90, left: spacing.lg, right: spacing.lg, zIndex: 20 },
+  profileName: { color: colors.text.primary, fontSize: 26, fontWeight: '700', letterSpacing: 0.3 },
+  profileAge: { color: colors.text.secondary, fontSize: 26, fontWeight: '500' },
+  cityBadge: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.xs, backgroundColor: 'rgba(212, 175, 55, 0.15)', borderRadius: borderRadius.full, alignSelf: 'flex-start' },
+  cityText: { color: colors.text.secondary, fontSize: 12, fontWeight: '500' },
 
-  section: { marginTop: 20, paddingHorizontal: 20 },
-  sectionTitle: { color: '#ffd700', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 },
-  bioText: { color: '#ffffffcc', fontSize: 15, lineHeight: 22 },
-  emptyMsg: { color: '#ffffff55', fontSize: 13, fontStyle: 'italic' },
+  // Action Buttons
+  photoActionButtons: { position: 'absolute', bottom: spacing.lg, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: spacing.xl, paddingHorizontal: spacing.lg, zIndex: 30 },
 
-  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tag: { backgroundColor: '#ffd70018', borderRadius: 20, paddingHorizontal: 13, paddingVertical: 7, borderWidth: 1, borderColor: '#ffd700' },
-  tagText: { color: '#ffd700', fontSize: 13, fontWeight: '600' },
+  // Sections
+  section: { marginTop: spacing.xxl, paddingHorizontal: spacing.sm },
+  sectionTitle: { color: colors.primary, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: spacing.lg },
+  bioText: { color: colors.text.secondary, fontSize: 14, lineHeight: 22, fontWeight: '500', letterSpacing: 0.2 },
 
-  skillsList: { gap: 12 },
-  skillRow: { gap: 5 },
+  // Tags
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  tag: { backgroundColor: 'rgba(212, 175, 55, 0.12)', borderRadius: borderRadius.full, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.4)' },
+  tagText: { color: colors.primary, fontSize: 12, fontWeight: '600', letterSpacing: 0.2 },
+
+  // Skills
+  skillsList: { gap: spacing.md },
+  skillRow: { gap: spacing.sm },
   skillMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  skillName: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  skillLevel: { color: '#ffffff66', fontSize: 12 },
-  levelTrack: { height: 4, backgroundColor: '#2a2a2a', borderRadius: 2, overflow: 'hidden' },
-  levelFill: { height: '100%', backgroundColor: '#ffd700', borderRadius: 2 },
+  skillName: { color: colors.text.primary, fontSize: 14, fontWeight: '600' },
+  skillLevel: { color: colors.text.tertiary, fontSize: 11, fontWeight: '500' },
+  levelTrack: { height: 5, backgroundColor: colors.bg.quaternary, borderRadius: 2.5, overflow: 'hidden' },
+  levelFill: { height: '100%', backgroundColor: colors.primary, borderRadius: 2.5 },
 
-  emptyTitle: { color: '#fff', fontSize: 18, fontWeight: '700', marginTop: 16, textAlign: 'center' },
-  emptyText: { color: '#ffffff66', fontSize: 13, marginTop: 8, textAlign: 'center' },
-  reloadBtn: { marginTop: 20, backgroundColor: '#ffd700', paddingHorizontal: 28, paddingVertical: 12, borderRadius: 10 },
-  reloadBtnText: { color: '#000', fontWeight: '700', fontSize: 14 },
+  // Empty State
+  emptyTitle: { color: colors.text.primary, fontSize: 20, fontWeight: '700', marginTop: spacing.lg, textAlign: 'center' },
+  emptyText: { color: colors.text.secondary, fontSize: 13, marginTop: spacing.md, textAlign: 'center', lineHeight: 20 },
+  reloadBtn: { marginTop: spacing.xxl, backgroundColor: colors.primary, paddingHorizontal: spacing.xl, paddingVertical: spacing.lg, borderRadius: borderRadius.lg, ...shadows.glow },
+  reloadBtnText: { color: colors.bg.primary, fontWeight: '700', fontSize: 14, letterSpacing: 0.3 },
 
-  btn: { width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 8 },
-  btnUndo: { backgroundColor: '#1c1c1e', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.2)', width: 54, height: 54, borderRadius: 27 },
-  btnDislike: { backgroundColor: '#1c1c1e', borderWidth: 2, borderColor: 'rgba(255,68,68,0.6)', shadowColor: '#ff4444', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 8 },
-  btnLike: { backgroundColor: '#d4a853', borderWidth: 2, borderColor: '#e8c06a', shadowColor: '#d4a853', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 12 },
+  // Buttons
+  btn: { width: 66, height: 66, borderRadius: 33, justifyContent: 'center', alignItems: 'center', ...shadows.md },
+  btnUndo: { backgroundColor: colors.bg.tertiary, borderWidth: 1.5, borderColor: colors.border.primary, width: 56, height: 56, borderRadius: 28 },
+  btnDislike: { backgroundColor: colors.bg.tertiary, borderWidth: 2, borderColor: 'rgba(255, 107, 107, 0.6)', shadowColor: '#FF6B6B', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 8 },
+  btnLike: { backgroundColor: colors.primary, borderWidth: 2, borderColor: colors.primaryLight, ...shadows.glow },
 
   // Modals
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center' },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.88)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: spacing.lg },
 
-  matchCard: { width: '85%', maxWidth: 340, backgroundColor: '#1a1a1a', borderRadius: 20, padding: 28, alignItems: 'center', borderWidth: 1, borderColor: '#ffd70044' },
-  matchEmoji: { fontSize: 40, marginBottom: 8 },
-  matchTitle: { color: '#ffd700', fontSize: 22, fontWeight: '700', marginBottom: 16 },
-  matchAvatar: { width: 90, height: 90, borderRadius: 45, marginBottom: 10 },
-  matchAvatarPh: { width: 90, height: 90, borderRadius: 45, backgroundColor: '#333' },
-  matchName: { color: '#fff', fontSize: 18, fontWeight: '600', marginBottom: 20 },
-  matchBtns: { width: '100%', gap: 10 },
-  matchBtn: { paddingVertical: 13, borderRadius: 12, alignItems: 'center' },
-  matchBtnPrimary: { backgroundColor: '#ffd700' },
-  matchBtnPrimaryTxt: { color: '#000', fontWeight: '700', fontSize: 14 },
-  matchBtnSecondary: { backgroundColor: '#2a2a2a', borderWidth: 1, borderColor: '#444' },
-  matchBtnSecondaryTxt: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  matchCard: { width: '100%', maxWidth: 320, backgroundColor: colors.bg.tertiary, borderRadius: borderRadius.xxl, paddingVertical: spacing.xxl, paddingHorizontal: spacing.xl, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.3)' },
+  matchEmoji: { fontSize: 48, marginBottom: spacing.md },
+  matchTitle: { color: colors.primary, fontSize: 24, fontWeight: '800', marginBottom: spacing.lg, letterSpacing: 0.5 },
+  matchAvatar: { width: 100, height: 100, borderRadius: 50, marginBottom: spacing.lg, borderWidth: 2, borderColor: colors.primary },
+  matchAvatarPh: { width: 100, height: 100, borderRadius: 50, backgroundColor: colors.bg.quaternary },
+  matchName: { color: colors.text.primary, fontSize: 18, fontWeight: '700', marginBottom: spacing.xl },
+  matchBtns: { width: '100%', gap: spacing.md },
+  matchBtn: { paddingVertical: spacing.lg, borderRadius: borderRadius.lg, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: spacing.sm },
+  matchBtnPrimary: { backgroundColor: colors.primary, ...shadows.glow },
+  matchBtnPrimaryTxt: { color: colors.bg.primary, fontWeight: '700', fontSize: 14, letterSpacing: 0.3 },
+  matchBtnSecondary: { backgroundColor: colors.bg.quaternary, borderWidth: 1, borderColor: colors.border.primary },
+  matchBtnSecondaryTxt: { color: colors.text.primary, fontWeight: '600', fontSize: 14 },
 
-  paywallCard: { width: '85%', maxWidth: 340, backgroundColor: '#1a1a1a', borderRadius: 20, padding: 28, alignItems: 'center', gap: 14, borderWidth: 1, borderColor: '#ff980044' },
-  paywallTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  paywallText: { color: '#ffffff88', fontSize: 13, textAlign: 'center', lineHeight: 20 },
-  paywallBtn: { backgroundColor: '#ffd700', paddingVertical: 13, paddingHorizontal: 24, borderRadius: 12, width: '100%', alignItems: 'center' },
-  paywallBtnTxt: { color: '#000', fontWeight: '700', fontSize: 14 },
-  paywallBtnSec: { paddingVertical: 10 },
-  paywallBtnSecTxt: { color: '#ffffff66', fontSize: 13 },
+  paywallCard: { width: '100%', maxWidth: 320, backgroundColor: colors.bg.tertiary, borderRadius: borderRadius.xxl, paddingVertical: spacing.xxl, paddingHorizontal: spacing.xl, alignItems: 'center', gap: spacing.md, borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.3)' },
+  paywallTitle: { color: colors.text.primary, fontSize: 20, fontWeight: '700', letterSpacing: 0.3 },
+  paywallText: { color: colors.text.secondary, fontSize: 13, textAlign: 'center', lineHeight: 22, fontWeight: '500' },
+  paywallFeature: { color: colors.primary, fontSize: 12, fontWeight: '600', marginVertical: spacing.sm },
+  paywallBtn: { backgroundColor: colors.primary, paddingVertical: spacing.lg, paddingHorizontal: spacing.xl, borderRadius: borderRadius.lg, width: '100%', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md, ...shadows.glow },
+  paywallBtnTxt: { color: colors.bg.primary, fontWeight: '700', fontSize: 14, letterSpacing: 0.3 },
+  paywallBtnSec: { paddingVertical: spacing.lg, paddingHorizontal: spacing.xl },
+  paywallBtnSecTxt: { color: colors.text.tertiary, fontSize: 12, fontWeight: '600' },
 })

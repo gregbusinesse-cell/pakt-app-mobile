@@ -1,3 +1,4 @@
+import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme'
 import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator, ScrollView, Dimensions } from 'react-native'
 import { useRouter, useLocalSearchParams } from 'expo-router'

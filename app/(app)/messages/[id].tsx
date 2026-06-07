@@ -1,3 +1,4 @@
+import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme'
 import { useEffect, useState, useRef } from 'react'
 import {
   View,

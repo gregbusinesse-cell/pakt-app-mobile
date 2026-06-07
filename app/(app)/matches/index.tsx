@@ -1,19 +1,24 @@
-import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, Alert, ToastAndroid } from 'react-native'
+import { useState, useEffect, useRef } from 'react'
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, Animated } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useMatches } from '@/lib/hooks/useMatches'
 import { useRouter } from 'expo-router'
 import { ProfileImage } from '@/components/ProfileImage'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '@/lib/supabase/client'
-import { BlurView } from 'expo-blur'
 import { refreshNotificationCount } from '@/lib/hooks/useNotificationCount'
+import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme'
 
 export default function MatchesPage() {
   const router = useRouter()
+  const insets = useSafeAreaInsets()
   const { matches, likes, loading, error, reload } = useMatches()
   const [userPlan, setUserPlan] = useState<string>('free')
   const [userId, setUserId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'matches' | 'likes'>('matches')
+
+  const fadeAnim = useRef(new Animated.Value(0)).current
+  const tabSlideAnim = useRef(new Animated.Value(0)).current
 
   // Get current user and plan
   useEffect(() => {
@@ -30,11 +35,7 @@ export default function MatchesPage() {
     })
   }, [])
 
-  // Mark ALL matches and likes as viewed when arriving on the page.
-  // We query the DB directly (not the filtered hook results) because the
-  // useMatches hook filters out likes that became matches, but those rows
-  // still exist in the `likes` table with is_viewed=false and would
-  // keep the notification badge stuck at 1+.
+  // Mark ALL matches and likes as viewed when arriving on the page
   useEffect(() => {
     if (!userId) return
 
@@ -42,70 +43,45 @@ export default function MatchesPage() {
       console.log('[MATCHES] === AUTO-MARK START === userId:', userId)
 
       try {
-        // 1. Fetch ALL unviewed matches for this user (where they are user1 or user2)
+        // 1. Fetch ALL unviewed matches for this user
         const { data: unviewedMatches, error: matchFetchErr } = await supabase
           .from('matches')
           .select('id')
           .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
           .eq('is_viewed', false)
 
-        if (matchFetchErr) {
-          console.error('[MATCHES] ❌ Error fetching unviewed matches:', matchFetchErr)
-        } else {
-          console.log('[MATCHES] Unviewed matches in DB:', unviewedMatches?.length || 0, unviewedMatches)
-
-          if (unviewedMatches && unviewedMatches.length > 0) {
-            const matchIds = unviewedMatches.map((m: any) => m.id)
-            const { error: updateErr, data: updated } = await supabase
-              .from('matches')
-              .update({ is_viewed: true })
-              .in('id', matchIds)
-              .select()
-
-            if (updateErr) {
-              console.error('[MATCHES] ❌ Error updating matches:', updateErr)
-            } else {
-              console.log('[MATCHES] ✅ Updated matches:', updated?.length, updated)
-            }
-          }
+        if (!matchFetchErr && unviewedMatches && unviewedMatches.length > 0) {
+          const matchIds = unviewedMatches.map((m: any) => m.id)
+          await supabase
+            .from('matches')
+            .update({ is_viewed: true })
+            .in('id', matchIds)
+          console.log('[MATCHES] ✅ Updated matches:', unviewedMatches.length)
         }
 
-        // 2. Fetch ALL unviewed likes received by this user (INCLUDING those
-        //    that became matches - those are the ones that keep the badge stuck)
+        // 2. Fetch ALL unviewed likes received by this user
         const { data: unviewedLikes, error: likeFetchErr } = await supabase
           .from('likes')
-          .select('id, liker_id')
+          .select('id')
           .eq('liked_id', userId)
           .eq('is_viewed', false)
 
-        if (likeFetchErr) {
-          console.error('[MATCHES] ❌ Error fetching unviewed likes:', likeFetchErr)
-        } else {
-          console.log('[MATCHES] Unviewed likes in DB:', unviewedLikes?.length || 0, unviewedLikes)
-
-          if (unviewedLikes && unviewedLikes.length > 0) {
-            const likeIds = unviewedLikes.map((l: any) => l.id)
-            const { error: updateErr, data: updated } = await supabase
-              .from('likes')
-              .update({ is_viewed: true })
-              .in('id', likeIds)
-              .select()
-
-            if (updateErr) {
-              console.error('[MATCHES] ❌ Error updating likes:', updateErr)
-            } else {
-              console.log('[MATCHES] ✅ Updated likes:', updated?.length, updated)
-            }
-          }
+        if (!likeFetchErr && unviewedLikes && unviewedLikes.length > 0) {
+          const likeIds = unviewedLikes.map((l: any) => l.id)
+          await supabase
+            .from('likes')
+            .update({ is_viewed: true })
+            .in('id', likeIds)
+          console.log('[MATCHES] ✅ Updated likes:', unviewedLikes.length)
         }
 
         // 3. Refresh the navbar badge counters
-        console.log('[MATCHES] Refreshing notification count for user:', userId)
-        await refreshNotificationCount(userId)
+        if (userId) {
+          await refreshNotificationCount(userId)
+        }
 
-        // 4. Reload the page data so isViewed flags are in sync locally
+        // 4. Reload the page data
         reload()
-
         console.log('[MATCHES] === AUTO-MARK END ===')
       } catch (err) {
         console.error('[MATCHES] ❌ Exception in markAllAsViewed:', err)
@@ -115,48 +91,33 @@ export default function MatchesPage() {
     markAllAsViewed()
   }, [userId])
 
-  const unreadMatchCount = matches.filter((m) => !m.isViewed).length
-  const unreadLikeCount = likes.filter((l) => !l.isViewed).length
-  const totalNotifications = unreadMatchCount + unreadLikeCount
+  // Animate on load
+  useEffect(() => {
+    if (!loading) {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: transitions.normal,
+        useNativeDriver: true,
+      }).start()
+    }
+  }, [loading])
 
   const handleMatchPress = async (matchId: string, otherUserId: string) => {
-    // Mark as viewed
     await supabase.from('matches').update({ is_viewed: true }).eq('id', matchId)
-
-    // Refresh notification badge immediately
     if (userId) {
       await refreshNotificationCount(userId)
     }
-
-    // Navigate to the profile of the other user
     router.push(`/user/${otherUserId}` as any)
   }
 
   const handleLikePress = async (likeId: string, otherUserId: string) => {
-    if (userPlan !== 'business_pro' || !userId) {
-      // Can't view, notification stays
-      return
-    }
+    if (userPlan !== 'business_pro' || !userId) return
 
     try {
-      // Mark like as viewed
-      const { error: viewError } = await supabase
-        .from('likes')
-        .update({ is_viewed: true })
-        .eq('id', likeId)
-
-      if (viewError) {
-        console.error('[MATCHES] Error marking like as viewed', viewError)
-      } else {
-        console.log('[MATCHES] Marked like as viewed:', likeId)
-      }
-
-      // Refresh notification badge immediately
+      await supabase.from('likes').update({ is_viewed: true }).eq('id', likeId)
       if (userId) {
         await refreshNotificationCount(userId)
       }
-
-      // Navigate to the profile of the person who liked
       router.push(`/user/${otherUserId}` as any)
     } catch (error) {
       console.error('[MATCHES] handleLikePress error', error)
@@ -165,20 +126,21 @@ export default function MatchesPage() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color="#ffd700" />
-          <Text style={{ color: '#fff', marginTop: 16 }}>Chargement...</Text>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Chargement...</Text>
         </View>
       </View>
     )
   }
 
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, { opacity: fadeAnim, paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Matchs</Text>
+        <Text style={styles.headerTitle}>Cœurs</Text>
+        <Text style={styles.headerSubtitle}>Matchs & Likes</Text>
       </View>
 
       {/* Tab Navigation */}
@@ -186,11 +148,12 @@ export default function MatchesPage() {
         <TouchableOpacity
           style={[styles.tab, activeTab === 'matches' && styles.tabActive]}
           onPress={() => setActiveTab('matches')}
+          activeOpacity={0.7}
         >
           <Ionicons
-            name="heart"
-            size={18}
-            color={activeTab === 'matches' ? '#ffd700' : '#ffffff66'}
+            name={activeTab === 'matches' ? 'heart' : 'heart-outline'}
+            size={20}
+            color={activeTab === 'matches' ? colors.primary : colors.text.tertiary}
           />
           <Text
             style={[
@@ -210,11 +173,12 @@ export default function MatchesPage() {
         <TouchableOpacity
           style={[styles.tab, activeTab === 'likes' && styles.tabActive]}
           onPress={() => setActiveTab('likes')}
+          activeOpacity={0.7}
         >
           <Ionicons
-            name="flame"
-            size={18}
-            color={activeTab === 'likes' ? '#ff6b35' : '#ffffff66'}
+            name={activeTab === 'likes' ? 'flame' : 'flame-outline'}
+            size={20}
+            color={activeTab === 'likes' ? colors.warning : colors.text.tertiary}
           />
           <Text
             style={[
@@ -236,281 +200,282 @@ export default function MatchesPage() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {error && (
           <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>Erreur: {error}</Text>
+            <Ionicons name="alert-circle" size={20} color={colors.error} style={{ marginRight: spacing.md }} />
+            <Text style={styles.errorText}>{error}</Text>
           </View>
         )}
 
         {/* MATCHES TAB */}
         {activeTab === 'matches' && (
-        <View style={styles.section}>
-
-          {matches.length > 0 ? (
-            <View style={styles.grid}>
-              {matches.map((item) => (
-                <TouchableOpacity
-                  key={item.id}
-                  style={styles.gridCard}
-                  onPress={() => handleMatchPress(item.id, item.otherUser.id)}
-                  activeOpacity={0.8}
-                >
-                  {!item.isViewed && <View style={styles.gridNewBadge} />}
-                  <ProfileImage
-                    photos={item.otherUser.photos as any}
-                    style={styles.gridImage}
-                    placeholder={styles.gridImagePlaceholder}
-                  />
-                  <View style={styles.gridOverlay}>
-                    <Text style={styles.gridName} numberOfLines={1}>
-                      {item.otherUser.first_name}, {item.otherUser.age}
-                    </Text>
-                    <Text style={styles.gridCity} numberOfLines={1}>
-                      {item.otherUser.city || 'Non spécifié'}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          ) : (
-            <View style={styles.emptyState}>
-              <Ionicons name="heart-outline" size={48} color="#ffffff44" />
-              <Text style={styles.emptyTitle}>Pas encore de matchs</Text>
-              <Text style={styles.emptyText}>Continue à swiper pour trouver tes matchs !</Text>
-            </View>
-          )}
-        </View>
+          <View style={styles.section}>
+            {matches.length > 0 ? (
+              <View style={styles.grid}>
+                {matches.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={styles.gridCard}
+                    onPress={() => handleMatchPress(item.id, item.otherUser.id)}
+                    activeOpacity={0.8}
+                  >
+                    {!item.isViewed && <View style={styles.gridNewBadge} />}
+                    <ProfileImage
+                      photos={item.otherUser.photos as any}
+                      style={styles.gridImage}
+                      placeholder={styles.gridImagePlaceholder}
+                    />
+                    <View style={styles.gridOverlay}>
+                      <Text style={styles.gridName} numberOfLines={1}>
+                        {item.otherUser.first_name}, {item.otherUser.age}
+                      </Text>
+                      {item.otherUser.city && (
+                        <View style={styles.gridLocationBadge}>
+                          <Ionicons name="location" size={10} color={colors.primary} />
+                          <Text style={styles.gridCity} numberOfLines={1}>
+                            {item.otherUser.city}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.emptyState}>
+                <Ionicons name="heart-outline" size={56} color={colors.text.disabled} />
+                <Text style={styles.emptyTitle}>Pas encore de matchs</Text>
+                <Text style={styles.emptyText}>Continue à swiper pour trouver tes matchs !</Text>
+              </View>
+            )}
+          </View>
         )}
 
         {/* LIKES TAB */}
         {activeTab === 'likes' && (
-        <View style={styles.section}>
-
-          {likes.length > 0 ? (
-            <>
-              <View style={styles.grid}>
-                {likes.map((item) => (
-                  <TouchableOpacity
-                    key={item.likeId}
-                    style={styles.gridCard}
-                    onPress={() => handleLikePress(item.likeId, item.otherUser.id)}
-                    disabled={userPlan !== 'business_pro'}
-                    activeOpacity={userPlan === 'business_pro' ? 0.8 : 1}
-                  >
-                    {!item.isViewed && <View style={styles.gridNewBadge} />}
-
-                    {/* For Business Pro: Show photo */}
-                    {userPlan === 'business_pro' && (
-                      <>
-                        <ProfileImage
-                          photos={item.otherUser.photos as any}
-                          style={styles.gridImage}
-                          placeholder={styles.gridImagePlaceholder}
-                        />
-                        <View style={styles.gridOverlay}>
-                          <Text style={styles.gridName} numberOfLines={1}>
-                            {item.otherUser.first_name}, {item.otherUser.age}
-                          </Text>
-                          <Text style={styles.gridCity} numberOfLines={1}>
-                            {item.otherUser.city || 'Non spécifié'}
-                          </Text>
-                        </View>
-                      </>
-                    )}
-
-                    {/* For FREE/BUSINESS: Black screen + lock */}
-                    {userPlan !== 'business_pro' && (
-                      <View style={[styles.gridImage, styles.blackScreen]}>
-                        <View style={styles.lockedContainer}>
-                          <Ionicons name="lock-closed" size={40} color="#ffd700" />
-                          <Text style={styles.lockedText}>Verrouillé</Text>
-                          <Text style={styles.lockedSubtext}>Business Pro</Text>
-                        </View>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* Paywall for FREE users */}
-              {userPlan !== 'business_pro' && (
-                <View style={styles.paywallContainer}>
-                  <View style={styles.paywallCard}>
-                    <Ionicons name="lock-closed" size={28} color="#ffd700" />
-                    <Text style={styles.paywallTitle}>Déverrouille les likes</Text>
-                    <Text style={styles.paywallText}>
-                      Passe à Business Pro pour voir qui t'a liké et pouvoir les liker en retour
-                    </Text>
+          <View style={styles.section}>
+            {likes.length > 0 ? (
+              <>
+                <View style={styles.grid}>
+                  {likes.map((item) => (
                     <TouchableOpacity
-                      style={styles.paywallButton}
-                      onPress={() => router.push('/settings')}
+                      key={item.likeId}
+                      style={styles.gridCard}
+                      onPress={() => handleLikePress(item.likeId, item.otherUser.id)}
+                      disabled={userPlan !== 'business_pro'}
+                      activeOpacity={userPlan === 'business_pro' ? 0.8 : 1}
                     >
-                      <Text style={styles.paywallButtonText}>Découvrir Business Pro</Text>
+                      {!item.isViewed && <View style={styles.gridNewBadge} />}
+
+                      {/* For Business Pro: Show photo */}
+                      {userPlan === 'business_pro' && (
+                        <>
+                          <ProfileImage
+                            photos={item.otherUser.photos as any}
+                            style={styles.gridImage}
+                            placeholder={styles.gridImagePlaceholder}
+                          />
+                          <View style={styles.gridOverlay}>
+                            <Text style={styles.gridName} numberOfLines={1}>
+                              {item.otherUser.first_name}, {item.otherUser.age}
+                            </Text>
+                            {item.otherUser.city && (
+                              <View style={styles.gridLocationBadge}>
+                                <Ionicons name="location" size={10} color={colors.primary} />
+                                <Text style={styles.gridCity} numberOfLines={1}>
+                                  {item.otherUser.city}
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                        </>
+                      )}
+
+                      {/* For FREE/BUSINESS: Black screen + lock */}
+                      {userPlan !== 'business_pro' && (
+                        <View style={[styles.gridImage, styles.blackScreen]}>
+                          <View style={styles.lockedContainer}>
+                            <Ionicons name="lock-closed" size={36} color={colors.primary} />
+                            <Text style={styles.lockedText}>Verrouillé</Text>
+                            <Text style={styles.lockedSubtext}>Pro</Text>
+                          </View>
+                        </View>
+                      )}
                     </TouchableOpacity>
-                  </View>
+                  ))}
                 </View>
-              )}
-            </>
-          ) : (
-            <View style={styles.emptyState}>
-              <Ionicons name="flame-outline" size={48} color="#ffffff44" />
-              <Text style={styles.emptyTitle}>Pas de likes reçus</Text>
-              <Text style={styles.emptyText}>Les personnes qui te likent apparaîtront ici</Text>
-            </View>
-          )}
-        </View>
+
+                {/* Paywall for FREE users */}
+                {userPlan !== 'business_pro' && (
+                  <View style={styles.paywallContainer}>
+                    <View style={styles.paywallCard}>
+                      <Ionicons name="lock-closed" size={32} color={colors.primary} />
+                      <Text style={styles.paywallTitle}>Déverrouille les likes</Text>
+                      <Text style={styles.paywallText}>
+                        Passe à Business Pro pour voir qui t'a liké et découvrir tes talents secrets
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.paywallButton}
+                        onPress={() => router.push('/settings' as any)}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons name="crown" size={16} color={colors.bg.primary} style={{ marginRight: spacing.sm }} />
+                        <Text style={styles.paywallButtonText}>Passer Business Pro</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+              </>
+            ) : (
+              <View style={styles.emptyState}>
+                <Ionicons name="flame-outline" size={56} color={colors.text.disabled} />
+                <Text style={styles.emptyTitle}>Pas de likes reçus</Text>
+                <Text style={styles.emptyText}>Les personnes qui te likent apparaîtront ici</Text>
+              </View>
+            )}
+          </View>
         )}
 
-        <View style={{ height: 30 }} />
+        <View style={{ height: spacing.xxxl }} />
       </ScrollView>
-    </View>
+    </Animated.View>
   )
 }
 
 const { width } = Dimensions.get('window')
-const gridItemSize = Math.floor((width - 95) / 2)
+const gridItemSize = Math.floor((width - spacing.lg * 2 - spacing.md) / 2)
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: {
+    flex: 1,
+    backgroundColor: colors.bg.primary,
+  },
   centerContent: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  loadingText: {
+    color: colors.text.secondary,
+    marginTop: spacing.lg,
+    fontSize: 14,
+    fontWeight: '500',
+  },
 
-  /* Header */
+  // Header
   header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
+    borderBottomColor: colors.border.secondary,
   },
   headerTitle: {
-    color: '#fff',
-    fontSize: 28,
-    fontWeight: 'bold',
+    color: colors.primary,
+    fontSize: 32,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    marginBottom: spacing.xs,
+  },
+  headerSubtitle: {
+    color: colors.text.secondary,
+    fontSize: 13,
+    fontWeight: '500',
+    letterSpacing: 0.3,
   },
 
-  /* Tab Navigation */
+  // Tab Navigation
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.bg.tertiary,
     borderBottomWidth: 1,
-    borderBottomColor: '#2a2a2a',
-    paddingHorizontal: 16,
-    gap: 8,
+    borderBottomColor: colors.border.primary,
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
   },
   tab: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    borderBottomWidth: 2,
+    gap: spacing.sm,
+    borderBottomWidth: 2.5,
     borderBottomColor: 'transparent',
   },
   tabActive: {
-    borderBottomColor: '#ffd700',
+    borderBottomColor: colors.primary,
   },
   tabLabel: {
-    color: '#ffffff66',
+    color: colors.text.secondary,
     fontSize: 14,
     fontWeight: '600',
+    letterSpacing: 0.2,
   },
   tabLabelActive: {
-    color: '#fff',
-  },
-  tabBadge: {
-    backgroundColor: '#ff4444',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-  },
-  tabBadgeText: {
-    color: '#fff',
-    fontSize: 11,
+    color: colors.text.primary,
     fontWeight: '700',
   },
-  /* Persistent counter (always shows total, not a notification) */
   tabCounter: {
-    backgroundColor: '#ffffff14',
-    borderRadius: 10,
-    minWidth: 22,
-    height: 20,
+    backgroundColor: 'rgba(212, 175, 55, 0.15)',
+    borderRadius: borderRadius.full,
+    minWidth: 24,
+    height: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 7,
-    marginLeft: 2,
+    paddingHorizontal: spacing.xs,
+    marginLeft: spacing.xs,
   },
   tabCounterText: {
-    color: '#ffffff99',
+    color: colors.primary,
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 
-  /* Content */
-  content: { flex: 1, paddingHorizontal: 8, paddingVertical: 16 },
+  // Content
+  content: {
+    flex: 1,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+  },
 
   errorContainer: {
-    backgroundColor: '#2a1a1a',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
     borderWidth: 1,
-    borderColor: '#661111',
-  },
-  errorText: {
-    color: '#ff6666',
-    fontSize: 13,
-  },
-
-  /* Section */
-  section: {
-    marginBottom: 32,
-  },
-  sectionHeader: {
+    borderColor: 'rgba(239, 68, 68, 0.3)',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 16,
   },
-  sectionTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
+  errorText: {
+    color: colors.error,
+    fontSize: 13,
+    fontWeight: '500',
     flex: 1,
   },
-  sectionBadge: {
-    backgroundColor: '#ff4444',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
-  },
-  sectionBadgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '700',
+
+  // Section
+  section: {
+    marginBottom: spacing.xxxl,
   },
 
-  /* Grid */
+  // Grid
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: spacing.md,
     justifyContent: 'flex-start',
   },
   gridCard: {
     width: gridItemSize,
     height: gridItemSize,
-    borderRadius: 16,
+    borderRadius: borderRadius.xl,
     overflow: 'hidden',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.bg.tertiary,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+    borderColor: colors.border.primary,
     position: 'relative',
+    ...shadows.md,
   },
   gridImage: {
     width: '100%',
@@ -519,125 +484,140 @@ const styles = StyleSheet.create({
   gridImagePlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#333',
+    backgroundColor: colors.bg.quaternary,
   },
   gridNewBadge: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: spacing.md,
+    right: spacing.md,
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: '#ff4444',
+    backgroundColor: colors.errorDark,
     borderWidth: 2,
-    borderColor: '#000',
+    borderColor: colors.bg.primary,
     zIndex: 20,
+    ...shadows.glow,
   },
   gridOverlay: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    backgroundColor: 'rgba(10, 10, 10, 0.8)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(212, 175, 55, 0.2)',
   },
   gridName: {
-    color: '#fff',
+    color: colors.text.primary,
     fontSize: 14,
     fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  gridLocationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
   },
   gridCity: {
-    color: '#ffffff88',
-    fontSize: 12,
-    marginTop: 4,
+    color: colors.text.secondary,
+    fontSize: 11,
+    fontWeight: '500',
   },
 
-  /* Blur overlay for locked likes */
-  blurOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 15,
-  },
+  // Locked Container
   lockedContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.md,
   },
   lockedText: {
-    color: '#ffd700',
-    fontSize: 12,
-    fontWeight: '600',
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   lockedSubtext: {
-    color: '#ffffff66',
+    color: colors.text.secondary,
     fontSize: 11,
+    fontWeight: '500',
   },
   blackScreen: {
-    backgroundColor: '#000',
+    backgroundColor: colors.bg.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
 
-  /* Paywall */
+  // Paywall
   paywallContainer: {
-    marginTop: 20,
+    marginTop: spacing.xxl,
   },
   paywallCard: {
-    backgroundColor: '#ffd70015',
+    backgroundColor: 'rgba(212, 175, 55, 0.08)',
     borderWidth: 1,
-    borderColor: '#ffd70044',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 20,
+    borderColor: 'rgba(212, 175, 55, 0.25)',
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xxl,
     alignItems: 'center',
-    gap: 12,
+    gap: spacing.lg,
+    ...shadows.sm,
   },
   paywallTitle: {
-    color: '#ffd700',
-    fontSize: 16,
-    fontWeight: '700',
+    color: colors.primary,
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+    textAlign: 'center',
   },
   paywallText: {
-    color: '#ffffff88',
+    color: colors.text.secondary,
     fontSize: 13,
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 22,
+    fontWeight: '500',
   },
   paywallButton: {
-    backgroundColor: '#ffd700',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
+    borderRadius: borderRadius.lg,
     width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.md,
+    ...shadows.glow,
   },
   paywallButtonText: {
-    color: '#000',
+    color: colors.bg.primary,
     fontSize: 14,
     fontWeight: '700',
-    textAlign: 'center',
+    letterSpacing: 0.3,
   },
 
-  /* Empty State */
+  // Empty State
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
+    paddingVertical: 80,
   },
   emptyTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 16,
+    color: colors.text.primary,
+    fontSize: 20,
+    fontWeight: '700',
+    marginTop: spacing.lg,
+    letterSpacing: 0.2,
   },
   emptyText: {
-    color: '#ffffff66',
-    fontSize: 14,
-    marginTop: 8,
+    color: colors.text.secondary,
+    fontSize: 13,
+    marginTop: spacing.md,
+    textAlign: 'center',
+    lineHeight: 20,
+    fontWeight: '500',
   },
 })

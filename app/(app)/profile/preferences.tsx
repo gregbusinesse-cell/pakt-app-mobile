@@ -1,3 +1,4 @@
+import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme'
 import { useEffect, useState } from 'react'
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
@@ -120,7 +121,7 @@ export default function PreferencesPage() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#ffd700" />
+          <ActivityIndicator size="large" color="colors.primary" />
         </View>
       </SafeAreaView>
     )
@@ -133,7 +134,7 @@ export default function PreferencesPage() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={24} color="#fff" />
+          <Ionicons name="chevron-back" size={24} color="colors.text.primary" />
         </TouchableOpacity>
         <Text style={styles.title}>Préférences de recherche</Text>
         <View style={{ width: 24 }} />
@@ -145,9 +146,9 @@ export default function PreferencesPage() {
           <Ionicons
             name={isProUser ? 'star' : 'lock-closed'}
             size={16}
-            color={isProUser ? '#ffd700' : '#ff9800'}
+            color={isProUser ? 'colors.primary' : '#ff9800'}
           />
-          <Text style={[styles.planText, { color: isProUser ? '#ffd700' : '#ff9800' }]}>
+          <Text style={[styles.planText, { color: isProUser ? 'colors.primary' : '#ff9800' }]}>
             {isProUser ? 'Business Pro' : 'Fonctionnalité Business Pro'}
           </Text>
         </View>
@@ -164,7 +165,7 @@ export default function PreferencesPage() {
               onPress={() => router.push('/settings?scroll=pro' as any)}
             >
               <Text style={styles.upgradeButtonText}>Passer à Business Pro</Text>
-              <Ionicons name="arrow-forward" size={16} color="#000" />
+              <Ionicons name="arrow-forward" size={16} color="colors.bg.primary" />
             </TouchableOpacity>
           </View>
         )}
@@ -180,7 +181,7 @@ export default function PreferencesPage() {
                   <TextInput
                     style={styles.input}
                     placeholder="15"
-                    placeholderTextColor="#ffffff44"
+                    placeholderTextColor="colors.text.primaryfff44"
                     value={minAge}
                     onChangeText={setMinAge}
                     keyboardType="number-pad"
@@ -199,7 +200,7 @@ export default function PreferencesPage() {
                   <TextInput
                     style={styles.input}
                     placeholder="99"
-                    placeholderTextColor="#ffffff44"
+                    placeholderTextColor="colors.text.primaryfff44"
                     value={maxAge}
                     onChangeText={setMaxAge}
                     keyboardType="number-pad"
@@ -219,7 +220,7 @@ export default function PreferencesPage() {
                 <TextInput
                   style={styles.distanceInput}
                   placeholder="10000"
-                  placeholderTextColor="#ffffff44"
+                  placeholderTextColor="colors.text.primaryfff44"
                   value={maxDistance}
                   onChangeText={setMaxDistance}
                   keyboardType="number-pad"
@@ -251,7 +252,7 @@ export default function PreferencesPage() {
                       <Ionicons
                         name="checkmark"
                         size={14}
-                        color="#000"
+                        color="colors.bg.primary"
                         style={styles.skillCheckmark}
                       />
                     )}
@@ -280,10 +281,10 @@ export default function PreferencesPage() {
               disabled={saving}
             >
               {saving ? (
-                <ActivityIndicator color="#000" size="small" />
+                <ActivityIndicator color="colors.bg.primary" size="small" />
               ) : (
                 <>
-                  <Ionicons name="checkmark" size={20} color="#000" />
+                  <Ionicons name="checkmark" size={20} color="colors.bg.primary" />
                   <Text style={styles.saveButtonText}>Enregistrer les préférences</Text>
                 </>
               )}
@@ -298,7 +299,7 @@ export default function PreferencesPage() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: 'colors.bg.primary' },
 
   header: {
     flexDirection: 'row',
@@ -307,9 +308,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
+    borderBottomColor: 'colors.bg.tertiary',
   },
-  title: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  title: { color: 'colors.text.primary', fontSize: 18, fontWeight: '700' },
 
   content: { flex: 1, paddingHorizontal: 16, paddingVertical: 16 },
 
@@ -317,14 +318,14 @@ const styles = StyleSheet.create({
   planBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: 'colors.bg.tertiary',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginBottom: 20,
     gap: 8,
     borderWidth: 1,
-    borderColor: '#ffd70044',
+    borderColor: 'colors.primary44',
   },
   planText: { fontSize: 13, fontWeight: '700', flex: 1 },
 
@@ -336,9 +337,9 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
     gap: 16,
   },
-  lockedTitle: { color: '#fff', fontSize: 18, fontWeight: '700', textAlign: 'center' },
+  lockedTitle: { color: 'colors.text.primary', fontSize: 18, fontWeight: '700', textAlign: 'center' },
   lockedText: {
-    color: '#ffffff88',
+    color: 'colors.text.primaryfff88',
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
@@ -346,19 +347,19 @@ const styles = StyleSheet.create({
   },
   upgradeButton: {
     flexDirection: 'row',
-    backgroundColor: '#ffd700',
+    backgroundColor: 'colors.primary',
     borderRadius: 12,
     paddingHorizontal: 20,
     paddingVertical: 12,
     gap: 8,
     marginTop: 12,
   },
-  upgradeButtonText: { color: '#000', fontSize: 14, fontWeight: '700' },
+  upgradeButtonText: { color: 'colors.bg.primary', fontSize: 14, fontWeight: '700' },
 
   // Sections
   section: { marginBottom: 24 },
   sectionTitle: {
-    color: '#ffd700',
+    color: 'colors.primary',
     fontSize: 13,
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -373,13 +374,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   rangeInput: { flex: 1 },
-  rangeLabel: { color: '#ffffff66', fontSize: 12, marginBottom: 6 },
+  rangeLabel: { color: 'colors.text.primaryfff66', fontSize: 12, marginBottom: 6 },
   input: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: 'colors.bg.tertiary',
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#333',
-    color: '#fff',
+    color: 'colors.text.primary',
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
@@ -392,7 +393,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   separatorLine: { flex: 1, height: 1, backgroundColor: '#333' },
-  separatorText: { color: '#ffffff66', fontSize: 12 },
+  separatorText: { color: 'colors.text.primaryfff66', fontSize: 12 },
 
   // Distance
   distanceHeader: {
@@ -401,7 +402,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  distanceValue: { color: '#ffd700', fontSize: 16, fontWeight: '700' },
+  distanceValue: { color: 'colors.primary', fontSize: 16, fontWeight: '700' },
   distanceInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -410,20 +411,20 @@ const styles = StyleSheet.create({
   },
   distanceInput: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: 'colors.bg.tertiary',
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#333',
-    color: '#fff',
+    color: 'colors.text.primary',
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
   },
-  kmUnit: { color: '#ffffff66', fontSize: 13, fontWeight: '600', width: 30 },
-  distanceHint: { color: '#ffffff66', fontSize: 12, lineHeight: 16 },
+  kmUnit: { color: 'colors.text.primaryfff66', fontSize: 13, fontWeight: '600', width: 30 },
+  distanceHint: { color: 'colors.text.primaryfff66', fontSize: 12, lineHeight: 16 },
 
   // Skills
-  skillsHint: { color: '#ffffff66', fontSize: 12, marginBottom: 12 },
+  skillsHint: { color: 'colors.text.primaryfff66', fontSize: 12, marginBottom: 12 },
   skillsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -433,7 +434,7 @@ const styles = StyleSheet.create({
   skillTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: 'colors.bg.tertiary',
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -442,26 +443,27 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   skillTagSelected: {
-    backgroundColor: '#ffd700',
-    borderColor: '#ffd700',
+    backgroundColor: 'colors.primary',
+    borderColor: 'colors.primary',
   },
   skillCheckmark: { marginRight: 2 },
-  skillName: { color: '#fff', fontSize: 13, fontWeight: '600' },
-  skillNameSelected: { color: '#000' },
-  skillsCount: { color: '#ffffff66', fontSize: 12, fontStyle: 'italic' },
+  skillName: { color: 'colors.text.primary', fontSize: 13, fontWeight: '600' },
+  skillNameSelected: { color: 'colors.bg.primary' },
+  skillsCount: { color: 'colors.text.primaryfff66', fontSize: 12, fontStyle: 'italic' },
 
   // Save Button
   saveButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffd700',
+    backgroundColor: 'colors.primary',
     borderRadius: 12,
     paddingVertical: 14,
     gap: 8,
     marginTop: 8,
   },
-  saveButtonText: { color: '#000', fontSize: 14, fontWeight: '700' },
+  saveButtonText: { color: 'colors.bg.primary', fontSize: 14, fontWeight: '700' },
 
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 })
+

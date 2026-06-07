@@ -23,6 +23,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '@/lib/supabase/client'
 import * as ImagePicker from 'expo-image-picker'
 import { INTERESTS, SKILLS_LIST, DEFAULT_PREFERENCES, MAX_PHOTOS } from '@/lib/utils'
+import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme'
 import type { UserSkill } from '@/lib/types'
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
@@ -479,7 +480,7 @@ export default function OnboardingPage() {
             disabled={step === 0}
             style={[styles.backBtn, step === 0 && { opacity: 0 }]}
           >
-            <Ionicons name="chevron-back" size={24} color="#fff" />
+            <Ionicons name="chevron-back" size={24} color="colors.text.primary" />
           </TouchableOpacity>
 
           {/* Progress bar */}
@@ -559,7 +560,7 @@ function StepWelcome({
         <TextInput
           style={s.input}
           placeholder="Ton prénom"
-          placeholderTextColor="#ffffff44"
+          placeholderTextColor="colors.text.primaryfff44"
           value={firstName}
           onChangeText={setFirstName}
           autoCapitalize="words"
@@ -570,7 +571,7 @@ function StepWelcome({
           <TextInput
             style={s.input}
             placeholder="Ton âge"
-            placeholderTextColor="#ffffff44"
+            placeholderTextColor="colors.text.primaryfff44"
             value={age}
             onChangeText={setAge}
             keyboardType="number-pad"
@@ -606,7 +607,7 @@ function StepBio({ bio, setBio }: { bio: string; setBio: (v: string) => void }) 
           <TextInput
             style={[s.input, s.textArea]}
             placeholder="Qui es-tu ? Quels sont tes projets ? Qu'est-ce qui te définit..."
-            placeholderTextColor="#ffffff44"
+            placeholderTextColor="colors.text.primaryfff44"
             value={bio}
             onChangeText={setBio}
             multiline
@@ -686,7 +687,7 @@ function StepInterests({
           <TextInput
             style={[s.input, { flex: 1 }]}
             placeholder="Autre (précise...)"
-            placeholderTextColor="#ffffff44"
+            placeholderTextColor="colors.text.primaryfff44"
             value={otherInput}
             onChangeText={setOtherInput}
             onSubmitEditing={addCustomInterest}
@@ -723,9 +724,9 @@ function StepCity({
 
       <View style={{ position: 'relative', zIndex: 100 }}>
         <TextInput
-          style={[s.input, citySelected && { borderColor: '#d4a853', color: '#d4a853' }]}
+          style={[s.input, citySelected && { borderColor: 'colors.primary', color: 'colors.primary' }]}
           placeholder="Recherche une ville..."
-          placeholderTextColor="#ffffff44"
+          placeholderTextColor="colors.text.primaryfff44"
           value={cityInput}
           onChangeText={onCityInputChange}
           autoCorrect={false}
@@ -734,7 +735,7 @@ function StepCity({
         {cityLoading && (
           <ActivityIndicator
             size="small"
-            color="#d4a853"
+            color="colors.primary"
             style={{ position: 'absolute', right: 14, top: 14 }}
           />
         )}
@@ -748,7 +749,7 @@ function StepCity({
                 style={s.suggestionItem}
                 onPress={() => selectCity(city)}
               >
-                <Ionicons name="location-outline" size={16} color="#d4a853" />
+                <Ionicons name="location-outline" size={16} color="colors.primary" />
                 <Text style={s.suggestionText} numberOfLines={1}>
                   {city.description}
                 </Text>
@@ -760,7 +761,7 @@ function StepCity({
 
       {citySelected ? (
         <View style={s.cityConfirmed}>
-          <Ionicons name="checkmark-circle" size={18} color="#d4a853" />
+          <Ionicons name="checkmark-circle" size={18} color="colors.primary" />
           <Text style={s.cityConfirmedText}>Ville sélectionnée : {citySelected.name}</Text>
         </View>
       ) : cityInput.trim().length > 0 ? (
@@ -866,8 +867,8 @@ function StepPhotos({
 
       {photoUploading && (
         <View style={s.uploadingRow}>
-          <ActivityIndicator size="small" color="#d4a853" />
-          <Text style={{ color: '#d4a853', fontSize: 13 }}>Upload des photos...</Text>
+          <ActivityIndicator size="small" color="colors.primary" />
+          <Text style={{ color: 'colors.primary', fontSize: 13 }}>Upload des photos...</Text>
         </View>
       )}
 
@@ -893,7 +894,7 @@ function StepPhotos({
                     style={s.photoRemove}
                     onPress={(e) => { e.stopPropagation?.(); removePhoto(idx) }}
                   >
-                    <Ionicons name="close" size={14} color="#fff" />
+                    <Ionicons name="close" size={14} color="colors.text.primary" />
                   </TouchableOpacity>
                 </>
               ) : (
@@ -925,7 +926,7 @@ function decode(base64: string): Uint8Array {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: 'colors.bg.primary',
   },
   header: {
     flexDirection: 'row',
@@ -955,7 +956,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#d4a853',
+    backgroundColor: 'colors.primary',
     borderRadius: 2,
   },
   progressText: {
@@ -978,7 +979,7 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(255,255,255,0.06)',
   },
   ctaButton: {
-    backgroundColor: '#d4a853',
+    backgroundColor: 'colors.primary',
     borderRadius: 14,
     height: 54,
     flexDirection: 'row',
@@ -1005,12 +1006,12 @@ const s = StyleSheet.create({
   stepTitle: {
     fontSize: 30,
     fontWeight: '800',
-    color: '#fff',
+    color: 'colors.text.primary',
     letterSpacing: -0.5,
   },
   stepSubtitle: {
     fontSize: 15,
-    color: 'rgba(255,255,255,0.5)',
+    color: 'colors.text.secondary',
     marginTop: -12,
   },
   gap24: {
@@ -1023,7 +1024,7 @@ const s = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    color: '#fff',
+    color: 'colors.text.primary',
     fontSize: 16,
   },
   textArea: {
@@ -1032,7 +1033,7 @@ const s = StyleSheet.create({
   },
   hint: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.35)',
+    color: 'colors.text.disabled',
     lineHeight: 18,
   },
   bioMeta: {
@@ -1072,8 +1073,8 @@ const s = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.12)',
   },
   chipActive: {
-    backgroundColor: '#d4a853',
-    borderColor: '#d4a853',
+    backgroundColor: 'colors.primary',
+    borderColor: 'colors.primary',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
@@ -1090,7 +1091,7 @@ const s = StyleSheet.create({
     fontWeight: '500',
   },
   chipActiveText: {
-    color: '#0a0a0a',
+    color: 'colors.bg.primary',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -1102,7 +1103,7 @@ const s = StyleSheet.create({
   addBtn: {
     width: 48,
     height: 48,
-    backgroundColor: '#d4a853',
+    backgroundColor: 'colors.primary',
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1112,7 +1113,7 @@ const s = StyleSheet.create({
     top: '100%',
     left: 0,
     right: 0,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: 'colors.bg.tertiary',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.12)',
     borderRadius: 12,
@@ -1130,7 +1131,7 @@ const s = StyleSheet.create({
     borderBottomColor: 'rgba(255,255,255,0.06)',
   },
   suggestionText: {
-    color: '#fff',
+    color: 'colors.text.primary',
     fontSize: 14,
     flex: 1,
   },
@@ -1141,12 +1142,12 @@ const s = StyleSheet.create({
     marginTop: 4,
   },
   cityConfirmedText: {
-    color: '#d4a853',
+    color: 'colors.primary',
     fontSize: 14,
     fontWeight: '600',
   },
   sectionLabel: {
-    color: 'rgba(255,255,255,0.5)',
+    color: 'colors.text.secondary',
     fontSize: 12,
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -1156,7 +1157,7 @@ const s = StyleSheet.create({
     gap: 8,
   },
   skillName: {
-    color: '#fff',
+    color: 'colors.text.primary',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -1174,11 +1175,11 @@ const s = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.12)',
   },
   levelDotFilled: {
-    backgroundColor: '#d4a853',
-    borderColor: '#d4a853',
+    backgroundColor: 'colors.primary',
+    borderColor: 'colors.primary',
   },
   levelNum: {
-    color: '#d4a853',
+    color: 'colors.primary',
     fontSize: 12,
     fontWeight: '700',
     marginLeft: 6,
@@ -1211,7 +1212,7 @@ const s = StyleSheet.create({
     position: 'absolute',
     top: 6,
     left: 6,
-    backgroundColor: '#d4a853',
+    backgroundColor: 'colors.primary',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
@@ -1243,7 +1244,7 @@ const s = StyleSheet.create({
     marginBottom: 8,
   },
   skipBtnText: {
-    color: 'rgba(255,255,255,0.45)',
+    color: 'colors.text.quaternary',
     fontSize: 14,
   },
 })
@@ -1252,16 +1253,16 @@ const s = StyleSheet.create({
 function StepReferral({ code, onChange }: { code: string; onChange: (v: string) => void }) {
   return (
     <View style={{ paddingHorizontal: 24, paddingTop: 16 }}>
-      <Text style={{ color: '#fff', fontSize: 28, fontWeight: '800', marginBottom: 8 }}>
+      <Text style={{ color: 'colors.text.primary', fontSize: 28, fontWeight: '800', marginBottom: 8 }}>
         Code de parrainage
       </Text>
-      <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 15, lineHeight: 22, marginBottom: 32 }}>
+      <Text style={{ color: 'colors.text.secondary', fontSize: 15, lineHeight: 22, marginBottom: 32 }}>
         Tu as reçu un code d'un ami déjà sur PAKT ? Entre-le ici. Sinon, appuie sur "Je n'ai pas de code".
       </Text>
 
       <View style={{
-        backgroundColor: '#1a1a1a', borderRadius: 14, borderWidth: 1,
-        borderColor: code.trim() ? '#d4a853' : '#333',
+        backgroundColor: 'colors.bg.tertiary', borderRadius: 14, borderWidth: 1,
+        borderColor: code.trim() ? 'colors.primary' : 'colors.bg.quaternary',
         paddingHorizontal: 16, paddingVertical: 14, marginBottom: 16,
       }}>
         <TextInput
@@ -1269,7 +1270,7 @@ function StepReferral({ code, onChange }: { code: string; onChange: (v: string) 
           onChangeText={(v) => onChange(v.toUpperCase())}
           placeholder="REF-XXXXXXXX-XXXXXX"
           placeholderTextColor="rgba(255,255,255,0.25)"
-          style={{ color: '#fff', fontSize: 18, fontWeight: '700', letterSpacing: 1 }}
+          style={{ color: 'colors.text.primary', fontSize: 18, fontWeight: '700', letterSpacing: 1 }}
           autoCapitalize="characters"
           autoCorrect={false}
         />
@@ -1286,3 +1287,4 @@ function StepReferral({ code, onChange }: { code: string; onChange: (v: string) 
     </View>
   )
 }
+
