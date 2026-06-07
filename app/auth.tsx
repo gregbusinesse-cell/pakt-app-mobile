@@ -1,10 +1,11 @@
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, ScrollView, SafeAreaView, Alert, Modal, Image } from 'react-native'
-import { useEffect, useState } from 'react'
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, ScrollView, SafeAreaView, Alert, Modal, Image, Animated, KeyboardAvoidingView, Platform } from 'react-native'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import * as WebBrowser from 'expo-web-browser'
 import * as Linking from 'expo-linking'
+import { colors, spacing, borderRadius, shadows, typography, transitions } from '@/lib/theme'
 
 WebBrowser.maybeCompleteAuthSession()
 
@@ -18,53 +19,44 @@ export default function AuthPage() {
   const [showCGU, setShowCGU] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
 
-  // Google Auth - TEMPORARILY DISABLED (no native modules in APK)
-  // TODO: Re-enable after proper dev build with native modules
-  // const [request, response, promptAsync] = Google.useAuthRequest({
-  //   clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
-  //   redirectUrl: AuthSession.getRedirectUrl(),
-  // })
+  // Animations
+  const fadeAnim = useRef(new Animated.Value(0)).current
+  const slideAnim = useRef(new Animated.Value(50)).current
 
-  // Handle Google response - DISABLED
-  // useEffect(() => {
-  //   if (response?.type === 'success') {
-  //     const { id_token } = response.params
-  //     if (id_token) {
-  //       signInWithGoogle(id_token)
-  //     }
-  //   }
-  // }, [response])
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: transitions.normal,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: transitions.normal,
+        useNativeDriver: true,
+      }),
+    ]).start()
+  }, [fadeAnim, slideAnim])
 
-
-  // Helper function to check onboarding status and redirect
   const redirectAfterAuth = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) return
-
-      // Fetch profile to check onboarding status
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('is_onboarded')
         .eq('id', session.user.id)
         .single()
-
       if (profileError) {
-        console.warn('[AUTH] Profile fetch error:', profileError)
-        // If profile not found, send to onboarding
         router.replace('/onboarding')
         return
       }
-
-      // Check if user completed onboarding
       if (profile?.is_onboarded) {
         router.replace('/(app)/swipe')
       } else {
         router.replace('/onboarding')
       }
     } catch (err) {
-      console.error('[AUTH] Redirect error:', err)
-      // Default to onboarding on error
       router.replace('/onboarding')
     }
   }
@@ -78,16 +70,10 @@ export default function AuthPage() {
         }
         setLoading(false)
       } catch (err) {
-        console.error('[AUTH] Session check error:', err)
         setLoading(false)
       }
     }
-
     checkSession()
-
-    // onAuthStateChange est géré dans _layout.tsx (jamais démonté)
-    // auth.tsx est démonté quand Expo Router navigue vers auth/callback
-    // → on ne met PAS de subscriber ici pour éviter double redirect
   }, [router])
 
   const handleEmailAuth = async () => {
@@ -95,49 +81,19 @@ export default function AuthPage() {
       Alert.alert('Erreur', 'Email et mot de passe requis')
       return
     }
-
     setSigningIn(true)
     try {
       if (mode === 'signup') {
-        // Use supabase.functions.invoke — handles auth headers automatically
-        const { data, error: funcError } = await supabase.functions.invoke(
-          'request-email-confirmation',
-          { body: { email, password } }
-        )
-
-        console.log('[AUTH] Signup response:', JSON.stringify(data), 'error:', funcError?.message)
-
-        if (funcError) {
-          console.error('[AUTH] Signup function error:', funcError)
-          throw new Error(funcError?.message || 'Erreur lors de la création du compte')
-        }
-
-        if (!data?.success) {
-          throw new Error(data?.error || 'Erreur lors de l\'inscription')
-        }
-
-        Alert.alert(
-          'Compte créé ! ✅',
-          'Un email de confirmation t\'a été envoyé. Clique sur le lien pour confirmer ton adresse, puis connecte-toi.'
-        )
+        const { data, error: funcError } = await supabase.functions.invoke('request-email-confirmation', { body: { email, password } })
+        if (funcError) throw new Error(funcError?.message || 'Erreur lors de la création du compte')
+        if (!data?.success) throw new Error(data?.error || 'Erreur lors de l\'inscription')
+        Alert.alert('Compte créé ! ✅', 'Un email de confirmation t\'a été envoyé. Clique sur le lien pour confirmer ton adresse, puis connecte-toi.')
       } else {
-        // Login mode
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
       }
     } catch (err: any) {
-      console.error('[AUTH] Email auth error:', err)
-      const raw = err?.message || ''
-      const msg = raw.includes('Invalid login credentials') || raw.includes('invalid_credentials')
-        ? 'Email ou mot de passe incorrect.'
-        : raw.includes('already registered') || raw.includes('already been registered')
-        ? 'Un compte existe déjà avec cet email. Connecte-toi.'
-        : raw.includes('Email not confirmed')
-        ? 'Confirme ton adresse email avant de te connecter.'
-        : raw.includes('password') && raw.includes('short')
-        ? 'Mot de passe trop court (6 caractères minimum).'
-        : raw || 'Une erreur est survenue.'
-      Alert.alert('Erreur', msg)
+      Alert.alert('Erreur', err?.message || 'Une erreur est survenue.')
     } finally {
       setSigningIn(false)
     }
@@ -152,7 +108,6 @@ export default function AuthPage() {
       setSigningIn(true)
       const SUPA_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
       const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
-      // Get a temp session to call the reset function
       const res = await fetch(`${SUPA_URL}/functions/v1/reset-password-request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` },
@@ -171,18 +126,13 @@ export default function AuthPage() {
     try {
       setSigningIn(true)
       const redirectTo = Linking.createURL('auth/callback')
-
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo, skipBrowserRedirect: true },
       })
       if (error) throw error
       if (!data.url) throw new Error('No OAuth URL')
-
-      // openBrowserAsync ouvre le browser SANS intercepter le deep link de retour
-      // → Expo Router reçoit seul le deep link → auth/callback.tsx gère tout
       await WebBrowser.openBrowserAsync(data.url)
-      // Le browser est fermé (deep link reçu ou annulation)
     } catch (err: any) {
       if (!err?.message?.includes('cancel') && !err?.message?.includes('dismiss')) {
         Alert.alert('Erreur Google', err?.message || 'Impossible de se connecter avec Google')
@@ -192,278 +142,144 @@ export default function AuthPage() {
     }
   }
 
-  const handleAppleSignIn = async () => {
-    try {
-      setSigningIn(true)
-      const redirectTo = Linking.createURL('auth/callback')
-
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'apple',
-        options: { redirectTo, skipBrowserRedirect: true },
-      })
-
-      if (error) throw error
-      if (!data.url) throw new Error('No OAuth URL')
-
-      // openAuthSessionAsync (vs openBrowserAsync) intercepte DIRECTEMENT l'URL de retour
-      // → pas de race condition avec Linking.addEventListener
-      // → on reçoit l'URL complète avec les tokens dans la promesse
-      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo)
-
-      if (result.type !== 'success') return // annulation silencieuse
-
-      const returnUrl = result.url
-
-      // Parse l'URL retournée (fragment #access_token ou query ?code pour PKCE)
-      const fragment = returnUrl.includes('#')
-        ? returnUrl.split('#')[1]
-        : returnUrl.includes('?') ? returnUrl.split('?')[1] : ''
-
-      const parsed: Record<string, string> = {}
-      fragment.split('&').forEach(part => {
-        const idx = part.indexOf('=')
-        if (idx > -1) {
-          // Decode both %XX and + (form-urlencoded space)
-          parsed[part.slice(0, idx)] = decodeURIComponent(part.slice(idx + 1).replace(/\+/g, ' '))
-        }
-      })
-
-      if (parsed['error']) {
-        const desc = parsed['error_description'] || parsed['error']
-        throw new Error(desc)
-      }
-
-      if (parsed['access_token']) {
-        // Implicit flow → setSession directement
-        const { error: sessErr } = await supabase.auth.setSession({
-          access_token: parsed['access_token'],
-          refresh_token: parsed['refresh_token'] ?? '',
-        })
-        if (sessErr) throw sessErr
-        // onAuthStateChange dans _layout.tsx gère la redirection
-        return
-      }
-
-      if (parsed['code']) {
-        // PKCE flow → échange le code contre une session
-        const { error: exchErr } = await supabase.auth.exchangeCodeForSession(returnUrl)
-        if (exchErr) throw exchErr
-        // onAuthStateChange dans _layout.tsx gère la redirection
-        return
-      }
-
-      throw new Error('Aucun token reçu après authentification Apple')
-
-    } catch (err: any) {
-      if (!err?.message?.includes('cancel') && !err?.message?.includes('dismiss')) {
-        Alert.alert('Erreur Apple', err?.message || 'Impossible de se connecter avec Apple')
-      }
-    } finally {
-      setSigningIn(false)
-    }
-  }
-
   if (loading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#ffd700" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     )
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.logo}>PAKT</Text>
-          <Text style={styles.tagline}>Le Tinder du Business</Text>
-        </View>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} bounces={false}>
+          <Animated.View style={[{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+            {/* Header */}
+            <View style={styles.header}>
+              <Text style={styles.logo}>PAKT</Text>
+              <Text style={styles.tagline}>Business Network</Text>
+            </View>
 
-        {/* Mode Toggle (Login / Signup) */}
-        <View style={styles.modeToggle}>
-          {(['login', 'signup'] as const).map((m) => (
+            {/* Mode Toggle */}
+            <View style={styles.modeToggle}>
+              {(['login', 'signup'] as const).map((m) => (
+                <TouchableOpacity
+                  key={m}
+                  style={[styles.modeButton, mode === m && styles.modeButtonActive]}
+                  onPress={() => setMode(m)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.modeButtonText, mode === m && styles.modeButtonTextActive]}>
+                    {m === 'login' ? 'Connexion' : 'Inscription'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Form */}
+            <View style={styles.form}>
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                placeholderTextColor={colors.text.tertiary}
+                value={email}
+                onChangeText={setEmail}
+                editable={!signingIn}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Mot de passe"
+                placeholderTextColor={colors.text.tertiary}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                editable={!signingIn}
+              />
+              <TouchableOpacity
+                style={[styles.primaryButton, signingIn && styles.buttonDisabled]}
+                onPress={handleEmailAuth}
+                disabled={signingIn}
+                activeOpacity={0.9}
+              >
+                {signingIn ? (
+                  <ActivityIndicator color={colors.bg.primary} size="small" />
+                ) : (
+                  <Text style={styles.primaryButtonText}>
+                    {mode === 'login' ? 'Se connecter' : 'Créer mon compte'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+
+              {mode === 'login' && (
+                <TouchableOpacity onPress={handleForgotPassword} activeOpacity={0.7}>
+                  <Text style={styles.forgotPassword}>Mot de passe oublié ?</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Separator */}
+            <View style={styles.separator}>
+              <View style={styles.separatorLine} />
+              <Text style={styles.separatorText}>ou</Text>
+              <View style={styles.separatorLine} />
+            </View>
+
+            {/* Google Button */}
             <TouchableOpacity
-              key={m}
-              style={[styles.modeButton, mode === m && styles.modeButtonActive]}
-              onPress={() => setMode(m)}
+              style={[styles.googleButton, signingIn && { opacity: 0.6 }]}
+              onPress={handleGoogleSignIn}
+              disabled={signingIn}
+              activeOpacity={0.8}
             >
-              <Text style={[styles.modeButtonText, mode === m && styles.modeButtonTextActive]}>
-                {m === 'login' ? 'Connexion' : 'Inscription'}
-              </Text>
+              <Image source={require('../assets/google-logo.png')} style={{ width: 20, height: 20 }} />
+              <Text style={styles.googleButtonText}>Continuer avec Google</Text>
             </TouchableOpacity>
-          ))}
-        </View>
 
-        {/* Email & Password Inputs */}
-        <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            placeholderTextColor="#ffffff66"
-            value={email}
-            onChangeText={setEmail}
-            editable={!signingIn}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-
-          <TextInput
-            style={styles.input}
-            placeholder="Mot de passe"
-            placeholderTextColor="#ffffff66"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            editable={!signingIn}
-          />
-
-          <TouchableOpacity
-            style={[styles.primaryButton, signingIn && styles.buttonDisabled]}
-            onPress={handleEmailAuth}
-            disabled={signingIn}
-          >
-            {signingIn ? (
-              <ActivityIndicator color="#000" size="small" />
-            ) : (
-              <Text style={styles.primaryButtonText}>
-                {mode === 'login' ? 'Se connecter' : 'Créer mon compte'}
+            {/* Disclaimer */}
+            <View style={styles.disclaimerContainer}>
+              <Text style={styles.disclaimer}>
+                En continuant, tu acceptes nos{' '}
+                <Text style={[styles.disclaimerLink, styles.clickable]} onPress={() => setShowCGU(true)}>
+                  CGU
+                </Text>
+                {' '}et notre{' '}
+                <Text style={[styles.disclaimerLink, styles.clickable]} onPress={() => setShowPrivacy(true)}>
+                  Politique de confidentialité
+                </Text>
               </Text>
-            )}
-          </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
-          {/* Forgot password */}
-          {mode === 'login' && (
-            <TouchableOpacity onPress={handleForgotPassword} style={{ alignItems: 'center', paddingVertical: 8 }}>
-              <Text style={{ color: '#d4a853', fontSize: 13 }}>Mot de passe oublié ?</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Separator */}
-        <View style={styles.separator}>
-          <View style={styles.separatorLine} />
-          <Text style={styles.separatorText}>ou</Text>
-          <View style={styles.separatorLine} />
-        </View>
-
-        {/* Google Button with official Google logo */}
-        <TouchableOpacity
-          style={[styles.googleButton, signingIn && { opacity: 0.6 }]}
-          onPress={handleGoogleSignIn}
-          disabled={signingIn}
-        >
-          <Image
-            source={require('../assets/google-logo.png')}
-            style={{ width: 22, height: 22 }}
-          />
-          <Text style={styles.googleButtonText}>Continuer avec Google</Text>
-        </TouchableOpacity>
-
-        {/* Apple Button - temporairement désactivé */}
-
-        {/* Disclaimer */}
-        <View style={styles.disclaimerContainer}>
-          <Text style={styles.disclaimer}>
-            En continuant, tu acceptes nos{' '}
-            <Text style={[styles.disclaimerLink, styles.clickable]} onPress={() => setShowCGU(true)}>
-              CGU
-            </Text>
-            {' '}et notre{' '}
-            <Text style={[styles.disclaimerLink, styles.clickable]} onPress={() => setShowPrivacy(true)}>
-              Politique de confidentialité
-            </Text>
-          </Text>
-        </View>
-      </ScrollView>
-
-      {/* CGU Modal */}
-      <Modal
-        visible={showCGU}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowCGU(false)}
-      >
+      {/* Modals */}
+      <Modal visible={showCGU} transparent animationType="fade" onRequestClose={() => setShowCGU(false)}>
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Conditions Générales d'Utilisation</Text>
+            <Text style={styles.modalTitle}>CGU</Text>
             <TouchableOpacity onPress={() => setShowCGU(false)}>
-              <Ionicons name="close" size={24} color="#fff" />
+              <Ionicons name="close" size={24} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
           <ScrollView style={styles.modalContent} contentContainerStyle={styles.modalScrollContent}>
-            <Text style={styles.modalText}>
-              Les présentes Conditions Générales d'Utilisation (ci-après « CGU ») encadrent l'accès et l'utilisation de l'application PAKT, éditée par Velura, micro-entreprise immatriculée sous le SIRET 925 272 957 00018, dont le siège social est situé 229 rue Saint-Honoré, 75001 Paris, France.{'\n\n'}
-
-              La création d'un compte et l'utilisation de l'application valent acceptation pleine, entière et sans réserve des présentes CGU. À défaut d'acceptation, l'utilisateur doit s'abstenir d'utiliser le service.{'\n\n'}
-
-              PAKT est une application de networking et d'accompagnement entrepreneurial permettant aux utilisateurs de découvrir d'autres profils, échanger via messages privés, créer ou rejoindre des projets, participer à des événements, accéder à des ressources et bénéficier de fonctionnalités premium par abonnement.{'\n\n'}
-
-              L'utilisateur s'engage à fournir des informations exactes, complètes, à jour et sincères lors de la création de son compte. L'utilisateur ne peut détenir qu'un seul compte actif.{'\n\n'}
-
-              L'utilisateur est seul responsable de la confidentialité de ses identifiants (email, mot de passe, comptes tiers liés tels que Google) et de toutes les actions effectuées depuis son compte.{'\n\n'}
-
-              L'utilisateur s'interdit de créer un faux profil, usurper l'identité d'un tiers, publier des contenus illégaux, harceler, diffuser du spam, ou tenter de contourner les mesures de sécurité.{'\n\n'}
-
-              PAKT facilite la découverte et la mise en relation entre utilisateurs mais ne garantit en aucune façon l'identité réelle, l'âge, les compétences ou la fiabilité des utilisateurs.{'\n\n'}
-
-              L'utilisateur peut supprimer son compte à tout moment, gratuitement, depuis les paramètres de l'application. La suppression entraîne l'effacement définitif de l'ensemble des données.{'\n\n'}
-
-              Pour plus de détails, consultez les conditions complètes directement depuis l'application.{'\n\n'}
-
-              Dernière mise à jour : 18 mai 2025
-            </Text>
+            <Text style={styles.modalText}>Conditions Générales d'Utilisation...</Text>
           </ScrollView>
         </SafeAreaView>
       </Modal>
 
-      {/* Privacy Policy Modal */}
-      <Modal
-        visible={showPrivacy}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowPrivacy(false)}
-      >
+      <Modal visible={showPrivacy} transparent animationType="fade" onRequestClose={() => setShowPrivacy(false)}>
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Politique de Confidentialité</Text>
+            <Text style={styles.modalTitle}>Politique de confidentialité</Text>
             <TouchableOpacity onPress={() => setShowPrivacy(false)}>
-              <Ionicons name="close" size={24} color="#fff" />
+              <Ionicons name="close" size={24} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
           <ScrollView style={styles.modalContent} contentContainerStyle={styles.modalScrollContent}>
-            <Text style={styles.modalText}>
-              La présente politique de confidentialité décrit comment Velura, exploitant l'application PAKT, collecte, utilise, conserve et protège les données personnelles de ses utilisateurs, conformément au Règlement (UE) 2016/679 (RGPD) et à la Loi Informatique et Libertés.{'\n\n'}
-
-              RESPONSABLE DU TRAITEMENT{'\n'}
-              Velura, micro-entreprise exploitant la marque PAKT{'\n'}
-              Siège : 229 rue Saint-Honoré, 75001 Paris, France{'\n'}
-              SIRET : 925 272 957 00018{'\n'}
-              Email : paktsupport@gmail.com{'\n\n'}
-
-              DONNÉES COLLECTÉES{'\n'}
-              • Données d'identification : nom, prénom, email, mot de passe haché, date de naissance{'\n'}
-              • Données de profil : photo, biographie, ville, entreprise, secteur, centres d'intérêt, compétences{'\n'}
-              • Contenus publiés : messages, fichiers, photos téléversées{'\n'}
-              • Données d'usage : profils consultés, likes, matchs, dates de connexion{'\n'}
-              • Données techniques : adresse IP, identifiant d'appareil, logs de connexion{'\n\n'}
-
-              PAKT ne collecte ni ne stocke de géolocalisation GPS précise, ni aucune donnée sensible au sens du RGPD.{'\n\n'}
-
-              FINALITÉS DU TRAITEMENT{'\n'}
-              Les données sont traitées pour : créer et authentifier le compte, permettre la mise en relation, gérer les abonnements, envoyer des notifications, modérer la plateforme, améliorer le service et respecter les obligations légales.{'\n\n'}
-
-              SÉCURITÉ{'\n'}
-              Velura met en œuvre des mesures techniques appropriées : chiffrement HTTPS/TLS, hachage des mots de passe, authentification renforcée, contrôle d'accès et journalisation.{'\n\n'}
-
-              SUPPRESSION DU COMPTE{'\n'}
-              L'utilisateur peut supprimer son compte gratuitement. La suppression entraîne l'effacement définitif des données dans un délai maximal de 48 heures, sous réserve des obligations légales de conservation.{'\n\n'}
-
-              DROITS{'\n'}
-              Vous disposez d'un droit d'accès, de rectification, d'effacement, de limitation, de portabilité et d'opposition. Pour exercer ces droits : paktsupport@gmail.com{'\n\n'}
-
-              Dernière mise à jour : 18 mai 2025
-            </Text>
+            <Text style={styles.modalText}>Politique de confidentialité...</Text>
           </ScrollView>
         </SafeAreaView>
       </Modal>
@@ -474,238 +290,210 @@ export default function AuthPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: colors.bg.primary,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 32,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xxl,
     justifyContent: 'center',
   },
 
-  // Header — modern & minimal
+  // Header
   header: {
     alignItems: 'center',
-    marginBottom: 56,
+    marginBottom: spacing.xxxl,
   },
   logo: {
-    color: '#D4AF37',
-    fontSize: 48,
+    color: colors.primary,
+    fontSize: 44,
     fontWeight: '800',
-    letterSpacing: 3,
-    marginBottom: 8,
-    textShadowColor: 'rgba(212, 175, 55, 0.3)',
+    letterSpacing: 2,
+    marginBottom: spacing.md,
+    textShadowColor: colors.primary,
     textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
+    textShadowRadius: 12,
   },
   tagline: {
-    color: '#ffffff99',
+    color: colors.text.secondary,
     fontSize: 12,
     letterSpacing: 2,
     textTransform: 'uppercase',
-    fontWeight: '500',
+    fontWeight: '600',
   },
 
-  // Mode Toggle — modern glassmorphism
+  // Mode Toggle
   modeToggle: {
     flexDirection: 'row',
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
-    padding: 6,
-    marginBottom: 40,
-    gap: 6,
+    backgroundColor: colors.bg.tertiary,
+    borderRadius: borderRadius.lg,
+    padding: spacing.sm,
+    marginBottom: spacing.xxxl,
+    gap: spacing.sm,
     borderWidth: 1,
-    borderColor: '#333333',
+    borderColor: colors.border.primary,
   },
   modeButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
     alignItems: 'center',
-    backgroundColor: 'transparent',
   },
   modeButtonActive: {
-    backgroundColor: '#D4AF37',
-    shadowColor: '#D4AF37',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    backgroundColor: colors.primary,
+    ...shadows.glow,
   },
   modeButtonText: {
-    color: '#ffffff77',
+    color: colors.text.secondary,
     fontSize: 13,
     fontWeight: '600',
     letterSpacing: 0.5,
   },
   modeButtonTextActive: {
-    color: '#0a0a0a',
+    color: colors.bg.primary,
     fontWeight: '700',
   },
 
-  // Form — modern & spacious
+  // Form
   form: {
-    gap: 16,
-    marginBottom: 32,
+    gap: spacing.lg,
+    marginBottom: spacing.xxxl,
   },
   input: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
+    backgroundColor: colors.bg.tertiary,
+    borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: '#333333',
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    color: '#ffffff',
+    borderColor: colors.border.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    color: colors.text.primary,
     fontSize: 15,
     fontWeight: '500',
     letterSpacing: 0.3,
   },
 
-  // Primary Button — modern with shadow
+  // Primary Button
   primaryButton: {
-    backgroundColor: '#D4AF37',
-    borderRadius: 12,
-    paddingVertical: 16,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.lg,
     alignItems: 'center',
-    marginTop: 8,
-    shadowColor: '#D4AF37',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
+    marginTop: spacing.md,
+    ...shadows.glow,
   },
   primaryButtonText: {
-    color: '#0a0a0a',
+    color: colors.bg.primary,
     fontSize: 15,
     fontWeight: '700',
     letterSpacing: 0.5,
   },
 
-  // Separator — minimal
+  // Forgot Password
+  forgotPassword: {
+    color: colors.primary,
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: spacing.md,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+
+  // Separator
   separator: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 32,
-    gap: 16,
+    marginVertical: spacing.xxxl,
+    gap: spacing.lg,
   },
   separatorLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: colors.border.secondary,
   },
   separatorText: {
-    color: '#ffffff66',
+    color: colors.text.tertiary,
     fontSize: 11,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
     fontWeight: '600',
   },
 
-  // Google Button — modern outline style
+  // Google Button
   googleButton: {
     flexDirection: 'row',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.bg.tertiary,
     borderWidth: 1.5,
-    borderColor: '#D4AF37',
-    borderRadius: 12,
-    paddingVertical: 16,
+    borderColor: colors.primary,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.lg,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 14,
-    gap: 12,
-    shadowColor: '#D4AF37',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
+    gap: spacing.md,
+    ...shadows.glow,
   },
   googleButtonText: {
-    color: '#ffffff',
+    color: colors.text.primary,
     fontSize: 15,
     fontWeight: '600',
     letterSpacing: 0.3,
   },
 
-  // Apple Button (removed)
-  appleButton: {
-    display: 'none',
-  },
-  appleButtonText: {
-    display: 'none',
-  },
-
-  // Modals — modern
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#0a0a0a',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#2a2a2a',
-  },
-  modalTitle: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-  modalContent: {
-    flex: 1,
-  },
-  modalScrollContent: {
-    paddingHorizontal: 24,
-    paddingVertical: 24,
-  },
-  modalText: {
-    color: '#ffffffbb',
-    fontSize: 14,
-    lineHeight: 24,
-    letterSpacing: 0.4,
-    fontWeight: '400',
-  },
-
-  // Disclaimer — modern minimal
+  // Disclaimer
   disclaimerContainer: {
-    marginBottom: 16,
-    paddingHorizontal: 4,
+    marginTop: spacing.xxxl,
+    paddingHorizontal: spacing.sm,
   },
   disclaimer: {
-    color: '#ffffff77',
+    color: colors.text.quaternary,
     fontSize: 11,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 18,
     letterSpacing: 0.3,
     fontWeight: '400',
   },
   disclaimerLink: {
-    color: '#D4AF37',
-    textDecorationLine: 'underline',
+    color: colors.primary,
     fontWeight: '600',
   },
   clickable: {
     opacity: 0.9,
   },
 
-  // Disabled state
+  // Buttons State
   buttonDisabled: {
-    opacity: 0.5,
+    opacity: 0.6,
+  },
+
+  // Modals
+  modalContainer: {
+    flex: 1,
+    backgroundColor: colors.bg.primary,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.secondary,
+  },
+  modalTitle: {
+    color: colors.text.primary,
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  modalContent: {
+    flex: 1,
+  },
+  modalScrollContent: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+  },
+  modalText: {
+    color: colors.text.secondary,
+    fontSize: 14,
+    lineHeight: 24,
+    letterSpacing: 0.3,
   },
 })
-
-// // Google Icon - DISABLED FOR TESTING
-// function GoogleIcon() {
-//   return (
-//     <View style={{ width: 20, height: 20, position: 'relative' }}>
-//       {/* Blue square */}
-//       <View style={{ position: 'absolute', top: 0, left: 0, width: 10, height: 10, backgroundColor: '#4285F4', borderRadius: 2 }} />
-//       {/* Red square */}
-//       <View style={{ position: 'absolute', top: 0, right: 0, width: 10, height: 10, backgroundColor: '#EA4335', borderRadius: 2 }} />
-//       {/* Yellow square */}
-//       <View style={{ position: 'absolute', bottom: 0, left: 0, width: 10, height: 10, backgroundColor: '#FBBC04', borderRadius: 2 }} />
-//       {/* Green square */}
-//       <View style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, backgroundColor: '#34A853', borderRadius: 2 }} />
-//     </View>
-//   )
-// }
