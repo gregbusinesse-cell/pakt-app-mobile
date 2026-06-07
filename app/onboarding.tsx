@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useCallback } from 'react'
+﻿import { useState, useRef, useCallback, useEffect } from 'react'
 import { profileStore } from '@/lib/profileStore'
 import * as FileSystem from 'expo-file-system'
 import {
@@ -42,7 +42,17 @@ export default function OnboardingPage() {
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [creatingProfile, setCreatingProfile] = useState(false)
   const slideAnim = useRef(new Animated.Value(0)).current
+
+  // Step entrance animation (fade + lift), runs every time `step` changes
+  const stepFade = useRef(new Animated.Value(1)).current
+  const stepLift = useRef(new Animated.Value(0)).current
+
+  // CTA press feedback (subtle scale)
+  const ctaScale = useRef(new Animated.Value(1)).current
+  const pressCta = () => Animated.spring(ctaScale, { toValue: 0.96, useNativeDriver: true, friction: 7, tension: 90 }).start()
+  const releaseCta = () => Animated.spring(ctaScale, { toValue: 1, useNativeDriver: true, friction: 7, tension: 90 }).start()
 
   // Step 0
   const [firstName, setFirstName] = useState('')
@@ -74,6 +84,17 @@ export default function OnboardingPage() {
   const [referralCode, setReferralCode] = useState('')
 
   const progress = ((step + 1) / TOTAL_STEPS) * 100
+
+  // Fade + lift the step content in every time the step changes — gives the
+  // onboarding a polished, "alive" feel instead of an abrupt content swap
+  useEffect(() => {
+    stepFade.setValue(0)
+    stepLift.setValue(14)
+    Animated.parallel([
+      Animated.timing(stepFade, { toValue: 1, duration: 380, useNativeDriver: true }),
+      Animated.spring(stepLift, { toValue: 0, friction: 8, tension: 60, useNativeDriver: true }),
+    ]).start()
+  }, [step])
 
   // ─── Navigation ──────────────────────────────────────────────────────────────
   const animateSlide = (direction: number, callback: () => void) => {
@@ -400,11 +421,15 @@ export default function OnboardingPage() {
         is_onboarded: true,
       } as any)
 
-      router.replace('/(app)/swipe' as any)
+      // Profile is ready — show a polished "creating your experience" screen
+      // for a few seconds before dropping the user into the app
+      setCreatingProfile(true)
+      setTimeout(() => {
+        router.replace('/(app)/swipe' as any)
+      }, 4800)
     } catch (err: any) {
       console.error('[ONBOARDING] Submit error:', err)
       Alert.alert('Erreur', err?.message || 'Impossible de créer ton profil. Réessaie.')
-    } finally {
       setLoading(false)
       setPhotoUploading(false)
     }
@@ -486,7 +511,7 @@ export default function OnboardingPage() {
           {/* Progress bar */}
           <View style={styles.progressContainer}>
             <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: `${progress}%` }]} />
+              <Animated.View style={[styles.progressFill, { width: `${progress}%` }, shadows.glow]} />
             </View>
             <Text style={styles.progressText}>{step + 1} / {TOTAL_STEPS}</Text>
           </View>
@@ -501,7 +526,9 @@ export default function OnboardingPage() {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            {renderStep()}
+            <Animated.View style={{ opacity: stepFade, transform: [{ translateY: stepLift }] }}>
+              {renderStep()}
+            </Animated.View>
           </ScrollView>
         </Animated.View>
 
@@ -509,13 +536,17 @@ export default function OnboardingPage() {
         <View style={styles.footer}>
           {/* Skip button on referral step */}
           {step === 6 && (
-            <TouchableOpacity style={styles.skipBtn} onPress={goNext} disabled={loading}>
-              <Text style={styles.skipBtnText}>Je n'ai pas de code →</Text>
+            <TouchableOpacity style={s.skipBtn} onPress={goNext} disabled={loading}>
+              <Text style={s.skipBtnText}>Je n'ai pas de code →</Text>
             </TouchableOpacity>
           )}
+          <Animated.View style={{ transform: [{ scale: ctaScale }] }}>
           <TouchableOpacity
-            style={[styles.ctaButton, !canProceed() && styles.ctaDisabled]}
+            style={[styles.ctaButton, !canProceed() && styles.ctaDisabled, shadows.glow]}
             onPress={goNext}
+            onPressIn={pressCta}
+            onPressOut={releaseCta}
+            activeOpacity={0.9}
             disabled={!canProceed() || loading}
           >
             {loading ? (
@@ -533,11 +564,160 @@ export default function OnboardingPage() {
               </>
             )}
           </TouchableOpacity>
+          </Animated.View>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Polished "creating your profile" transition screen */}
+      {creatingProfile && <CreatingProfileScreen firstName={firstName} />}
     </SafeAreaView>
   )
 }
+
+// ─── Creating Profile Transition Screen ──────────────────────────────────────
+// Shown for ~5s after the final step is submitted: gives the onboarding a
+// premium, "your profile is being prepared" feel instead of an abrupt jump
+// straight into the app.
+const CREATING_MESSAGES = [
+  'Création de ton profil...',
+  'Mise en relation avec la communauté PAKT...',
+  'Optimisation de tes recommandations...',
+  'Configuration de tes préférences...',
+  'Derniers réglages, presque prêt...',
+  'Bienvenue dans PAKT !',
+]
+
+function CreatingProfileScreen({ firstName }: { firstName: string }) {
+  const [msgIndex, setMsgIndex] = useState(0)
+  const fadeIn = useRef(new Animated.Value(0)).current
+  const cardScale = useRef(new Animated.Value(0.92)).current
+  const progress = useRef(new Animated.Value(0)).current
+  const msgFade = useRef(new Animated.Value(1)).current
+  const spin = useRef(new Animated.Value(0)).current
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeIn, { toValue: 1, duration: 420, useNativeDriver: true }),
+      Animated.spring(cardScale, { toValue: 1, friction: 7, tension: 60, useNativeDriver: true }),
+    ]).start()
+
+    Animated.timing(progress, { toValue: 1, duration: 4600, useNativeDriver: false }).start()
+
+    Animated.loop(
+      Animated.timing(spin, { toValue: 1, duration: 1400, useNativeDriver: true })
+    ).start()
+
+    const msgInterval = setInterval(() => {
+      setMsgIndex((i) => {
+        const next = Math.min(i + 1, CREATING_MESSAGES.length - 1)
+        if (next !== i) {
+          msgFade.setValue(0)
+          Animated.timing(msgFade, { toValue: 1, duration: 260, useNativeDriver: true }).start()
+        }
+        return next
+      })
+    }, 820)
+
+    return () => clearInterval(msgInterval)
+  }, [])
+
+  const progressWidth = progress.interpolate({ inputRange: [0, 1], outputRange: ['6%', '100%'] })
+  const spinDeg = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] })
+
+  return (
+    <Animated.View style={[loadingStyles.overlay, { opacity: fadeIn }]}>
+      <Animated.View style={[loadingStyles.card, { transform: [{ scale: cardScale }] }]}>
+        <View style={loadingStyles.iconRing}>
+          <Animated.View style={[loadingStyles.iconRingArc, { transform: [{ rotate: spinDeg }] }]} />
+          <Ionicons name="sparkles" size={28} color={colors.primary} />
+        </View>
+
+        <Text style={loadingStyles.title}>
+          {firstName ? `C'est parti, ${firstName.trim()} !` : "C'est parti !"}
+        </Text>
+
+        <Animated.Text style={[loadingStyles.message, { opacity: msgFade }]}>
+          {CREATING_MESSAGES[msgIndex]}
+        </Animated.Text>
+
+        <View style={loadingStyles.progressTrack}>
+          <Animated.View style={[loadingStyles.progressFill, { width: progressWidth }, shadows.glow]} />
+        </View>
+      </Animated.View>
+    </Animated.View>
+  )
+}
+
+const loadingStyles = StyleSheet.create({
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.bg.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    zIndex: 999,
+  },
+  card: {
+    width: '100%',
+    maxWidth: 340,
+    alignItems: 'center',
+    backgroundColor: colors.bg.tertiary,
+    borderRadius: borderRadius.xxl,
+    borderWidth: 1,
+    borderColor: colors.border.secondary,
+    paddingVertical: 36,
+    paddingHorizontal: 28,
+    ...shadows.lg,
+  },
+  iconRing: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: 'rgba(212,175,55,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    position: 'relative',
+  },
+  iconRingArc: {
+    position: 'absolute',
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    borderWidth: 2.5,
+    borderColor: 'rgba(212,175,55,0.15)',
+    borderTopColor: colors.primary,
+    borderRightColor: colors.primary,
+  },
+  title: {
+    color: colors.text.primary,
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  message: {
+    color: colors.text.secondary,
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+    marginBottom: 28,
+    minHeight: 20,
+  },
+  progressTrack: {
+    width: '100%',
+    height: 6,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.primary,
+    borderRadius: 3,
+  },
+})
 
 // ─── Step 0: Bienvenue ────────────────────────────────────────────────────────
 function StepWelcome({
@@ -553,8 +733,7 @@ function StepWelcome({
 
   return (
     <View style={s.stepContainer}>
-      <Text style={s.stepTitle}>Bienvenue</Text>
-      <Text style={s.stepSubtitle}>Quelques infos pour commencer</Text>
+      <StepHeader icon="hand-left" title="Bienvenue" subtitle="Quelques infos pour commencer" />
 
       <View style={s.gap24}>
         <TextInput
@@ -599,8 +778,7 @@ function StepWelcome({
 function StepBio({ bio, setBio }: { bio: string; setBio: (v: string) => void }) {
   return (
     <View style={s.stepContainer}>
-      <Text style={s.stepTitle}>Ta bio</Text>
-      <Text style={s.stepSubtitle}>Présente-toi en quelques mots</Text>
+      <StepHeader icon="document-text" title="Ta bio" subtitle="Présente-toi en quelques mots" />
 
       <View style={s.gap24}>
         <View>
@@ -640,8 +818,7 @@ function StepInterests({
 
   return (
     <View style={s.stepContainer}>
-      <Text style={s.stepTitle}>Tes intérêts</Text>
-      <Text style={s.stepSubtitle}>Sélectionne ce qui te correspond (max 5)</Text>
+      <StepHeader icon="sparkles" title="Tes intérêts" subtitle="Sélectionne ce qui te correspond (max 5)" />
 
       {/* Selected */}
       {selectedInterests.length > 0 && (
@@ -719,8 +896,7 @@ function StepCity({
 }) {
   return (
     <View style={s.stepContainer}>
-      <Text style={s.stepTitle}>Ta ville</Text>
-      <Text style={s.stepSubtitle}>Pour trouver des personnes près de toi</Text>
+      <StepHeader icon="location" title="Ta ville" subtitle="Pour trouver des personnes près de toi" />
 
       <View style={{ position: 'relative', zIndex: 100 }}>
         <TextInput
@@ -787,10 +963,7 @@ function StepSkills({
 
   return (
     <View style={s.stepContainer}>
-      <Text style={s.stepTitle}>Tes compétences</Text>
-      <Text style={s.stepSubtitle}>
-        Sélectionne uniquement celles que tu maîtrises vraiment.
-      </Text>
+      <StepHeader icon="ribbon" title="Tes compétences" subtitle="Sélectionne uniquement celles que tu maîtrises vraiment" />
       <Text style={[s.hint, { marginTop: -8 }]}>
         Chaque compétence nécessite un niveau honnête de 1 à 10.
       </Text>
@@ -859,10 +1032,7 @@ function StepPhotos({
 
   return (
     <View style={s.stepContainer}>
-      <Text style={s.stepTitle}>Tes photos</Text>
-      <Text style={s.stepSubtitle}>
-        Ajoute jusqu'à {MAX_PHOTOS} photos (minimum 1)
-      </Text>
+      <StepHeader icon="images" title="Tes photos" subtitle={`Ajoute jusqu'à ${MAX_PHOTOS} photos (minimum 1)`} />
       <Text style={s.hint}>JPG, PNG ou WebP • Conseillé : 3/4</Text>
 
       {photoUploading && (
@@ -908,6 +1078,29 @@ function StepPhotos({
       <Text style={[s.hint, { textAlign: 'center', marginTop: 8 }]}>
         Appuie sur une case pour ajouter une photo depuis ta galerie
       </Text>
+    </View>
+  )
+}
+
+// ─── Step Header (icon badge + title + subtitle) ─────────────────────────────
+// Small reusable header used by every step — adds a glowing icon badge for a
+// more premium, "designed" feel than plain stacked text.
+function StepHeader({
+  icon, title, subtitle,
+}: {
+  icon: keyof typeof Ionicons.glyphMap
+  title: string
+  subtitle: string
+}) {
+  return (
+    <View style={s.stepHeaderRow}>
+      <View style={s.stepIconBadge}>
+        <Ionicons name={icon} size={20} color={colors.primary} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={s.stepTitle}>{title}</Text>
+        <Text style={[s.stepSubtitle, { marginTop: 2 }]}>{subtitle}</Text>
+      </View>
     </View>
   )
 }
@@ -1003,14 +1196,29 @@ const s = StyleSheet.create({
     paddingTop: 8,
     gap: 20,
   },
+  stepHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  stepIconBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: borderRadius.lg,
+    backgroundColor: 'rgba(212,175,55,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(212,175,55,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   stepTitle: {
-    fontSize: 30,
+    fontSize: 26,
     fontWeight: '800',
     color: colors.text.primary,
     letterSpacing: -0.5,
   },
   stepSubtitle: {
-    fontSize: 15,
+    fontSize: 14,
     color: colors.text.secondary,
     marginTop: -12,
   },
@@ -1252,12 +1460,14 @@ const s = StyleSheet.create({
 // ─── Step 6: Code de parrainage (optionnel) ───────────────────────────────────
 function StepReferral({ code, onChange }: { code: string; onChange: (v: string) => void }) {
   return (
-    <View style={{ paddingHorizontal: 24, paddingTop: 16 }}>
-      <Text style={{ color: colors.text.primary, fontSize: 28, fontWeight: '800', marginBottom: 8 }}>
-        Code de parrainage
-      </Text>
-      <Text style={{ color: colors.text.secondary, fontSize: 15, lineHeight: 22, marginBottom: 32 }}>
-        Tu as reçu un code d'un ami déjà sur PAKT ? Entre-le ici. Sinon, appuie sur "Je n'ai pas de code".
+    <View style={{ paddingTop: 8, gap: 20 }}>
+      <StepHeader
+        icon="gift"
+        title="Code de parrainage"
+        subtitle={'Tu as reçu un code d\'un ami déjà sur PAKT ?'}
+      />
+      <Text style={{ color: colors.text.secondary, fontSize: 14, lineHeight: 20, marginTop: -8 }}>
+        Entre-le ci-dessous, ou appuie sur « Je n'ai pas de code » pour continuer sans.
       </Text>
 
       <View style={{

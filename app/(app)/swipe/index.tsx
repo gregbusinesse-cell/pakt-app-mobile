@@ -486,9 +486,6 @@ export default function SwipePage() {
                 if (!name) return null
                 return (
                   <View key={i} style={styles.skillRow}>
-                    <View style={styles.skillBadge}>
-                      <Text style={styles.skillBadgeText}>{name.slice(0, 1).toUpperCase()}</Text>
-                    </View>
                     <View style={{ flex: 1 }}>
                       <View style={styles.skillMeta}>
                         <Text style={styles.skillName}>{name}</Text>
@@ -631,12 +628,6 @@ const styles = StyleSheet.create({
   // Skills
   skillsList: { gap: spacing.lg },
   skillRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
-  skillBadge: {
-    width: 38, height: 38, borderRadius: borderRadius.md,
-    backgroundColor: 'rgba(212, 175, 55, 0.14)', borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.35)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  skillBadgeText: { color: colors.primary, fontSize: 15, fontWeight: '800' },
   skillMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
   skillName: { color: colors.text.primary, fontSize: 14, fontWeight: '600' },
   skillLevel: { color: colors.text.tertiary, fontSize: 11, fontWeight: '500' },
