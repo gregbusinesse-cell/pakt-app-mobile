@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, Animated } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
@@ -15,7 +15,7 @@ export default function MessagesPage() {
   const fadeAnim = useRef(new Animated.Value(0)).current
 
   // Animate on load
-  useState(() => {
+  useEffect(() => {
     if (!loading) {
       Animated.timing(fadeAnim, {
         toValue: 1,
