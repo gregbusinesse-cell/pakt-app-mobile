@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   // "selected chip" — gives weight & quality feel instead of a thin underline
   activePill: {
     position: 'absolute',
-    top: -10,
+    top: 0,
     width: 52,
     height: 36,
     borderRadius: borderRadius.lg,

@@ -12,7 +12,7 @@ import * as FileSystem from 'expo-file-system'
 import { supabase } from '@/lib/supabase/client'
 import { profileStore } from '@/lib/profileStore'
 
-// â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Constants ────────────────────────────────────────────────────────────────
 const MAX_PHOTOS = 6
 const MAX_INTERESTS = 5
 const MAX_SKILLS = 5
@@ -21,16 +21,16 @@ const MAX_BIO = 1000
 const BASE_INTERESTS = [
   'Business', 'Tech', 'Finance', 'Marketing', 'Design',
   'Startup', 'IA', 'Voyage', 'Sport', 'Art',
-  'Musique', 'Coaching', 'Networking', 'DÃ©veloppement personnel', 'Immobilier',
+  'Musique', 'Coaching', 'Networking', 'Développement personnel', 'Immobilier',
 ]
 const BASE_SKILLS = [
   'Marketing', 'Vente / Closing', 'Copywriting', 'IA / Automation',
-  'DÃ©veloppement Web', 'StratÃ©gie digitale', 'RÃ©seaux sociaux',
-  'Montage vidÃ©o', 'Ads / Acquisition', 'SEO / Growth',
+  'Développement Web', 'Stratégie digitale', 'Réseaux sociaux',
+  'Montage vidéo', 'Ads / Acquisition', 'SEO / Growth',
 ]
 const LEVEL_LABELS = [
-  'DÃ©butant de fou', 'DÃ©butant', 'DÃ©butant avancÃ©', 'DÃ©butant avancÃ©',
-  'IntermÃ©diaire', 'IntermÃ©diaire avancÃ©', 'AvancÃ©', 'AvancÃ©', 'Expert', 'Expert / Boss',
+  'Débutant de fou', 'Débutant', 'Débutant avancé', 'Débutant avancé',
+  'Intermédiaire', 'Intermédiaire avancé', 'Avancé', 'Avancé', 'Expert', 'Expert / Boss',
 ]
 
 interface Skill { name: string; level: number }
@@ -52,11 +52,11 @@ function getExtAndMime(asset: ImagePicker.ImagePickerAsset): { ext: string; cont
   return { ext: 'jpg', contentType: 'image/jpeg' }
 }
 
-// â”€â”€â”€ Composant principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Composant principal ───────────────────────────────────────────────────────
 export default function EditProfilePage() {
   const router = useRouter()
 
-  // â”€â”€ Ã‰tats du formulaire â”€â”€
+  // ── États du formulaire ──
   const [firstName, setFirstName] = useState('')
   const [age, setAge] = useState('')
   const [bio, setBio] = useState('')
@@ -67,7 +67,7 @@ export default function EditProfilePage() {
   const [interestInput, setInterestInput] = useState('')
   const [skillInput, setSkillInput] = useState('')
 
-  // â”€â”€ Ã‰tats filtres (Business Pro seulement) â”€â”€
+  // ── États filtres (Business Pro seulement) ──
   const [ageMin, setAgeMin] = useState('15')
   const [ageMax, setAgeMax] = useState('99')
   const [distanceMin, setDistanceMin] = useState('0')
@@ -75,7 +75,7 @@ export default function EditProfilePage() {
   const [desiredSkills, setDesiredSkills] = useState<Skill[]>([])
   const [userPlan, setUserPlan] = useState<'free' | 'business' | 'business_pro'>('free')
 
-  // â”€â”€ Ã‰tats UI â”€â”€
+  // ── États UI ──
   const [uploading, setUploading] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [loading, setLoading] = useState(true)
@@ -86,18 +86,18 @@ export default function EditProfilePage() {
   const [selectedDesiredSkillName, setSelectedDesiredSkillName] = useState<string | null>(null)
   const [selectedDesiredSkillLevel, setSelectedDesiredSkillLevel] = useState(5)
 
-  // â”€â”€ Ã‰tats ville â”€â”€
+  // ── États ville ──
   const [citySuggestions, setCitySuggestions] = useState<string[]>([])
   const [showCitySuggestions, setShowCitySuggestions] = useState(false)
   const [cityLoading, setCityLoading] = useState(false)
 
-  // â”€â”€ Refs â”€â”€
+  // ── Refs ──
   const profileIdRef = useRef<string | null>(null)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const citySearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isDirtyRef = useRef(false)
 
-  // â”€â”€â”€ Chargement initial depuis Supabase â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Chargement initial depuis Supabase ────────────────────────────────────
   useEffect(() => {
     let cancelled = false
 
@@ -161,7 +161,7 @@ export default function EditProfilePage() {
     return () => { cancelled = true }
   }, [])
 
-  // â”€â”€â”€ Sauvegarde Supabase â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Sauvegarde Supabase ───────────────────────────────────────────────────
   const executeSave = async (data: {
     firstName: string; age: string; bio: string; city: string
     interests: string[]; skills: Skill[]; photos: string[]
@@ -173,11 +173,11 @@ export default function EditProfilePage() {
       return false
     }
 
-    // VÃ©rifier la session active avant de sauvegarder
+    // Vérifier la session active avant de sauvegarder
     const { data: { session } } = await supabase.auth.getSession()
     if (!session?.user) {
       console.error('[EDIT] executeSave: no active session!')
-      Alert.alert('Session expirÃ©e', 'Veuillez vous reconnecter.')
+      Alert.alert('Session expirée', 'Veuillez vous reconnecter.')
       return false
     }
     if (session.user.id !== profileId) {
@@ -225,18 +225,18 @@ export default function EditProfilePage() {
 
     if (!updatedRows || updatedRows.length === 0) {
       console.error('[EDIT] Supabase save: 0 rows updated! RLS blocked or row not found.')
-      Alert.alert('Erreur', 'La sauvegarde a Ã©chouÃ© (aucune ligne modifiÃ©e). VÃ©rifiez votre connexion.')
+      Alert.alert('Erreur', 'La sauvegarde a échoué (aucune ligne modifiée). Vérifiez votre connexion.')
       return false
     }
 
     console.log('[EDIT] Supabase save SUCCESS, rows updated:', updatedRows.length, 'firstName:', data.firstName)
 
-    // Mise Ã  jour du store global â†’ profile/index.tsx reÃ§oit les nouvelles donnÃ©es
+    // Mise à jour du store global → profile/index.tsx reçoit les nouvelles données
     profileStore.set(updatedRows[0] as any)
     return true
   }
 
-  // â”€â”€â”€ Auto-save avec debounce â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Auto-save avec debounce ───────────────────────────────────────────────
   const triggerAutoSave = (data: {
     firstName: string; age: string; bio: string; city: string
     interests: string[]; skills: Skill[]; photos: string[]
@@ -252,7 +252,7 @@ export default function EditProfilePage() {
     }, 800)
   }
 
-  // â”€â”€â”€ Handlers champs texte â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Handlers champs texte ─────────────────────────────────────────────────
   const onFirstNameChange = (v: string) => {
     isDirtyRef.current = true
     setFirstName(v)
@@ -268,7 +268,7 @@ export default function EditProfilePage() {
     setBio(v)
     triggerAutoSave({ firstName, age, bio: v, city, interests, skills, photos })
   }
-  // â”€â”€â”€ Suggestions de villes (Nominatim / OpenStreetMap) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Suggestions de villes (Nominatim / OpenStreetMap) ───────────────────
   const fetchCitySuggestions = async (query: string) => {
     if (query.length < 2) {
       setCitySuggestions([])
@@ -325,7 +325,7 @@ export default function EditProfilePage() {
     triggerAutoSave({ firstName, age, bio, city: cityOnly, interests, skills, photos })
   }
 
-  // â”€â”€â”€ Handlers intÃ©rÃªts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Handlers intérêts ─────────────────────────────────────────────────────
   const addInterest = (name: string) => {
     if (!name || interests.includes(name) || interests.length >= MAX_INTERESTS) return
     const next = [...interests, name]
@@ -344,7 +344,7 @@ export default function EditProfilePage() {
     if (v) { addInterest(v); setInterestInput('') }
   }
 
-  // â”€â”€â”€ Handlers compÃ©tences â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Handlers compétences ──────────────────────────────────────────────────
   const addSkill = () => {
     if (!selectedSkillName || skills.length >= MAX_SKILLS) return
     if (skills.some(s => s.name === selectedSkillName)) return
@@ -376,7 +376,7 @@ export default function EditProfilePage() {
     triggerAutoSave({ firstName, age, bio, city, interests, skills: next, photos })
   }
 
-  // â”€â”€â”€ Handlers filtres (Business Pro) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Handlers filtres (Business Pro) ────────────────────────────────────────
   const addDesiredSkill = () => {
     if (!selectedDesiredSkillName || desiredSkills.length >= MAX_SKILLS) return
     if (desiredSkills.some(s => s.name === selectedDesiredSkillName)) return
@@ -399,7 +399,7 @@ export default function EditProfilePage() {
     triggerAutoSave({ firstName, age, bio, city, interests, skills, photos, ageMin, ageMax, distanceMin, distanceMax, desiredSkills: next })
   }
 
-  // â”€â”€â”€ Handler photo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Handler photo ─────────────────────────────────────────────────────────
   const pickPhoto = async () => {
     if (photos.length >= MAX_PHOTOS) {
       Alert.alert('Limite atteinte', `Maximum ${MAX_PHOTOS} photos.`); return
@@ -408,11 +408,11 @@ export default function EditProfilePage() {
       const isWeb = typeof document !== 'undefined'
       if (!isWeb) {
         const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
-        if (!perm.granted) { Alert.alert('Permission refusÃ©e'); return }
+        if (!perm.granted) { Alert.alert('Permission refusée'); return }
       }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: false, // â† false fixes "Network request failed" on Android
+        allowsEditing: false, // ← false fixes "Network request failed" on Android
         quality: 0.85,
       })
       if (result.canceled || !result.assets?.length) return
@@ -421,7 +421,7 @@ export default function EditProfilePage() {
       setUploading(true)
       const { ext, contentType } = getExtAndMime(asset)
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user) { Alert.alert('Session expirÃ©e'); setUploading(false); return }
+      if (!session?.user) { Alert.alert('Session expirée'); setUploading(false); return }
       // Use expo-file-system to handle Android content:// URIs
       const base64 = await FileSystem.readAsStringAsync(asset.uri, {
         encoding: FileSystem.EncodingType.Base64,
@@ -454,15 +454,15 @@ export default function EditProfilePage() {
     triggerAutoSave({ firstName, age, bio, city, interests, skills, photos: next })
   }
 
-  // â”€â”€â”€ Retour en arriÃ¨re â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Retour en arrière ─────────────────────────────────────────────────────
   const handleBack = async () => {
     if (uploading) {
-      Alert.alert('Veuillez patienter', 'Upload en coursâ€¦'); return
+      Alert.alert('Veuillez patienter', 'Upload en cours…'); return
     }
     // Annuler le debounce en cours
     if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null }
 
-    // Sauvegarder immÃ©diatement si des modifications existent
+    // Sauvegarder immédiatement si des modifications existent
     if (isDirtyRef.current && profileIdRef.current) {
       setSaveStatus('saving')
       await executeSave({ firstName, age, bio, city, interests, skills, photos })
@@ -473,7 +473,7 @@ export default function EditProfilePage() {
     router.replace('/profile' as any)
   }
 
-  // â”€â”€â”€ Affichage chargement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Affichage chargement ──────────────────────────────────────────────────
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -487,7 +487,7 @@ export default function EditProfilePage() {
   const availableInterests = BASE_INTERESTS.filter(i => !interests.includes(i))
   const availableSkills = BASE_SKILLS.filter(s => !skills.some(sk => sk.name === s))
 
-  // â”€â”€â”€ Rendu â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Rendu ─────────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
@@ -498,7 +498,7 @@ export default function EditProfilePage() {
         <Text style={styles.headerTitle}>Modifier mon profil</Text>
         <View style={styles.savingIndicator}>
           {saveStatus === 'saving' && <ActivityIndicator size="small" color={colors.primary} />}
-          {saveStatus === 'saved' && <Text style={styles.savedText}>SauvegardÃ©</Text>}
+          {saveStatus === 'saved' && <Text style={styles.savedText}>Sauvegardé</Text>}
         </View>
       </View>
 
@@ -525,12 +525,12 @@ export default function EditProfilePage() {
           )}
         </ScrollView>
 
-        {/* PrÃ©nom */}
-        <Text style={styles.sectionLabel}>PrÃ©nom</Text>
-        <TextInput style={styles.input} value={firstName} onChangeText={onFirstNameChange} placeholder="Ton prÃ©nom" placeholderTextColor="#555" />
+        {/* Prénom */}
+        <Text style={styles.sectionLabel}>Prénom</Text>
+        <TextInput style={styles.input} value={firstName} onChangeText={onFirstNameChange} placeholder="Ton prénom" placeholderTextColor="#555" />
 
-        {/* Ã‚ge */}
-        <Text style={styles.sectionLabel}>Ã‚ge</Text>
+        {/* Âge */}
+        <Text style={styles.sectionLabel}>Âge</Text>
         <TextInput style={styles.input} value={age} onChangeText={onAgeChange} placeholder="25" placeholderTextColor="#555" keyboardType="number-pad" maxLength={3} />
 
         {/* Ville */}
@@ -576,8 +576,8 @@ export default function EditProfilePage() {
         <TextInput style={[styles.input, styles.textarea]} value={bio} onChangeText={onBioChange} placeholder="Parle un peu de toi..." placeholderTextColor="#555" multiline maxLength={MAX_BIO} />
         <Text style={styles.counter}>{bio.length}/{MAX_BIO}</Text>
 
-        {/* IntÃ©rÃªts */}
-        <Text style={[styles.sectionLabel, { marginTop: 20 }]}>IntÃ©rÃªts ({interests.length}/{MAX_INTERESTS})</Text>
+        {/* Intérêts */}
+        <Text style={[styles.sectionLabel, { marginTop: 20 }]}>Intérêts ({interests.length}/{MAX_INTERESTS})</Text>
         <View style={styles.bubblesRow}>
           {availableInterests.map(interest => (
             <TouchableOpacity key={interest} style={styles.bubbleInterest} onPress={() => addInterest(interest)}>
@@ -587,7 +587,7 @@ export default function EditProfilePage() {
           ))}
         </View>
         <View style={styles.inputRow}>
-          <TextInput style={[styles.input, { flex: 1, marginBottom: 0 }]} value={interestInput} onChangeText={setInterestInput} placeholder="IntÃ©rÃªt personnalisÃ©..." placeholderTextColor="#555" returnKeyType="done" onSubmitEditing={addInterestCustom} />
+          <TextInput style={[styles.input, { flex: 1, marginBottom: 0 }]} value={interestInput} onChangeText={setInterestInput} placeholder="Intérêt personnalisé..." placeholderTextColor="#555" returnKeyType="done" onSubmitEditing={addInterestCustom} />
           <TouchableOpacity style={[styles.addBtn, interests.length >= MAX_INTERESTS && styles.addBtnDisabled]} onPress={addInterestCustom} disabled={interests.length >= MAX_INTERESTS}>
             <Ionicons name="add" size={20} color={colors.bg.primary} />
           </TouchableOpacity>
@@ -601,8 +601,8 @@ export default function EditProfilePage() {
           ))}
         </View>
 
-        {/* CompÃ©tences */}
-        <Text style={[styles.sectionLabel, { marginTop: 20 }]}>CompÃ©tences ({skills.length}/{MAX_SKILLS})</Text>
+        {/* Compétences */}
+        <Text style={[styles.sectionLabel, { marginTop: 20 }]}>Compétences ({skills.length}/{MAX_SKILLS})</Text>
         <View style={styles.bubblesRow}>
           {availableSkills.map(skill => (
             <TouchableOpacity key={skill} style={styles.bubbleSkill} onPress={() => { setSelectedSkillName(skill); setSelectedSkillLevel(5); setShowSkillModal(true) }}>
@@ -612,7 +612,7 @@ export default function EditProfilePage() {
           ))}
         </View>
         <View style={styles.inputRow}>
-          <TextInput style={[styles.input, { flex: 1, marginBottom: 0 }]} value={skillInput} onChangeText={setSkillInput} placeholder="CompÃ©tence personnalisÃ©e..." placeholderTextColor="#555" returnKeyType="done" onSubmitEditing={addSkillCustom} />
+          <TextInput style={[styles.input, { flex: 1, marginBottom: 0 }]} value={skillInput} onChangeText={setSkillInput} placeholder="Compétence personnalisée..." placeholderTextColor="#555" returnKeyType="done" onSubmitEditing={addSkillCustom} />
           <TouchableOpacity style={[styles.addBtn, skills.length >= MAX_SKILLS && styles.addBtnDisabled]} onPress={addSkillCustom} disabled={skills.length >= MAX_SKILLS}>
             <Ionicons name="add" size={20} color={colors.bg.primary} />
           </TouchableOpacity>
@@ -645,8 +645,8 @@ export default function EditProfilePage() {
             <Text style={[styles.sectionLabel, { marginTop: 20 }]}>Filtres de recherche</Text>
             <Text style={styles.filterInfo}>Personnalisez qui vous voulez rencontrer</Text>
 
-            {/* Ã‚ge */}
-            <Text style={[styles.sectionLabel, { marginTop: 16, marginBottom: 8 }]}>Ã‚ge: {ageMin} - {ageMax} ans</Text>
+            {/* Âge */}
+            <Text style={[styles.sectionLabel, { marginTop: 16, marginBottom: 8 }]}>Âge: {ageMin} - {ageMax} ans</Text>
             <View style={styles.rangeRow}>
               <TextInput
                 editable={userPlan === 'business_pro'}
@@ -667,7 +667,7 @@ export default function EditProfilePage() {
             </View>
 
             {/* Distance */}
-            <Text style={[styles.sectionLabel, { marginTop: 16, marginBottom: 8 }]}>Localisation: {distanceMin} - {distanceMax === '1000' ? 'âˆž' : distanceMax} km</Text>
+            <Text style={[styles.sectionLabel, { marginTop: 16, marginBottom: 8 }]}>Localisation: {distanceMin} - {distanceMax === '1000' ? '∞' : distanceMax} km</Text>
             <View style={styles.rangeRow}>
               <TextInput
                 editable={userPlan === 'business_pro'}
@@ -687,8 +687,8 @@ export default function EditProfilePage() {
               />
             </View>
 
-            {/* CompÃ©tences recherchÃ©es */}
-            <Text style={[styles.sectionLabel, { marginTop: 20 }]}>CompÃ©tences recherchÃ©es ({desiredSkills.length}/{MAX_SKILLS})</Text>
+            {/* Compétences recherchées */}
+            <Text style={[styles.sectionLabel, { marginTop: 20 }]}>Compétences recherchées ({desiredSkills.length}/{MAX_SKILLS})</Text>
             <View style={styles.bubblesRow}>
               {BASE_SKILLS.filter(s => !desiredSkills.some(ds => ds.name === s)).map(skill => (
                 <TouchableOpacity
@@ -738,22 +738,22 @@ export default function EditProfilePage() {
           {userPlan !== 'business_pro' && (
             <View style={styles.filterLockedOverlay}>
               <Ionicons name="lock-closed" size={32} color={colors.primary} />
-              <Text style={styles.filterLockedText}>Filtres avancÃ©s</Text>
-              <Text style={styles.filterLockedSubtext}>RÃ©servÃ© aux Business Pro</Text>
+              <Text style={styles.filterLockedText}>Filtres avancés</Text>
+              <Text style={styles.filterLockedSubtext}>Réservé aux Business Pro</Text>
               <TouchableOpacity style={styles.filterUnlockBtn} onPress={() => router.push('/settings?scroll=pro' as any)}>
-                <Text style={styles.filterUnlockBtnText}>DÃ©couvrir Business Pro</Text>
+                <Text style={styles.filterUnlockBtnText}>Découvrir Business Pro</Text>
               </TouchableOpacity>
             </View>
           )}
         </View>
       </ScrollView>
 
-      {/* Modal compÃ©tence */}
+      {/* Modal compétence */}
       <Modal visible={showSkillModal} transparent animationType="slide" onRequestClose={() => setShowSkillModal(false)}>
         <View style={styles.modalBg}>
           <View style={styles.modalBox}>
             <View style={styles.modalTop}>
-              <Text style={styles.modalTitle}>Ajouter une compÃ©tence</Text>
+              <Text style={styles.modalTitle}>Ajouter une compétence</Text>
               <TouchableOpacity onPress={() => setShowSkillModal(false)} hitSlop={12}>
                 <Ionicons name="close" size={24} color={colors.text.primary} />
               </TouchableOpacity>
@@ -779,12 +779,12 @@ export default function EditProfilePage() {
         </View>
       </Modal>
 
-      {/* Modal compÃ©tence recherchÃ©e (Business Pro) */}
+      {/* Modal compétence recherchée (Business Pro) */}
       <Modal visible={showDesiredSkillModal} transparent animationType="slide" onRequestClose={() => setShowDesiredSkillModal(false)}>
         <View style={styles.modalBg}>
           <View style={styles.modalBox}>
             <View style={styles.modalTop}>
-              <Text style={styles.modalTitle}>CompÃ©tence recherchÃ©e</Text>
+              <Text style={styles.modalTitle}>Compétence recherchée</Text>
               <TouchableOpacity onPress={() => setShowDesiredSkillModal(false)} hitSlop={12}>
                 <Ionicons name="close" size={24} color={colors.text.primary} />
               </TouchableOpacity>
@@ -824,7 +824,7 @@ export default function EditProfilePage() {
   )
 }
 
-// â”€â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg.primary },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },

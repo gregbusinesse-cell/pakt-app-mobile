@@ -9,14 +9,14 @@ import { supabase } from '@/lib/supabase/client'
 import { LEGAL_SECTIONS, SUPPORT_EMAIL, LEGAL_CONTENT } from '@/lib/constants/legal-content'
 import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme'
 
-// â”€â”€â”€ Coming Soon component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Coming Soon component ────────────────────────────────────────────────────
 function ComingSoon({ icon, title, subtitle }: { icon: string; title: string; subtitle: string }) {
   return (
     <View style={csStyles.container}>
       <View style={csStyles.iconCircle}>
         <Ionicons name={icon as any} size={40} color="#d4a853" />
       </View>
-      <Text style={csStyles.label}>BientÃ´t disponible</Text>
+      <Text style={csStyles.label}>Bientôt disponible</Text>
       <Text style={csStyles.title}>{title}</Text>
       <Text style={csStyles.subtitle}>{subtitle}</Text>
       <View style={csStyles.dotsRow}>
@@ -169,13 +169,13 @@ export default function SettingsPage() {
     fetchUserData()
   }, [])
 
-  // â”€â”€ Use a referral code â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Use a referral code ──────────────────────────────────────────────────────
   const handleUseCode = async () => {
     if (!inputCode.trim()) return
     setCodeLoading(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user?.id) throw new Error('Non connectÃ©')
+      if (!session?.user?.id) throw new Error('Non connecté')
 
       const SUPA_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
       const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
@@ -188,7 +188,7 @@ export default function SettingsPage() {
       if (!data.success) {
         Alert.alert('Erreur', data.error || 'Code invalide.')
       } else {
-        Alert.alert('Code appliquÃ© âœ…', 'Le code de parrainage a bien Ã©tÃ© enregistrÃ© !')
+        Alert.alert('Code appliqué ✅', 'Le code de parrainage a bien été enregistré !')
         setCodeUsed(true)
         setInputCode('')
 
@@ -203,24 +203,24 @@ export default function SettingsPage() {
 
   const handleCopyReferral = async () => {
     try {
-      const message = `ðŸš€ Rejoins-moi sur PAKT â€” le Tinder du business !\n\nTÃ©lÃ©charge l'app PAKT, crÃ©e ton compte et entre mon code de parrainage dans l'onglet Parrainage :\n\nðŸ‘‰ ${referralCode}\n\nDispo sur Android et bientÃ´t sur iOS.`
+      const message = `🚀 Rejoins-moi sur PAKT — le Tinder du business !\n\nTélécharge l'app PAKT, crée ton compte et entre mon code de parrainage dans l'onglet Parrainage :\n\n👉 ${referralCode}\n\nDispo sur Android et bientôt sur iOS.`
       await Clipboard.setStringAsync(message)
       if (Platform.OS === 'android') {
-        ToastAndroid.show('Message copiÃ© dans le presse-papiers âœ“', ToastAndroid.LONG)
+        ToastAndroid.show('Message copié dans le presse-papiers ✓', ToastAndroid.LONG)
       } else {
-        Alert.alert('CopiÃ© âœ“', 'Le message de parrainage a Ã©tÃ© copiÃ©. Colle-le dans un SMS, WhatsApp ou email.')
+        Alert.alert('Copié ✓', 'Le message de parrainage a été copié. Colle-le dans un SMS, WhatsApp ou email.')
       }
     } catch {
       Alert.alert('Erreur', 'Impossible de copier.')
     }
   }
 
-  // â”€â”€ Claim reward â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Claim reward ───────────────────────────────────────────────────────────────
   const handleClaimReward = async (requiredCount: number, planDays: string) => {
     setClaimingReward(requiredCount)
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user?.id) throw new Error('Non connectÃ©')
+      if (!session?.user?.id) throw new Error('Non connecté')
 
       const SUPA_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
       const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
@@ -234,15 +234,15 @@ export default function SettingsPage() {
       if (!data.success) throw new Error(data.error || 'Erreur serveur')
 
       setClaimedRewards([...claimedRewards, requiredCount])
-      Alert.alert('RÃ©compense activÃ©e âœ…', `Ton plan ${planDays} a Ã©tÃ© activÃ© !`)
+      Alert.alert('Récompense activée ✅', `Ton plan ${planDays} a été activé !`)
     } catch (err: any) {
-      Alert.alert('Erreur', err.message || 'Impossible de rÃ©clamer la rÃ©compense.')
+      Alert.alert('Erreur', err.message || 'Impossible de réclamer la récompense.')
     } finally {
       setClaimingReward(null)
     }
   }
 
-  // â”€â”€ Scroll to Business Pro when ?scroll=pro â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Scroll to Business Pro when ?scroll=pro ──────────────────────────────────
   useEffect(() => {
     if (scroll === 'pro' && !loading) {
       setActiveTab('plans')
@@ -252,12 +252,12 @@ export default function SettingsPage() {
     }
   }, [scroll, loading])
 
-  // â”€â”€ Password reset â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Password reset ──────────────────────────────────────────────────────────
   const handleChangePassword = async () => {
     if (!userEmail) { Alert.alert('Erreur', 'Email introuvable'); return }
     Alert.alert(
-      'RÃ©initialiser le mot de passe',
-      `Un lien sera envoyÃ© Ã  :\n${userEmail}\n\nOuvre-le depuis ton tÃ©lÃ©phone.`,
+      'Réinitialiser le mot de passe',
+      `Un lien sera envoyé à :\n${userEmail}\n\nOuvre-le depuis ton téléphone.`,
       [
         { text: 'Annuler', style: 'cancel' },
         {
@@ -276,10 +276,10 @@ export default function SettingsPage() {
                 },
               })
               const data = await res.json()
-              if (data.success) Alert.alert('Email envoyÃ© âœ…', 'VÃ©rifie ta boÃ®te mail et clique sur le lien depuis ton tÃ©lÃ©phone pour choisir un nouveau mot de passe.')
+              if (data.success) Alert.alert('Email envoyé ✅', 'Vérifie ta boîte mail et clique sur le lien depuis ton téléphone pour choisir un nouveau mot de passe.')
               else Alert.alert('Erreur', data.error || 'Impossible d\'envoyer l\'email.')
             } catch {
-              Alert.alert('Erreur rÃ©seau', 'Impossible de contacter le serveur.')
+              Alert.alert('Erreur réseau', 'Impossible de contacter le serveur.')
             }
           },
         },
@@ -287,22 +287,22 @@ export default function SettingsPage() {
     )
   }
 
-  // â”€â”€ Account suspension â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Account suspension ──────────────────────────────────────────────────────
   const handleSuspendAccount = async () => {
     if (isSuspended) {
       // Reactivate
       Alert.alert(
-        'RÃ©activer mon compte',
+        'Réactiver mon compte',
         'Ton profil redeviendra visible par les autres membres PAKT.',
         [
           { text: 'Annuler', style: 'cancel' },
           {
-            text: 'RÃ©activer',
+            text: 'Réactiver',
             onPress: async () => {
               if (!userId) return
               const { error } = await supabase.from('profiles').update({ is_suspended: false }).eq('id', userId)
               if (error) Alert.alert('Erreur', error.message)
-              else { setIsSuspended(false); Alert.alert('Compte rÃ©activÃ© âœ…', 'Ton profil est Ã  nouveau visible.') }
+              else { setIsSuspended(false); Alert.alert('Compte réactivé ✅', 'Ton profil est à nouveau visible.') }
             },
           },
         ]
@@ -311,7 +311,7 @@ export default function SettingsPage() {
       // Suspend
       Alert.alert(
         'Mettre mon compte en pause',
-        'Ton profil ne sera plus affichÃ© aux autres membres. Tu pourras le rÃ©activer quand tu veux.',
+        'Ton profil ne sera plus affiché aux autres membres. Tu pourras le réactiver quand tu veux.',
         [
           { text: 'Annuler', style: 'cancel' },
           {
@@ -321,7 +321,7 @@ export default function SettingsPage() {
               if (!userId) return
               const { error } = await supabase.from('profiles').update({ is_suspended: true }).eq('id', userId)
               if (error) Alert.alert('Erreur', error.message)
-              else { setIsSuspended(true); Alert.alert('Compte en pause â¸', 'Ton profil est masquÃ©. Reviens ici pour le rÃ©activer.') }
+              else { setIsSuspended(true); Alert.alert('Compte en pause ⏸', 'Ton profil est masqué. Reviens ici pour le réactiver.') }
             },
           },
         ]
@@ -329,12 +329,12 @@ export default function SettingsPage() {
     }
   }
 
-  // â”€â”€ Account deletion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Account deletion ────────────────────────────────────────────────────────
   const handleDeleteAccount = () => {
     router.push('/delete-account' as any)
   }
 
-  // â”€â”€ Re-fetch plan when screen comes into focus (after returning from payment) â”€â”€
+  // ── Re-fetch plan when screen comes into focus (after returning from payment) ──
   useFocusEffect(
     useCallback(() => {
       const refreshPlan = async () => {
@@ -356,14 +356,14 @@ export default function SettingsPage() {
     }, [])
   )
 
-  // â”€â”€ Start checkout (direct fetch - more reliable than supabase.functions.invoke) â”€
+  // ── Start checkout (direct fetch - more reliable than supabase.functions.invoke) ─
   const handleUpgrade = async (plan: 'business' | 'business_pro') => {
     setCheckoutLoading(plan)
     try {
       // Get JWT
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.access_token) {
-        Alert.alert('Erreur', 'Tu dois Ãªtre connectÃ© pour souscrire.')
+        Alert.alert('Erreur', 'Tu dois être connecté pour souscrire.')
         return
       }
 
@@ -390,7 +390,7 @@ export default function SettingsPage() {
       }
 
       if (!data?.url) {
-        Alert.alert('Erreur paiement', data?.error || 'Aucune URL reÃ§ue')
+        Alert.alert('Erreur paiement', data?.error || 'Aucune URL reçue')
         return
       }
 
@@ -398,7 +398,7 @@ export default function SettingsPage() {
       await Linking.openURL(data.url)
 
     } catch (err: any) {
-      Alert.alert('Erreur rÃ©seau', err?.message || 'Impossible de contacter le serveur.')
+      Alert.alert('Erreur réseau', err?.message || 'Impossible de contacter le serveur.')
     } finally {
       setCheckoutLoading(null)
     }
@@ -410,7 +410,7 @@ export default function SettingsPage() {
       router.replace('/auth')
     } catch (err) {
       console.error('Sign out error:', err)
-      alert('Erreur lors de la dÃ©connexion')
+      alert('Erreur lors de la déconnexion')
     }
   }
 
@@ -420,23 +420,23 @@ export default function SettingsPage() {
       name: 'FREE',
       displayName: 'Gratuit',
       price: null,
-      features: ['Swipes illimitÃ©s', 'Likes illimitÃ©s', 'Impossible de communiquer'],
+      features: ['Swipes illimités', 'Likes illimités', 'Impossible de communiquer'],
     },
     {
       id: 'business',
       name: 'BUSINESS',
       displayName: 'Business',
-      price: '5â‚¬',
+      price: '5€',
       priceSubtext: '/mois',
-      features: ['Swipes illimitÃ©s', 'Likes illimitÃ©s', 'Messages illimitÃ©s', 'Encourage les membres Free'],
+      features: ['Swipes illimités', 'Likes illimités', 'Messages illimités', 'Encourage les membres Free'],
     },
     {
       id: 'business_pro',
       name: 'BUSINESS PRO',
       displayName: 'Business Pro',
-      price: '10â‚¬',
+      price: '10€',
       priceSubtext: '/mois',
-      features: ['Tout Business inclus', 'Voir qui vous a likÃ©', 'Retour en arriÃ¨re (annuler un swipe)', 'Filtres avancÃ©s (Ã¢ge + distance)', 'AccÃ¨s prioritaire aux Ã©vÃ©nements'],
+      features: ['Tout Business inclus', 'Voir qui vous a liké', 'Retour en arrière (annuler un swipe)', 'Filtres avancés (âge + distance)', 'Accès prioritaire aux événements'],
     },
   ]
 
@@ -456,11 +456,11 @@ export default function SettingsPage() {
       >
         {[
           { id: 'plans', label: 'Plans' },
-          { id: 'events', label: 'Ã‰vÃ©nements' },
+          { id: 'events', label: 'Événements' },
           { id: 'news', label: 'Actus' },
           { id: 'referral', label: 'Parrainage' },
           { id: 'compte', label: 'Compte' },
-          { id: 'legal', label: 'Mentions lÃ©gales' },
+          { id: 'legal', label: 'Mentions légales' },
         ].map((tab) => (
           <TouchableOpacity
             key={tab.id}
@@ -558,15 +558,15 @@ export default function SettingsPage() {
                   </View>
                 ))}
 
-                {/* Logout button removed from Plans â€” find it in Compte tab */}
+                {/* Logout button removed from Plans — find it in Compte tab */}
               </>
             )}
           </View>
         )}
 
-        {activeTab === 'events' && <ComingSoon icon="calendar-outline" title="Ã‰vÃ©nements" subtitle="Les Ã©vÃ©nements networking PAKT arrivent bientÃ´t. Sois le premier informÃ©." />}
+        {activeTab === 'events' && <ComingSoon icon="calendar-outline" title="Événements" subtitle="Les événements networking PAKT arrivent bientôt. Sois le premier informé." />}
 
-        {activeTab === 'news' && <ComingSoon icon="newspaper-outline" title="ActualitÃ©s" subtitle="Les derniÃ¨res nouvelles de PAKT seront disponibles ici trÃ¨s prochainement." />}
+        {activeTab === 'news' && <ComingSoon icon="newspaper-outline" title="Actualités" subtitle="Les dernières nouvelles de PAKT seront disponibles ici très prochainement." />}
 
         {activeTab === 'referral' && (
           <View>
@@ -574,7 +574,7 @@ export default function SettingsPage() {
 
             <View style={styles.referralCard}>
               <Ionicons name="gift" size={32} color={colors.primary} style={styles.referralIcon} />
-              <Text style={styles.referralTitle}>Gagnez des rÃ©compenses</Text>
+              <Text style={styles.referralTitle}>Gagnez des récompenses</Text>
               <Text style={styles.referralText}>
                 Invitez vos amis sur PAKT et recevez des avantages exclusifs
               </Text>
@@ -583,7 +583,7 @@ export default function SettingsPage() {
             {/* Progress Section */}
             <View style={styles.progressSection}>
               <View style={styles.progressHeader}>
-                <Text style={styles.progressLabel}>Amis invitÃ©s</Text>
+                <Text style={styles.progressLabel}>Amis invités</Text>
                 <Text style={styles.progressCount}>{referralCount} / 5</Text>
               </View>
               <View style={styles.progressBar}>
@@ -610,12 +610,12 @@ export default function SettingsPage() {
             </View>
 
             <View style={styles.benefitsContainer}>
-              <Text style={styles.benefitsTitle}>Paliers de rÃ©compense</Text>
+              <Text style={styles.benefitsTitle}>Paliers de récompense</Text>
               {[
-                { count: 1, title: '1 ami invitÃ©', reward: '3 jours Business', days: '3J Business' },
-                { count: 3, title: '3 amis invitÃ©s', reward: '7 jours Business', days: '7J Business' },
-                { count: 5, title: '5 amis invitÃ©s', reward: '1 mois Business', days: '1M Business' },
-                { count: 10, title: '10 amis invitÃ©s', reward: '1 mois Business Pro', days: '1M Business Pro' },
+                { count: 1, title: '1 ami invité', reward: '3 jours Business', days: '3J Business' },
+                { count: 3, title: '3 amis invités', reward: '7 jours Business', days: '7J Business' },
+                { count: 5, title: '5 amis invités', reward: '1 mois Business', days: '1M Business' },
+                { count: 10, title: '10 amis invités', reward: '1 mois Business Pro', days: '1M Business Pro' },
               ].map((benefit) => {
                 const canClaim = referralCount >= benefit.count
                 return (
@@ -634,7 +634,7 @@ export default function SettingsPage() {
                         {claimingReward === benefit.count ? (
                           <ActivityIndicator color={colors.bg.primary} size="small" />
                         ) : (
-                          <Text style={styles.claimButtonText}>RÃ©clamer</Text>
+                          <Text style={styles.claimButtonText}>Réclamer</Text>
                         )}
                       </TouchableOpacity>
                     )}
@@ -644,7 +644,7 @@ export default function SettingsPage() {
             </View>
 
 
-            {/* Referral Code â€” tap to copy full message */}
+            {/* Referral Code — tap to copy full message */}
             <View style={styles.codeSection}>
               <Text style={styles.codeLabel}>Ton code de parrainage</Text>
               <TouchableOpacity style={styles.codeBox} onPress={handleCopyReferral} activeOpacity={0.7}>
@@ -654,7 +654,7 @@ export default function SettingsPage() {
                 </View>
               </TouchableOpacity>
               <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 8, textAlign: 'center', lineHeight: 18 }}>
-                Appuie sur le code pour copier un message prÃªt Ã  envoyer{'\n'}(SMS, WhatsApp, email...)
+                Appuie sur le code pour copier un message prêt à envoyer{'\n'}(SMS, WhatsApp, email...)
               </Text>
             </View>
           </View>
@@ -667,7 +667,7 @@ export default function SettingsPage() {
             {/* Email Section */}
             <View style={styles.accountSection}>
               <Text style={styles.accountLabel}>Adresse email</Text>
-              <Text style={styles.accountValue}>{userEmail || 'Non dÃ©fini'}</Text>
+              <Text style={styles.accountValue}>{userEmail || 'Non défini'}</Text>
             </View>
 
 
@@ -683,10 +683,10 @@ export default function SettingsPage() {
               <Ionicons name={isSuspended ? 'play-outline' : 'pause-outline'} size={18} color={isSuspended ? '#4caf50' : '#ff9800'} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.accountButtonText}>
-                  {isSuspended ? 'RÃ©activer mon compte' : 'Mettre en pause'}
+                  {isSuspended ? 'Réactiver mon compte' : 'Mettre en pause'}
                 </Text>
                 <Text style={styles.accountButtonSubtext}>
-                  {isSuspended ? 'â¸ Ton profil est actuellement masquÃ©' : 'Ton profil ne sera plus visible par les autres'}
+                  {isSuspended ? '⏸ Ton profil est actuellement masqué' : 'Ton profil ne sera plus visible par les autres'}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color="#ffffff44" />
@@ -697,7 +697,7 @@ export default function SettingsPage() {
               <Ionicons name="trash-outline" size={18} color="#ff4444" />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.accountButtonText, { color: '#ff4444' }]}>Supprimer mon compte</Text>
-                <Text style={[styles.accountButtonSubtext, { color: '#ff444488' }]}>Action dÃ©finitive et irrÃ©versible</Text>
+                <Text style={[styles.accountButtonSubtext, { color: '#ff444488' }]}>Action définitive et irréversible</Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color="#ffffff44" />
             </TouchableOpacity>
@@ -708,14 +708,14 @@ export default function SettingsPage() {
               onPress={handleSignOut}
             >
               <Ionicons name="log-out-outline" size={18} color={colors.text.primary} />
-              <Text style={styles.logoutButtonTextAlt}>Se dÃ©connecter</Text>
+              <Text style={styles.logoutButtonTextAlt}>Se déconnecter</Text>
             </TouchableOpacity>
           </View>
         )}
 
         {activeTab === 'legal' && (
           <View>
-            <Text style={styles.sectionHeader}>Mentions lÃ©gales</Text>
+            <Text style={styles.sectionHeader}>Mentions légales</Text>
             {LEGAL_SECTIONS.map((section) => (
               <TouchableOpacity
                 key={section.id}
@@ -735,7 +735,7 @@ export default function SettingsPage() {
 
             {/* Footer */}
             <View style={styles.footerInfo}>
-              <Text style={styles.footerText}>PAKT Â© 2026</Text>
+              <Text style={styles.footerText}>PAKT © 2026</Text>
               <Text style={styles.footerText}>Version 1.0.0</Text>
             </View>
           </View>

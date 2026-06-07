@@ -75,7 +75,7 @@ export default function OnboardingPage() {
 
   const progress = ((step + 1) / TOTAL_STEPS) * 100
 
-  // â”€â”€â”€ Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Navigation ──────────────────────────────────────────────────────────────
   const animateSlide = (direction: number, callback: () => void) => {
     Animated.timing(slideAnim, {
       toValue: -direction * SCREEN_WIDTH,
@@ -106,7 +106,7 @@ export default function OnboardingPage() {
     animateSlide(-1, () => setStep((s) => s - 1))
   }
 
-  // â”€â”€â”€ Validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Validation ──────────────────────────────────────────────────────────────
   const canProceed = (): boolean => {
     switch (step) {
       case 0:
@@ -128,7 +128,7 @@ export default function OnboardingPage() {
     }
   }
 
-  // â”€â”€â”€ Interests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Interests ───────────────────────────────────────────────────────────────
   const toggleInterest = (interest: string) => {
     const norm = interest.trim().toLowerCase()
     const already = selectedInterests.some((i) => i.toLowerCase() === norm)
@@ -151,7 +151,7 @@ export default function OnboardingPage() {
     setOtherInput('')
   }
 
-  // â”€â”€â”€ City Search (OpenStreetMap Nominatim - free, no API key) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── City Search (OpenStreetMap Nominatim - free, no API key) ────────────────
   const searchCities = async (text: string) => {
     if (text.length < 2) {
       setCitySuggestions([])
@@ -201,7 +201,7 @@ export default function OnboardingPage() {
     const city = addr.city || addr.town || addr.village || addr.municipality || p.display_name.split(',')[0]
     const country = addr.country || ''
     const state = addr.state || ''
-    // Format: "Paris, ÃŽle-de-France, France"
+    // Format: "Paris, Île-de-France, France"
     const parts = [city, state, country].filter(Boolean)
     return parts.slice(0, 3).join(', ')
   }
@@ -224,7 +224,7 @@ export default function OnboardingPage() {
     })
   }
 
-  // â”€â”€â”€ Skills â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Skills ──────────────────────────────────────────────────────────────────
   const toggleSkill = (name: string) => {
     const already = selectedSkills.find((s) => s.name === name)
     if (already) {
@@ -240,7 +240,7 @@ export default function OnboardingPage() {
     )
   }
 
-  // â”€â”€â”€ Photos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Photos ──────────────────────────────────────────────────────────────────
   const pickPhoto = async () => {
     if (photos.length >= MAX_PHOTOS) {
       Alert.alert('Maximum atteint', `Tu peux ajouter au maximum ${MAX_PHOTOS} photos.`)
@@ -251,8 +251,8 @@ export default function OnboardingPage() {
     const permResult = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (permResult.status !== 'granted') {
       Alert.alert(
-        'Permission refusÃ©e',
-        "Va dans ParamÃ¨tres â†’ Applications â†’ PAKT â†’ Autorisations â†’ Photos et autorise l'accÃ¨s."
+        'Permission refusée',
+        "Va dans Paramètres → Applications → PAKT → Autorisations → Photos et autorise l'accès."
       )
       return
     }
@@ -262,18 +262,18 @@ export default function OnboardingPage() {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         quality: 0.8,
-        // No base64, no allowsEditing, no selectionLimit â€” simplest possible config
+        // No base64, no allowsEditing, no selectionLimit — simplest possible config
       })
 
       if (result.canceled) return
 
       const uri = result.assets?.[0]?.uri
       if (!uri) {
-        Alert.alert('Erreur', 'Impossible de rÃ©cupÃ©rer la photo. RÃ©essaie.')
+        Alert.alert('Erreur', 'Impossible de récupérer la photo. Réessaie.')
         return
       }
 
-      // Update state â€” triggers immediate re-render with the photo shown
+      // Update state — triggers immediate re-render with the photo shown
       setPhotos(prev => [...prev, { uri }])
 
     } catch (err: any) {
@@ -286,16 +286,16 @@ export default function OnboardingPage() {
     setPhotos((prev) => prev.filter((_, i) => i !== index))
   }
 
-  // â”€â”€â”€ Submit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Submit ───────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     setLoading(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user?.id) throw new Error('Non connectÃ©')
+      if (!session?.user?.id) throw new Error('Non connecté')
 
       const userId = session.user.id
 
-      // Upload photos via fetch â†’ blob (works on Android without base64)
+      // Upload photos via fetch → blob (works on Android without base64)
       setPhotoUploading(true)
       const photoUrls: string[] = []
       for (let i = 0; i < photos.length; i++) {
@@ -318,7 +318,7 @@ export default function OnboardingPage() {
           const base64 = await FileSystem.readAsStringAsync(uri, {
             encoding: FileSystem.EncodingType.Base64,
           })
-          // Decode base64 â†’ Uint8Array
+          // Decode base64 → Uint8Array
           const binaryString = atob(base64)
           const byteArray = new Uint8Array(binaryString.length)
           for (let j = 0; j < binaryString.length; j++) {
@@ -344,7 +344,7 @@ export default function OnboardingPage() {
       }
       setPhotoUploading(false)
 
-      // Upsert profile â€” save ALL fields including email
+      // Upsert profile — save ALL fields including email
       const { error: profileError } = await supabase
         .from('profiles')
         .upsert({
@@ -379,7 +379,7 @@ export default function OnboardingPage() {
         })
         const refData = await refRes.json()
         if (!refData.success) console.warn('[ONBOARDING] Referral code error:', refData.error)
-        // Don't block if code fails â€” user can add it later
+        // Don't block if code fails — user can add it later
       }
 
       // Update global profile store so profile page shows photos immediately
@@ -403,14 +403,14 @@ export default function OnboardingPage() {
       router.replace('/(app)/swipe' as any)
     } catch (err: any) {
       console.error('[ONBOARDING] Submit error:', err)
-      Alert.alert('Erreur', err?.message || 'Impossible de crÃ©er ton profil. RÃ©essaie.')
+      Alert.alert('Erreur', err?.message || 'Impossible de créer ton profil. Réessaie.')
     } finally {
       setLoading(false)
       setPhotoUploading(false)
     }
   }
 
-  // â”€â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Render ───────────────────────────────────────────────────────────────────
   const renderStep = () => {
     switch (step) {
       case 0:
@@ -510,7 +510,7 @@ export default function OnboardingPage() {
           {/* Skip button on referral step */}
           {step === 6 && (
             <TouchableOpacity style={styles.skipBtn} onPress={goNext} disabled={loading}>
-              <Text style={styles.skipBtnText}>Je n'ai pas de code â†’</Text>
+              <Text style={styles.skipBtnText}>Je n'ai pas de code →</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
@@ -539,7 +539,7 @@ export default function OnboardingPage() {
   )
 }
 
-// â”€â”€â”€ Step 0: Bienvenue â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Step 0: Bienvenue ────────────────────────────────────────────────────────
 function StepWelcome({
   firstName, setFirstName, age, setAge,
 }: {
@@ -559,7 +559,7 @@ function StepWelcome({
       <View style={s.gap24}>
         <TextInput
           style={s.input}
-          placeholder="Ton prÃ©nom"
+          placeholder="Ton prénom"
           placeholderTextColor={colors.text.disabled}
           value={firstName}
           onChangeText={setFirstName}
@@ -570,7 +570,7 @@ function StepWelcome({
         <View>
           <TextInput
             style={s.input}
-            placeholder="Ton Ã¢ge"
+            placeholder="Ton âge"
             placeholderTextColor={colors.text.disabled}
             value={age}
             onChangeText={setAge}
@@ -578,7 +578,7 @@ function StepWelcome({
             maxLength={2}
           />
           <Text style={s.hint}>
-            En renseignant ton Ã¢ge, tu dÃ©clares avoir au moins 15 ans.
+            En renseignant ton âge, tu déclares avoir au moins 15 ans.
           </Text>
         </View>
 
@@ -595,18 +595,18 @@ function StepWelcome({
   )
 }
 
-// â”€â”€â”€ Step 1: Bio â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Step 1: Bio ─────────────────────────────────────────────────────────────
 function StepBio({ bio, setBio }: { bio: string; setBio: (v: string) => void }) {
   return (
     <View style={s.stepContainer}>
       <Text style={s.stepTitle}>Ta bio</Text>
-      <Text style={s.stepSubtitle}>PrÃ©sente-toi en quelques mots</Text>
+      <Text style={s.stepSubtitle}>Présente-toi en quelques mots</Text>
 
       <View style={s.gap24}>
         <View>
           <TextInput
             style={[s.input, s.textArea]}
-            placeholder="Qui es-tu ? Quels sont tes projets ? Qu'est-ce qui te dÃ©finit..."
+            placeholder="Qui es-tu ? Quels sont tes projets ? Qu'est-ce qui te définit..."
             placeholderTextColor={colors.text.disabled}
             value={bio}
             onChangeText={setBio}
@@ -615,7 +615,7 @@ function StepBio({ bio, setBio }: { bio: string; setBio: (v: string) => void }) 
             textAlignVertical="top"
           />
           <View style={s.bioMeta}>
-            <Text style={s.hint}>Minimum 21 caractÃ¨res</Text>
+            <Text style={s.hint}>Minimum 21 caractères</Text>
             <Text style={[s.hint, bio.length > 0 && bio.length < 21 && { color: '#ff6b6b' }]}>
               {bio.length}/500
             </Text>
@@ -626,7 +626,7 @@ function StepBio({ bio, setBio }: { bio: string; setBio: (v: string) => void }) 
   )
 }
 
-// â”€â”€â”€ Step 2: IntÃ©rÃªts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Step 2: Intérêts ────────────────────────────────────────────────────────
 function StepInterests({
   selectedInterests, toggleInterest, otherInput, setOtherInput, addCustomInterest,
 }: {
@@ -640,8 +640,8 @@ function StepInterests({
 
   return (
     <View style={s.stepContainer}>
-      <Text style={s.stepTitle}>Tes intÃ©rÃªts</Text>
-      <Text style={s.stepSubtitle}>SÃ©lectionne ce qui te correspond (max 5)</Text>
+      <Text style={s.stepTitle}>Tes intérêts</Text>
+      <Text style={s.stepSubtitle}>Sélectionne ce qui te correspond (max 5)</Text>
 
       {/* Selected */}
       {selectedInterests.length > 0 && (
@@ -686,7 +686,7 @@ function StepInterests({
         <View style={s.customInputRow}>
           <TextInput
             style={[s.input, { flex: 1 }]}
-            placeholder="Autre (prÃ©cise...)"
+            placeholder="Autre (précise...)"
             placeholderTextColor={colors.text.disabled}
             value={otherInput}
             onChangeText={setOtherInput}
@@ -700,13 +700,13 @@ function StepInterests({
             </TouchableOpacity>
           )}
         </View>
-        <Text style={s.hint}>SÃ©pare tes intÃ©rÃªts par une virgule â€¢ Maximum {MAX_INTERESTS}</Text>
+        <Text style={s.hint}>Sépare tes intérêts par une virgule • Maximum {MAX_INTERESTS}</Text>
       </View>
     </View>
   )
 }
 
-// â”€â”€â”€ Step 3: Ville â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Step 3: Ville ───────────────────────────────────────────────────────────
 function StepCity({
   cityInput, onCityInputChange, citySuggestions, cityLoading, citySelected, selectCity,
 }: {
@@ -720,7 +720,7 @@ function StepCity({
   return (
     <View style={s.stepContainer}>
       <Text style={s.stepTitle}>Ta ville</Text>
-      <Text style={s.stepSubtitle}>Pour trouver des personnes prÃ¨s de toi</Text>
+      <Text style={s.stepSubtitle}>Pour trouver des personnes près de toi</Text>
 
       <View style={{ position: 'relative', zIndex: 100 }}>
         <TextInput
@@ -762,16 +762,16 @@ function StepCity({
       {citySelected ? (
         <View style={s.cityConfirmed}>
           <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
-          <Text style={s.cityConfirmedText}>Ville sÃ©lectionnÃ©e : {citySelected.name}</Text>
+          <Text style={s.cityConfirmedText}>Ville sélectionnée : {citySelected.name}</Text>
         </View>
       ) : cityInput.trim().length > 0 ? (
-        <Text style={s.hint}>SÃ©lectionne une ville dans la liste pour continuer.</Text>
+        <Text style={s.hint}>Sélectionne une ville dans la liste pour continuer.</Text>
       ) : null}
     </View>
   )
 }
 
-// â”€â”€â”€ Step 4: CompÃ©tences â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Step 4: Compétences ─────────────────────────────────────────────────────
 function StepSkills({
   selectedSkills, toggleSkill, updateSkillLevel, skillSearch, setSkillSearch,
 }: {
@@ -787,15 +787,15 @@ function StepSkills({
 
   return (
     <View style={s.stepContainer}>
-      <Text style={s.stepTitle}>Tes compÃ©tences</Text>
+      <Text style={s.stepTitle}>Tes compétences</Text>
       <Text style={s.stepSubtitle}>
-        SÃ©lectionne uniquement celles que tu maÃ®trises vraiment.
+        Sélectionne uniquement celles que tu maîtrises vraiment.
       </Text>
       <Text style={[s.hint, { marginTop: -8 }]}>
-        Chaque compÃ©tence nÃ©cessite un niveau honnÃªte de 1 Ã  10.
+        Chaque compétence nécessite un niveau honnête de 1 à 10.
       </Text>
 
-      {/* Skill list â€” search bar removed, all skills shown directly */}
+      {/* Skill list — search bar removed, all skills shown directly */}
       <View style={s.chipsRow}>
         {filtered.map((skill) => {
           const selected = selectedSkills.find((s) => s.name === skill)
@@ -838,14 +838,14 @@ function StepSkills({
 
       {selectedSkills.length === 0 && (
         <Text style={[s.hint, { textAlign: 'center', marginTop: 12 }]}>
-          Les compÃ©tences sont optionnelles. Tu peux les ajouter plus tard.
+          Les compétences sont optionnelles. Tu peux les ajouter plus tard.
         </Text>
       )}
     </View>
   )
 }
 
-// â”€â”€â”€ Step 5: Photos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Step 5: Photos ──────────────────────────────────────────────────────────
 function StepPhotos({
   photos, pickPhoto, removePhoto, photoUploading,
 }: {
@@ -861,9 +861,9 @@ function StepPhotos({
     <View style={s.stepContainer}>
       <Text style={s.stepTitle}>Tes photos</Text>
       <Text style={s.stepSubtitle}>
-        Ajoute jusqu'Ã  {MAX_PHOTOS} photos (minimum 1)
+        Ajoute jusqu'à {MAX_PHOTOS} photos (minimum 1)
       </Text>
-      <Text style={s.hint}>JPG, PNG ou WebP â€¢ ConseillÃ© : 3/4</Text>
+      <Text style={s.hint}>JPG, PNG ou WebP • Conseillé : 3/4</Text>
 
       {photoUploading && (
         <View style={s.uploadingRow}>
@@ -912,7 +912,7 @@ function StepPhotos({
   )
 }
 
-// â”€â”€â”€ Base64 decoder for Supabase storage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Base64 decoder for Supabase storage ─────────────────────────────────────
 function decode(base64: string): Uint8Array {
   const binaryString = atob(base64)
   const bytes = new Uint8Array(binaryString.length)
@@ -922,7 +922,7 @@ function decode(base64: string): Uint8Array {
   return bytes
 }
 
-// â”€â”€â”€ Main Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Main Styles ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   root: {
     flex: 1,
@@ -997,7 +997,7 @@ const styles = StyleSheet.create({
   },
 })
 
-// â”€â”€â”€ Shared Step Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Shared Step Styles ───────────────────────────────────────────────────────
 const s = StyleSheet.create({
   stepContainer: {
     paddingTop: 8,
@@ -1249,7 +1249,7 @@ const s = StyleSheet.create({
   },
 })
 
-// â”€â”€â”€ Step 6: Code de parrainage (optionnel) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Step 6: Code de parrainage (optionnel) ───────────────────────────────────
 function StepReferral({ code, onChange }: { code: string; onChange: (v: string) => void }) {
   return (
     <View style={{ paddingHorizontal: 24, paddingTop: 16 }}>
@@ -1257,7 +1257,7 @@ function StepReferral({ code, onChange }: { code: string; onChange: (v: string) 
         Code de parrainage
       </Text>
       <Text style={{ color: colors.text.secondary, fontSize: 15, lineHeight: 22, marginBottom: 32 }}>
-        Tu as reÃ§u un code d'un ami dÃ©jÃ  sur PAKT ? Entre-le ici. Sinon, appuie sur "Je n'ai pas de code".
+        Tu as reçu un code d'un ami déjà sur PAKT ? Entre-le ici. Sinon, appuie sur "Je n'ai pas de code".
       </Text>
 
       <View style={{
@@ -1281,7 +1281,7 @@ function StepReferral({ code, onChange }: { code: string; onChange: (v: string) 
         borderWidth: 1, borderColor: 'rgba(212,168,83,0.15)', padding: 14,
       }}>
         <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, lineHeight: 20 }}>
-          ðŸŽ En entrant un code valide, ton ami reÃ§oit une rÃ©compense. Ce code n'est utilisable qu'une seule fois, lors de l'inscription.
+          🎁 En entrant un code valide, ton ami reçoit une récompense. Ce code n'est utilisable qu'une seule fois, lors de l'inscription.
         </Text>
       </View>
     </View>
