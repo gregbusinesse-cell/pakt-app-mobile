@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useFocusEffect } from '@react-navigation/native'
 import { supabase } from '@/lib/supabase/client'
+import { useInAppPurchases } from '@/lib/hooks/useInAppPurchases'
 import { LEGAL_SECTIONS, SUPPORT_EMAIL, LEGAL_CONTENT } from '@/lib/constants/legal-content'
 import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme'
 
@@ -83,6 +84,9 @@ export default function SettingsPage() {
   const scrollViewRef = useRef<ScrollView>(null)
   const proCardRef = useRef<View>(null)
   const proCardY = useRef<number>(0)
+
+  // IAP Hook
+  const { loading: iapLoading, error: iapError, requestPurchase } = useInAppPurchases()
 
   const [activeTab, setActiveTab] = useState<'plans' | 'events' | 'news' | 'referral' | 'legal' | 'compte'>('plans')
   const [currentPlan, setCurrentPlan] = useState<'FREE' | 'BUSINESS' | 'BUSINESS PRO'>('FREE')
@@ -356,7 +360,7 @@ export default function SettingsPage() {
     }, [])
   )
 
-  // ── Start checkout (direct fetch - more reliable than supabase.functions.invoke) ─
+  // ── Start checkout (iOS uses In-App Purchase, others use Stripe) ─
   const handleUpgrade = async (plan: 'business' | 'business_pro') => {
     setCheckoutLoading(plan)
     try {
@@ -367,7 +371,33 @@ export default function SettingsPage() {
         return
       }
 
-      // Direct fetch to Edge Function - bypasses Supabase JS client issues
+      // iOS: Use In-App Purchase
+      if (Platform.OS === 'ios') {
+        console.log('[Settings] Using In-App Purchase for iOS')
+        const result = await requestPurchase(plan)
+
+        if (result?.success) {
+          Alert.alert('Succès', `Tu as souscrit à ${plan === 'business' ? 'PAKT Business' : 'PAKT Business Pro'}!`)
+
+          // Refresh plan display
+          const { data } = await supabase
+            .from('profiles')
+            .select('subscription_plan')
+            .eq('id', session.user.id)
+            .single()
+
+          if (data?.subscription_plan) {
+            const planMap = { free: 'FREE', business: 'BUSINESS', business_pro: 'BUSINESS PRO', pro: 'BUSINESS PRO' } as Record<string, string>
+            setCurrentPlan((planMap[data.subscription_plan.toLowerCase()] || 'FREE') as 'FREE' | 'BUSINESS' | 'BUSINESS PRO')
+          }
+        } else if (iapError) {
+          Alert.alert('Erreur paiement', iapError)
+        }
+        return
+      }
+
+      // Other platforms: Use Stripe Checkout
+      console.log('[Settings] Using Stripe for non-iOS platform')
       const SUPABASE_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
       const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
 

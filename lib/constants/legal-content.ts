@@ -1,7 +1,7 @@
 export const LEGAL_CONTENT = {
   'mentions-legales': {
     title: 'Mentions légales',
-    content: `Dernière mise à jour : 18 mai 2025
+    content: `Dernière mise à jour : 7 juin 2026
 
 1. Éditeur de l'application
 L'application PAKT est éditée par Velura, micro-entreprise immatriculée en France et exploitant la marque commerciale PAKT.
@@ -72,7 +72,7 @@ Pour toute question relative à l'application, à son fonctionnement ou aux pré
   },
   'cgu': {
     title: 'Conditions Générales d\'Utilisation',
-    content: `Dernière mise à jour : 18 mai 2025
+    content: `Dernière mise à jour : 7 juin 2026
 
 1. Objet et acceptation
 Les présentes Conditions Générales d'Utilisation (ci-après « CGU ») encadrent l'accès et l'utilisation de l'application PAKT, éditée par Velura, micro-entreprise immatriculée sous le SIRET 925 272 957 00018, dont le siège social est situé 229 rue Saint-Honoré, 75001 Paris, France.
@@ -271,7 +271,7 @@ Pour toute question relative aux présentes CGU : paktsupport@gmail.com`
   },
   'cgv': {
     title: 'Conditions Générales de Vente',
-    content: `Dernière mise à jour : 18 mai 2025
+    content: `Dernière mise à jour : 7 juin 2026
 
 Les présentes Conditions Générales de Vente (ci-après « CGV ») régissent l'ensemble des ventes de services payants proposés au sein de l'application PAKT. La souscription à un service payant vaut acceptation pleine et entière des présentes CGV.
 
@@ -393,7 +393,7 @@ Pour toute question relative aux présentes CGV : paktsupport@gmail.com`
   },
   'privacy': {
     title: 'Politique de confidentialité',
-    content: `Dernière mise à jour : 18 mai 2025
+    content: `Dernière mise à jour : 7 juin 2026
 
 La présente politique de confidentialité décrit comment Velura, exploitant l'application PAKT, collecte, utilise, conserve et protège les données personnelles de ses utilisateurs, conformément au Règlement (UE) 2016/679 (RGPD) et à la Loi Informatique et Libertés du 6 janvier 1978 modifiée.
 
@@ -517,7 +517,7 @@ Pour toute question relative à la présente politique de confidentialité ou à
   },
   'remboursement-resiliation': {
     title: 'Remboursement et résiliation',
-    content: `Dernière mise à jour : 18 mai 2025
+    content: `Dernière mise à jour : 7 juin 2026
 
 La présente politique précise les conditions de résiliation, de remboursement et de gestion des paiements liés aux services payants de PAKT, en complément des Conditions Générales de Vente.
 
@@ -604,7 +604,7 @@ Pour toute question : paktsupport@gmail.com`
   },
   'cookies': {
     title: 'Politique cookies',
-    content: `Dernière mise à jour : 18 mai 2025
+    content: `Dernière mise à jour : 7 juin 2026
 
 La présente politique décrit l'usage des cookies et technologies similaires (identifiants techniques, jetons de session, identifiants d'appareil) sur l'application PAKT, conformément à la directive ePrivacy, au RGPD et aux recommandations de la CNIL.
 
