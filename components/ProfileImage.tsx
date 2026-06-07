@@ -27,6 +27,7 @@ export function ProfileImage({ photos, style, placeholder }: ProfileImageProps) 
     <Image
       source={{ uri: imageUrl }}
       style={[styles.image, style, { backgroundColor: '#111' }]}
+      resizeMode="cover"
       fadeDuration={150}
       onError={() => console.warn('Failed to load image:', imageUrl)}
     />

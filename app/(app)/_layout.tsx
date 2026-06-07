@@ -21,7 +21,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/matches',  label: 'Matchs',    icon: 'heart-outline',                 activeIcon: 'heart' },
   { href: '/messages', label: 'Messages',  icon: 'chatbubble-ellipses-outline',   activeIcon: 'chatbubble-ellipses' },
   { href: '/profile',  label: 'Profil',    icon: 'person-outline',                activeIcon: 'person' },
-  { href: '/settings', label: 'Pakt',      icon: 'briefcase-outline',             activeIcon: 'briefcase' },
+  { href: '/settings', label: 'PAKT',      icon: 'briefcase-outline',             activeIcon: 'briefcase' },
 ]
 
 function NavButton({

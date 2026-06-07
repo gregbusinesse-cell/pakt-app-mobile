@@ -596,7 +596,32 @@ export default function SettingsPage() {
 
         {activeTab === 'events' && <ComingSoon icon="calendar-outline" title="Événements" subtitle="Les événements networking PAKT arrivent bientôt. Sois le premier informé." />}
 
-        {activeTab === 'news' && <ComingSoon icon="newspaper-outline" title="Actualités" subtitle="Les dernières nouvelles de PAKT seront disponibles ici très prochainement." />}
+        {activeTab === 'news' && (
+          <View style={styles.newsContainer}>
+            <Text style={styles.sectionHeader}>Actualités</Text>
+
+            <TouchableOpacity style={styles.newsCard} activeOpacity={0.7}>
+              <View style={styles.newsCardHeader}>
+                <View style={styles.newsDateBadge}>
+                  <Text style={styles.newsDate}>10 juin</Text>
+                  <Text style={styles.newsYear}>2026</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.newsTitle}>🎉 Sortie officielle de PAKT</Text>
+                  <Text style={styles.newsCategory}>Mise à jour majeure</Text>
+                </View>
+              </View>
+
+              <Text style={styles.newsContent}>
+                PAKT est officiellement lancé ! Rejoignez la communauté des entrepreneurs et talents pour collaborer, créer et grandir ensemble.
+              </Text>
+
+              <View style={styles.newsFooter}>
+                <Ionicons name="chevron-forward" size={18} color={colors.primary} />
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {activeTab === 'referral' && (
           <View>
@@ -1453,5 +1478,72 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     fontFamily: 'monospace',
+  },
+
+  // News Tab
+  newsContainer: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+  },
+  newsCard: {
+    backgroundColor: colors.bg.tertiary,
+    borderRadius: borderRadius.xl,
+    padding: spacing.xl,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border.secondary,
+    ...shadows.sm,
+  },
+  newsCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  newsDateBadge: {
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+    minWidth: 60,
+  },
+  newsDate: {
+    color: colors.bg.primary,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  newsYear: {
+    color: colors.bg.primary,
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  newsTitle: {
+    color: colors.text.primary,
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+    marginBottom: spacing.xs,
+  },
+  newsCategory: {
+    color: colors.primary,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+  newsContent: {
+    color: colors.text.secondary,
+    fontSize: 14,
+    fontWeight: '500',
+    lineHeight: 22,
+    marginBottom: spacing.lg,
+  },
+  newsFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
   },
 })
