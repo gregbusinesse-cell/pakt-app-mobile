@@ -139,8 +139,9 @@ export default function MatchesPage() {
     <Animated.View style={[styles.container, { opacity: fadeAnim, paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Cœurs</Text>
-        <Text style={styles.headerSubtitle}>Matchs & Likes</Text>
+        <Text style={styles.headerTitle}>
+          {activeTab === 'matches' ? 'Matchs' : 'Likes'}
+        </Text>
       </View>
 
       {/* Tab Navigation */}
