@@ -350,7 +350,7 @@ export default function SwipePage() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Découvrir</Text>
-          <Text style={styles.headerSubtitle}>Trouve tes talents</Text>
+          <Text style={styles.headerSubtitle}>Les meilleurs profils business, rien que pour toi</Text>
         </View>
 
         {/* Photo Card */}
@@ -440,16 +440,26 @@ export default function SwipePage() {
 
         {/* ── BIOGRAPHIE ── */}
         {current?.bio && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>À propos</Text>
+          <View style={styles.infoCard}>
+            <View style={styles.infoCardHeader}>
+              <View style={styles.infoCardIconWrap}>
+                <Ionicons name="document-text" size={16} color={colors.primary} />
+              </View>
+              <Text style={styles.infoCardTitle}>Biographie</Text>
+            </View>
             <Text style={styles.bioText}>{current.bio}</Text>
           </View>
         )}
 
         {/* ── CENTRES D'INTÉRÊT ── */}
         {interests.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Intérêts</Text>
+          <View style={styles.infoCard}>
+            <View style={styles.infoCardHeader}>
+              <View style={styles.infoCardIconWrap}>
+                <Ionicons name="sparkles" size={16} color={colors.primary} />
+              </View>
+              <Text style={styles.infoCardTitle}>Centres d'intérêt</Text>
+            </View>
             <View style={styles.tagsRow}>
               {interests.map((it, i) => (
                 <View key={i} style={styles.tag}>
@@ -462,8 +472,13 @@ export default function SwipePage() {
 
         {/* ── COMPÉTENCES ── */}
         {skills.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Compétences</Text>
+          <View style={styles.infoCard}>
+            <View style={styles.infoCardHeader}>
+              <View style={styles.infoCardIconWrap}>
+                <Ionicons name="ribbon" size={16} color={colors.primary} />
+              </View>
+              <Text style={styles.infoCardTitle}>Compétences</Text>
+            </View>
             <View style={styles.skillsList}>
               {skills.map((skill: any, i: number) => {
                 const name = typeof skill === 'string' ? skill : skill?.name || ''
@@ -471,12 +486,17 @@ export default function SwipePage() {
                 if (!name) return null
                 return (
                   <View key={i} style={styles.skillRow}>
-                    <View style={styles.skillMeta}>
-                      <Text style={styles.skillName}>{name}</Text>
-                      <Text style={styles.skillLevel}>{LEVEL_LABELS[level] ?? 'Intermédiaire'}</Text>
+                    <View style={styles.skillBadge}>
+                      <Text style={styles.skillBadgeText}>{name.slice(0, 1).toUpperCase()}</Text>
                     </View>
-                    <View style={styles.levelTrack}>
-                      <View style={[styles.levelFill, { width: `${level * 10}%` as any }]} />
+                    <View style={{ flex: 1 }}>
+                      <View style={styles.skillMeta}>
+                        <Text style={styles.skillName}>{name}</Text>
+                        <Text style={styles.skillLevel}>{LEVEL_LABELS[level] ?? 'Intermédiaire'}</Text>
+                      </View>
+                      <View style={styles.levelTrack}>
+                        <View style={[styles.levelFill, { width: `${level * 10}%` as any }]} />
+                      </View>
                     </View>
                   </View>
                 )
@@ -584,9 +604,23 @@ const styles = StyleSheet.create({
   // Action Buttons
   photoActionButtons: { position: 'absolute', bottom: spacing.lg, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: spacing.xl, paddingHorizontal: spacing.lg, zIndex: 30 },
 
-  // Sections
-  section: { marginTop: spacing.xxl, paddingHorizontal: spacing.sm },
-  sectionTitle: { color: colors.primary, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: spacing.lg },
+  // Info Cards (Tinder-style content cards — replace plain "lines of text")
+  infoCard: {
+    marginTop: spacing.lg,
+    marginHorizontal: spacing.sm,
+    backgroundColor: colors.bg.tertiary,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.border.secondary,
+    padding: spacing.xl,
+    ...shadows.sm,
+  },
+  infoCardHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg },
+  infoCardIconWrap: {
+    width: 32, height: 32, borderRadius: borderRadius.md,
+    backgroundColor: 'rgba(212, 175, 55, 0.14)', alignItems: 'center', justifyContent: 'center',
+  },
+  infoCardTitle: { color: colors.text.primary, fontSize: 15, fontWeight: '800', letterSpacing: 0.2 },
   bioText: { color: colors.text.secondary, fontSize: 14, lineHeight: 22, fontWeight: '500', letterSpacing: 0.2 },
 
   // Tags
@@ -595,13 +629,19 @@ const styles = StyleSheet.create({
   tagText: { color: colors.primary, fontSize: 12, fontWeight: '600', letterSpacing: 0.2 },
 
   // Skills
-  skillsList: { gap: spacing.md },
-  skillRow: { gap: spacing.sm },
-  skillMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  skillsList: { gap: spacing.lg },
+  skillRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
+  skillBadge: {
+    width: 38, height: 38, borderRadius: borderRadius.md,
+    backgroundColor: 'rgba(212, 175, 55, 0.14)', borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.35)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  skillBadgeText: { color: colors.primary, fontSize: 15, fontWeight: '800' },
+  skillMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
   skillName: { color: colors.text.primary, fontSize: 14, fontWeight: '600' },
   skillLevel: { color: colors.text.tertiary, fontSize: 11, fontWeight: '500' },
-  levelTrack: { height: 5, backgroundColor: colors.bg.quaternary, borderRadius: 2.5, overflow: 'hidden' },
-  levelFill: { height: '100%', backgroundColor: colors.primary, borderRadius: 2.5 },
+  levelTrack: { height: 6, backgroundColor: colors.bg.quaternary, borderRadius: 3, overflow: 'hidden' },
+  levelFill: { height: '100%', backgroundColor: colors.primary, borderRadius: 3 },
 
   // Empty State
   emptyTitle: { color: colors.text.primary, fontSize: 20, fontWeight: '700', marginTop: spacing.lg, textAlign: 'center' },

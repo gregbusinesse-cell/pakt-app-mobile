@@ -97,7 +97,6 @@ export default function ProfilePage() {
       <View style={styles.topBar}>
         <View>
           <Text style={styles.topTitle}>Mon Profil</Text>
-          <Text style={styles.topSubtitle}>Découvre ton profil</Text>
         </View>
         <View style={styles.buttonGroup}>
           <TouchableOpacity
@@ -182,18 +181,28 @@ export default function ProfilePage() {
           )}
         </View>
 
-        {/* Bio Section */}
+        {/* Bio Card */}
         {profile.bio ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>À propos de toi</Text>
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardIconWrap}>
+                <Ionicons name="document-text" size={16} color={colors.primary} />
+              </View>
+              <Text style={styles.cardTitle}>Biographie</Text>
+            </View>
             <Text style={styles.bioText}>{profile.bio}</Text>
           </View>
         ) : null}
 
-        {/* Interests Section */}
+        {/* Interests Card */}
         {interests.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Intérêts</Text>
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardIconWrap}>
+                <Ionicons name="sparkles" size={16} color={colors.primary} />
+              </View>
+              <Text style={styles.cardTitle}>Centres d'intérêt</Text>
+            </View>
             <View style={styles.tagsRow}>
               {interests.map((it, i) => (
                 <View key={i} style={styles.interestTag}>
@@ -204,10 +213,15 @@ export default function ProfilePage() {
           </View>
         )}
 
-        {/* Skills Section */}
+        {/* Skills Card */}
         {skills.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Compétences</Text>
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardIconWrap}>
+                <Ionicons name="ribbon" size={16} color={colors.primary} />
+              </View>
+              <Text style={styles.cardTitle}>Compétences</Text>
+            </View>
             <View style={styles.skillsList}>
               {skills.map((skill: any, i: number) => {
                 const name = typeof skill === 'string' ? skill : skill?.name || ''
@@ -215,12 +229,17 @@ export default function ProfilePage() {
                 if (!name) return null
                 return (
                   <View key={i} style={styles.skillRow}>
-                    <View style={styles.skillInfo}>
-                      <Text style={styles.skillName}>{name}</Text>
-                      <Text style={styles.skillLevel}>{LEVEL_LABELS[level] ?? 'Intermédiaire'}</Text>
+                    <View style={styles.skillBadge}>
+                      <Text style={styles.skillBadgeText}>{name.slice(0, 1).toUpperCase()}</Text>
                     </View>
-                    <View style={styles.levelBarTrack}>
-                      <View style={[styles.levelBarFill, { width: `${level * 10}%` as any }]} />
+                    <View style={{ flex: 1 }}>
+                      <View style={styles.skillInfo}>
+                        <Text style={styles.skillName}>{name}</Text>
+                        <Text style={styles.skillLevel}>{LEVEL_LABELS[level] ?? 'Intermédiaire'}</Text>
+                      </View>
+                      <View style={styles.levelBarTrack}>
+                        <View style={[styles.levelBarFill, { width: `${level * 10}%` as any }]} />
+                      </View>
                     </View>
                   </View>
                 )
@@ -256,13 +275,6 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '800',
     letterSpacing: 0.3,
-    marginBottom: spacing.xs,
-  },
-  topSubtitle: {
-    color: colors.text.secondary,
-    fontSize: 12,
-    fontWeight: '500',
-    letterSpacing: 0.2,
   },
   buttonGroup: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
   editBtn: {
@@ -375,18 +387,36 @@ const styles = StyleSheet.create({
     zIndex: 5,
   },
 
-  // Sections
-  section: {
-    marginTop: spacing.xxl,
-    paddingHorizontal: spacing.lg,
+  // Cards (Tinder-style content cards — replace plain "lines of text")
+  card: {
+    marginTop: spacing.lg,
+    marginHorizontal: spacing.lg,
+    backgroundColor: colors.bg.tertiary,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.border.secondary,
+    padding: spacing.xl,
+    ...shadows.sm,
   },
-  sectionTitle: {
-    color: colors.primary,
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
     marginBottom: spacing.lg,
+  },
+  cardIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: borderRadius.md,
+    backgroundColor: 'rgba(212, 175, 55, 0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardTitle: {
+    color: colors.text.primary,
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
   bioText: {
     color: colors.text.secondary,
@@ -414,23 +444,35 @@ const styles = StyleSheet.create({
 
   // Skills
   skillsList: { gap: spacing.lg },
-  skillRow: { gap: spacing.sm },
+  skillRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
+  skillBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: borderRadius.md,
+    backgroundColor: 'rgba(212, 175, 55, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  skillBadgeText: { color: colors.primary, fontSize: 15, fontWeight: '800' },
   skillInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: spacing.sm,
   },
   skillName: { color: colors.text.primary, fontSize: 14, fontWeight: '700', letterSpacing: 0.2 },
   skillLevel: { color: colors.text.tertiary, fontSize: 12, fontWeight: '500' },
   levelBarTrack: {
-    height: 5,
+    height: 6,
     backgroundColor: colors.bg.quaternary,
-    borderRadius: 2.5,
+    borderRadius: 3,
     overflow: 'hidden',
   },
   levelBarFill: {
     height: '100%',
     backgroundColor: colors.primary,
-    borderRadius: 2.5,
+    borderRadius: 3,
   },
 })

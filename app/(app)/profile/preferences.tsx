@@ -1,4 +1,4 @@
-import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme'
+﻿import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme'
 import { useEffect, useState } from 'react'
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
@@ -10,8 +10,8 @@ import { supabase } from '@/lib/supabase/client'
 
 const BASE_SKILLS = [
   'Marketing', 'Vente / Closing', 'Copywriting', 'IA / Automation',
-  'Développement Web', 'Stratégie digitale', 'Réseaux sociaux',
-  'Montage vidéo', 'Ads / Acquisition', 'SEO / Growth',
+  'DÃ©veloppement Web', 'StratÃ©gie digitale', 'RÃ©seaux sociaux',
+  'Montage vidÃ©o', 'Ads / Acquisition', 'SEO / Growth',
 ]
 
 export default function PreferencesPage() {
@@ -64,7 +64,7 @@ export default function PreferencesPage() {
         }
       } catch (err) {
         console.error('Error loading preferences:', err)
-        Alert.alert('Erreur', 'Impossible de charger les préférences')
+        Alert.alert('Erreur', 'Impossible de charger les prÃ©fÃ©rences')
       } finally {
         setLoading(false)
       }
@@ -79,7 +79,7 @@ export default function PreferencesPage() {
 
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user?.id) {
-        Alert.alert('Erreur', 'Session expirée')
+        Alert.alert('Erreur', 'Session expirÃ©e')
         return
       }
 
@@ -99,11 +99,11 @@ export default function PreferencesPage() {
 
       if (error) throw error
 
-      Alert.alert('Succès', 'Vos préférences ont été mises à jour')
+      Alert.alert('SuccÃ¨s', 'Vos prÃ©fÃ©rences ont Ã©tÃ© mises Ã  jour')
       router.back()
     } catch (err) {
       console.error('Error saving preferences:', err)
-      Alert.alert('Erreur', 'Impossible de sauvegarder les préférences')
+      Alert.alert('Erreur', 'Impossible de sauvegarder les prÃ©fÃ©rences')
     } finally {
       setSaving(false)
     }
@@ -121,7 +121,7 @@ export default function PreferencesPage() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="colors.primary" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </SafeAreaView>
     )
@@ -134,9 +134,9 @@ export default function PreferencesPage() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={24} color="colors.text.primary" />
+          <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
         </TouchableOpacity>
-        <Text style={styles.title}>Préférences de recherche</Text>
+        <Text style={styles.title}>PrÃ©fÃ©rences de recherche</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -146,26 +146,26 @@ export default function PreferencesPage() {
           <Ionicons
             name={isProUser ? 'star' : 'lock-closed'}
             size={16}
-            color={isProUser ? 'colors.primary' : '#ff9800'}
+            color={isProUser ? colors.primary : '#ff9800'}
           />
-          <Text style={[styles.planText, { color: isProUser ? 'colors.primary' : '#ff9800' }]}>
-            {isProUser ? 'Business Pro' : 'Fonctionnalité Business Pro'}
+          <Text style={[styles.planText, { color: isProUser ? colors.primary : '#ff9800' }]}>
+            {isProUser ? 'Business Pro' : 'FonctionnalitÃ© Business Pro'}
           </Text>
         </View>
 
         {!isProUser && (
           <View style={styles.lockedContainer}>
             <Ionicons name="lock-closed" size={48} color="#ff980044" />
-            <Text style={styles.lockedTitle}>Préférences verrouillées</Text>
+            <Text style={styles.lockedTitle}>PrÃ©fÃ©rences verrouillÃ©es</Text>
             <Text style={styles.lockedText}>
-              Passez à Business Pro pour filtrer les profils par âge, distance et compétences
+              Passez Ã  Business Pro pour filtrer les profils par Ã¢ge, distance et compÃ©tences
             </Text>
             <TouchableOpacity
               style={styles.upgradeButton}
               onPress={() => router.push('/settings?scroll=pro' as any)}
             >
-              <Text style={styles.upgradeButtonText}>Passer à Business Pro</Text>
-              <Ionicons name="arrow-forward" size={16} color="colors.bg.primary" />
+              <Text style={styles.upgradeButtonText}>Passer Ã  Business Pro</Text>
+              <Ionicons name="arrow-forward" size={16} color={colors.bg.primary} />
             </TouchableOpacity>
           </View>
         )}
@@ -174,14 +174,14 @@ export default function PreferencesPage() {
           <>
             {/* Age Section */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Âge</Text>
+              <Text style={styles.sectionTitle}>Ã‚ge</Text>
               <View style={styles.rangeContainer}>
                 <View style={styles.rangeInput}>
                   <Text style={styles.rangeLabel}>Min</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="15"
-                    placeholderTextColor="colors.text.primaryfff44"
+                    placeholderTextColor={colors.text.disabled}
                     value={minAge}
                     onChangeText={setMinAge}
                     keyboardType="number-pad"
@@ -191,7 +191,7 @@ export default function PreferencesPage() {
 
                 <View style={styles.rangeSeparator}>
                   <View style={styles.separatorLine} />
-                  <Text style={styles.separatorText}>à</Text>
+                  <Text style={styles.separatorText}>Ã </Text>
                   <View style={styles.separatorLine} />
                 </View>
 
@@ -200,7 +200,7 @@ export default function PreferencesPage() {
                   <TextInput
                     style={styles.input}
                     placeholder="99"
-                    placeholderTextColor="colors.text.primaryfff44"
+                    placeholderTextColor={colors.text.disabled}
                     value={maxAge}
                     onChangeText={setMaxAge}
                     keyboardType="number-pad"
@@ -220,7 +220,7 @@ export default function PreferencesPage() {
                 <TextInput
                   style={styles.distanceInput}
                   placeholder="10000"
-                  placeholderTextColor="colors.text.primaryfff44"
+                  placeholderTextColor={colors.text.disabled}
                   value={maxDistance}
                   onChangeText={setMaxDistance}
                   keyboardType="number-pad"
@@ -228,15 +228,15 @@ export default function PreferencesPage() {
                 <Text style={styles.kmUnit}>km</Text>
               </View>
               <Text style={styles.distanceHint}>
-                Afficher uniquement les personnes à moins de {maxDistance} km
+                Afficher uniquement les personnes Ã  moins de {maxDistance} km
               </Text>
             </View>
 
             {/* Skills Section */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Compétences (optionnel)</Text>
+              <Text style={styles.sectionTitle}>CompÃ©tences (optionnel)</Text>
               <Text style={styles.skillsHint}>
-                Sélectionnez les compétences qui vous intéressent
+                SÃ©lectionnez les compÃ©tences qui vous intÃ©ressent
               </Text>
               <View style={styles.skillsGrid}>
                 {BASE_SKILLS.map((skill) => (
@@ -252,7 +252,7 @@ export default function PreferencesPage() {
                       <Ionicons
                         name="checkmark"
                         size={14}
-                        color="colors.bg.primary"
+                        color={colors.bg.primary}
                         style={styles.skillCheckmark}
                       />
                     )}
@@ -269,8 +269,8 @@ export default function PreferencesPage() {
               </View>
               <Text style={styles.skillsCount}>
                 {selectedSkills.length === 0
-                  ? 'Aucune compétence sélectionnée (voir tous)'
-                  : `${selectedSkills.length} compétence${selectedSkills.length > 1 ? 's' : ''} sélectionnée${selectedSkills.length > 1 ? 's' : ''}`}
+                  ? 'Aucune compÃ©tence sÃ©lectionnÃ©e (voir tous)'
+                  : `${selectedSkills.length} compÃ©tence${selectedSkills.length > 1 ? 's' : ''} sÃ©lectionnÃ©e${selectedSkills.length > 1 ? 's' : ''}`}
               </Text>
             </View>
 
@@ -281,11 +281,11 @@ export default function PreferencesPage() {
               disabled={saving}
             >
               {saving ? (
-                <ActivityIndicator color="colors.bg.primary" size="small" />
+                <ActivityIndicator color={colors.bg.primary} size="small" />
               ) : (
                 <>
-                  <Ionicons name="checkmark" size={20} color="colors.bg.primary" />
-                  <Text style={styles.saveButtonText}>Enregistrer les préférences</Text>
+                  <Ionicons name="checkmark" size={20} color={colors.bg.primary} />
+                  <Text style={styles.saveButtonText}>Enregistrer les prÃ©fÃ©rences</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -299,7 +299,7 @@ export default function PreferencesPage() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'colors.bg.primary' },
+  container: { flex: 1, backgroundColor: colors.bg.primary },
 
   header: {
     flexDirection: 'row',
@@ -308,9 +308,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: 'colors.bg.tertiary',
+    borderBottomColor: colors.bg.tertiary,
   },
-  title: { color: 'colors.text.primary', fontSize: 18, fontWeight: '700' },
+  title: { color: colors.text.primary, fontSize: 18, fontWeight: '700' },
 
   content: { flex: 1, paddingHorizontal: 16, paddingVertical: 16 },
 
@@ -318,14 +318,14 @@ const styles = StyleSheet.create({
   planBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'colors.bg.tertiary',
+    backgroundColor: colors.bg.tertiary,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginBottom: 20,
     gap: 8,
     borderWidth: 1,
-    borderColor: 'colors.primary44',
+    borderColor: `${colors.primary}44`,
   },
   planText: { fontSize: 13, fontWeight: '700', flex: 1 },
 
@@ -337,9 +337,9 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
     gap: 16,
   },
-  lockedTitle: { color: 'colors.text.primary', fontSize: 18, fontWeight: '700', textAlign: 'center' },
+  lockedTitle: { color: colors.text.primary, fontSize: 18, fontWeight: '700', textAlign: 'center' },
   lockedText: {
-    color: 'colors.text.primaryfff88',
+    color: '#ffffff88',
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
@@ -347,19 +347,19 @@ const styles = StyleSheet.create({
   },
   upgradeButton: {
     flexDirection: 'row',
-    backgroundColor: 'colors.primary',
+    backgroundColor: colors.primary,
     borderRadius: 12,
     paddingHorizontal: 20,
     paddingVertical: 12,
     gap: 8,
     marginTop: 12,
   },
-  upgradeButtonText: { color: 'colors.bg.primary', fontSize: 14, fontWeight: '700' },
+  upgradeButtonText: { color: colors.bg.primary, fontSize: 14, fontWeight: '700' },
 
   // Sections
   section: { marginBottom: 24 },
   sectionTitle: {
-    color: 'colors.primary',
+    color: colors.primary,
     fontSize: 13,
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -374,13 +374,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   rangeInput: { flex: 1 },
-  rangeLabel: { color: 'colors.text.primaryfff66', fontSize: 12, marginBottom: 6 },
+  rangeLabel: { color: '#ffffff66', fontSize: 12, marginBottom: 6 },
   input: {
-    backgroundColor: 'colors.bg.tertiary',
+    backgroundColor: colors.bg.tertiary,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#333',
-    color: 'colors.text.primary',
+    color: colors.text.primary,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   separatorLine: { flex: 1, height: 1, backgroundColor: '#333' },
-  separatorText: { color: 'colors.text.primaryfff66', fontSize: 12 },
+  separatorText: { color: '#ffffff66', fontSize: 12 },
 
   // Distance
   distanceHeader: {
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  distanceValue: { color: 'colors.primary', fontSize: 16, fontWeight: '700' },
+  distanceValue: { color: colors.primary, fontSize: 16, fontWeight: '700' },
   distanceInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -411,20 +411,20 @@ const styles = StyleSheet.create({
   },
   distanceInput: {
     flex: 1,
-    backgroundColor: 'colors.bg.tertiary',
+    backgroundColor: colors.bg.tertiary,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#333',
-    color: 'colors.text.primary',
+    color: colors.text.primary,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
   },
-  kmUnit: { color: 'colors.text.primaryfff66', fontSize: 13, fontWeight: '600', width: 30 },
-  distanceHint: { color: 'colors.text.primaryfff66', fontSize: 12, lineHeight: 16 },
+  kmUnit: { color: '#ffffff66', fontSize: 13, fontWeight: '600', width: 30 },
+  distanceHint: { color: '#ffffff66', fontSize: 12, lineHeight: 16 },
 
   // Skills
-  skillsHint: { color: 'colors.text.primaryfff66', fontSize: 12, marginBottom: 12 },
+  skillsHint: { color: '#ffffff66', fontSize: 12, marginBottom: 12 },
   skillsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
   skillTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'colors.bg.tertiary',
+    backgroundColor: colors.bg.tertiary,
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -443,26 +443,26 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   skillTagSelected: {
-    backgroundColor: 'colors.primary',
-    borderColor: 'colors.primary',
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   skillCheckmark: { marginRight: 2 },
-  skillName: { color: 'colors.text.primary', fontSize: 13, fontWeight: '600' },
-  skillNameSelected: { color: 'colors.bg.primary' },
-  skillsCount: { color: 'colors.text.primaryfff66', fontSize: 12, fontStyle: 'italic' },
+  skillName: { color: colors.text.primary, fontSize: 13, fontWeight: '600' },
+  skillNameSelected: { color: colors.bg.primary },
+  skillsCount: { color: '#ffffff66', fontSize: 12, fontStyle: 'italic' },
 
   // Save Button
   saveButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'colors.primary',
+    backgroundColor: colors.primary,
     borderRadius: 12,
     paddingVertical: 14,
     gap: 8,
     marginTop: 8,
   },
-  saveButtonText: { color: 'colors.bg.primary', fontSize: 14, fontWeight: '700' },
+  saveButtonText: { color: colors.bg.primary, fontSize: 14, fontWeight: '700' },
 
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 })

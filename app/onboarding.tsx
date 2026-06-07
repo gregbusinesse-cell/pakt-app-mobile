@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+﻿import { useState, useRef, useCallback } from 'react'
 import { profileStore } from '@/lib/profileStore'
 import * as FileSystem from 'expo-file-system'
 import {
@@ -75,7 +75,7 @@ export default function OnboardingPage() {
 
   const progress = ((step + 1) / TOTAL_STEPS) * 100
 
-  // ─── Navigation ──────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const animateSlide = (direction: number, callback: () => void) => {
     Animated.timing(slideAnim, {
       toValue: -direction * SCREEN_WIDTH,
@@ -106,7 +106,7 @@ export default function OnboardingPage() {
     animateSlide(-1, () => setStep((s) => s - 1))
   }
 
-  // ─── Validation ──────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const canProceed = (): boolean => {
     switch (step) {
       case 0:
@@ -128,7 +128,7 @@ export default function OnboardingPage() {
     }
   }
 
-  // ─── Interests ───────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Interests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const toggleInterest = (interest: string) => {
     const norm = interest.trim().toLowerCase()
     const already = selectedInterests.some((i) => i.toLowerCase() === norm)
@@ -151,7 +151,7 @@ export default function OnboardingPage() {
     setOtherInput('')
   }
 
-  // ─── City Search (OpenStreetMap Nominatim - free, no API key) ────────────────
+  // â”€â”€â”€ City Search (OpenStreetMap Nominatim - free, no API key) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const searchCities = async (text: string) => {
     if (text.length < 2) {
       setCitySuggestions([])
@@ -201,7 +201,7 @@ export default function OnboardingPage() {
     const city = addr.city || addr.town || addr.village || addr.municipality || p.display_name.split(',')[0]
     const country = addr.country || ''
     const state = addr.state || ''
-    // Format: "Paris, Île-de-France, France"
+    // Format: "Paris, ÃŽle-de-France, France"
     const parts = [city, state, country].filter(Boolean)
     return parts.slice(0, 3).join(', ')
   }
@@ -224,7 +224,7 @@ export default function OnboardingPage() {
     })
   }
 
-  // ─── Skills ──────────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Skills â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const toggleSkill = (name: string) => {
     const already = selectedSkills.find((s) => s.name === name)
     if (already) {
@@ -240,7 +240,7 @@ export default function OnboardingPage() {
     )
   }
 
-  // ─── Photos ──────────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Photos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const pickPhoto = async () => {
     if (photos.length >= MAX_PHOTOS) {
       Alert.alert('Maximum atteint', `Tu peux ajouter au maximum ${MAX_PHOTOS} photos.`)
@@ -251,8 +251,8 @@ export default function OnboardingPage() {
     const permResult = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (permResult.status !== 'granted') {
       Alert.alert(
-        'Permission refusée',
-        "Va dans Paramètres → Applications → PAKT → Autorisations → Photos et autorise l'accès."
+        'Permission refusÃ©e',
+        "Va dans ParamÃ¨tres â†’ Applications â†’ PAKT â†’ Autorisations â†’ Photos et autorise l'accÃ¨s."
       )
       return
     }
@@ -262,18 +262,18 @@ export default function OnboardingPage() {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         quality: 0.8,
-        // No base64, no allowsEditing, no selectionLimit — simplest possible config
+        // No base64, no allowsEditing, no selectionLimit â€” simplest possible config
       })
 
       if (result.canceled) return
 
       const uri = result.assets?.[0]?.uri
       if (!uri) {
-        Alert.alert('Erreur', 'Impossible de récupérer la photo. Réessaie.')
+        Alert.alert('Erreur', 'Impossible de rÃ©cupÃ©rer la photo. RÃ©essaie.')
         return
       }
 
-      // Update state — triggers immediate re-render with the photo shown
+      // Update state â€” triggers immediate re-render with the photo shown
       setPhotos(prev => [...prev, { uri }])
 
     } catch (err: any) {
@@ -286,16 +286,16 @@ export default function OnboardingPage() {
     setPhotos((prev) => prev.filter((_, i) => i !== index))
   }
 
-  // ─── Submit ───────────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Submit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleSubmit = async () => {
     setLoading(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user?.id) throw new Error('Non connecté')
+      if (!session?.user?.id) throw new Error('Non connectÃ©')
 
       const userId = session.user.id
 
-      // Upload photos via fetch → blob (works on Android without base64)
+      // Upload photos via fetch â†’ blob (works on Android without base64)
       setPhotoUploading(true)
       const photoUrls: string[] = []
       for (let i = 0; i < photos.length; i++) {
@@ -318,7 +318,7 @@ export default function OnboardingPage() {
           const base64 = await FileSystem.readAsStringAsync(uri, {
             encoding: FileSystem.EncodingType.Base64,
           })
-          // Decode base64 → Uint8Array
+          // Decode base64 â†’ Uint8Array
           const binaryString = atob(base64)
           const byteArray = new Uint8Array(binaryString.length)
           for (let j = 0; j < binaryString.length; j++) {
@@ -344,7 +344,7 @@ export default function OnboardingPage() {
       }
       setPhotoUploading(false)
 
-      // Upsert profile — save ALL fields including email
+      // Upsert profile â€” save ALL fields including email
       const { error: profileError } = await supabase
         .from('profiles')
         .upsert({
@@ -379,7 +379,7 @@ export default function OnboardingPage() {
         })
         const refData = await refRes.json()
         if (!refData.success) console.warn('[ONBOARDING] Referral code error:', refData.error)
-        // Don't block if code fails — user can add it later
+        // Don't block if code fails â€” user can add it later
       }
 
       // Update global profile store so profile page shows photos immediately
@@ -403,14 +403,14 @@ export default function OnboardingPage() {
       router.replace('/(app)/swipe' as any)
     } catch (err: any) {
       console.error('[ONBOARDING] Submit error:', err)
-      Alert.alert('Erreur', err?.message || 'Impossible de créer ton profil. Réessaie.')
+      Alert.alert('Erreur', err?.message || 'Impossible de crÃ©er ton profil. RÃ©essaie.')
     } finally {
       setLoading(false)
       setPhotoUploading(false)
     }
   }
 
-  // ─── Render ───────────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const renderStep = () => {
     switch (step) {
       case 0:
@@ -480,7 +480,7 @@ export default function OnboardingPage() {
             disabled={step === 0}
             style={[styles.backBtn, step === 0 && { opacity: 0 }]}
           >
-            <Ionicons name="chevron-back" size={24} color="colors.text.primary" />
+            <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
           </TouchableOpacity>
 
           {/* Progress bar */}
@@ -510,7 +510,7 @@ export default function OnboardingPage() {
           {/* Skip button on referral step */}
           {step === 6 && (
             <TouchableOpacity style={styles.skipBtn} onPress={goNext} disabled={loading}>
-              <Text style={styles.skipBtnText}>Je n'ai pas de code →</Text>
+              <Text style={styles.skipBtnText}>Je n'ai pas de code â†’</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
@@ -539,7 +539,7 @@ export default function OnboardingPage() {
   )
 }
 
-// ─── Step 0: Bienvenue ────────────────────────────────────────────────────────
+// â”€â”€â”€ Step 0: Bienvenue â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function StepWelcome({
   firstName, setFirstName, age, setAge,
 }: {
@@ -559,8 +559,8 @@ function StepWelcome({
       <View style={s.gap24}>
         <TextInput
           style={s.input}
-          placeholder="Ton prénom"
-          placeholderTextColor="colors.text.primaryfff44"
+          placeholder="Ton prÃ©nom"
+          placeholderTextColor={colors.text.disabled}
           value={firstName}
           onChangeText={setFirstName}
           autoCapitalize="words"
@@ -570,15 +570,15 @@ function StepWelcome({
         <View>
           <TextInput
             style={s.input}
-            placeholder="Ton âge"
-            placeholderTextColor="colors.text.primaryfff44"
+            placeholder="Ton Ã¢ge"
+            placeholderTextColor={colors.text.disabled}
             value={age}
             onChangeText={setAge}
             keyboardType="number-pad"
             maxLength={2}
           />
           <Text style={s.hint}>
-            En renseignant ton âge, tu déclares avoir au moins 15 ans.
+            En renseignant ton Ã¢ge, tu dÃ©clares avoir au moins 15 ans.
           </Text>
         </View>
 
@@ -595,19 +595,19 @@ function StepWelcome({
   )
 }
 
-// ─── Step 1: Bio ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Step 1: Bio â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function StepBio({ bio, setBio }: { bio: string; setBio: (v: string) => void }) {
   return (
     <View style={s.stepContainer}>
       <Text style={s.stepTitle}>Ta bio</Text>
-      <Text style={s.stepSubtitle}>Présente-toi en quelques mots</Text>
+      <Text style={s.stepSubtitle}>PrÃ©sente-toi en quelques mots</Text>
 
       <View style={s.gap24}>
         <View>
           <TextInput
             style={[s.input, s.textArea]}
-            placeholder="Qui es-tu ? Quels sont tes projets ? Qu'est-ce qui te définit..."
-            placeholderTextColor="colors.text.primaryfff44"
+            placeholder="Qui es-tu ? Quels sont tes projets ? Qu'est-ce qui te dÃ©finit..."
+            placeholderTextColor={colors.text.disabled}
             value={bio}
             onChangeText={setBio}
             multiline
@@ -615,7 +615,7 @@ function StepBio({ bio, setBio }: { bio: string; setBio: (v: string) => void }) 
             textAlignVertical="top"
           />
           <View style={s.bioMeta}>
-            <Text style={s.hint}>Minimum 21 caractères</Text>
+            <Text style={s.hint}>Minimum 21 caractÃ¨res</Text>
             <Text style={[s.hint, bio.length > 0 && bio.length < 21 && { color: '#ff6b6b' }]}>
               {bio.length}/500
             </Text>
@@ -626,7 +626,7 @@ function StepBio({ bio, setBio }: { bio: string; setBio: (v: string) => void }) 
   )
 }
 
-// ─── Step 2: Intérêts ────────────────────────────────────────────────────────
+// â”€â”€â”€ Step 2: IntÃ©rÃªts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function StepInterests({
   selectedInterests, toggleInterest, otherInput, setOtherInput, addCustomInterest,
 }: {
@@ -640,8 +640,8 @@ function StepInterests({
 
   return (
     <View style={s.stepContainer}>
-      <Text style={s.stepTitle}>Tes intérêts</Text>
-      <Text style={s.stepSubtitle}>Sélectionne ce qui te correspond (max 5)</Text>
+      <Text style={s.stepTitle}>Tes intÃ©rÃªts</Text>
+      <Text style={s.stepSubtitle}>SÃ©lectionne ce qui te correspond (max 5)</Text>
 
       {/* Selected */}
       {selectedInterests.length > 0 && (
@@ -686,8 +686,8 @@ function StepInterests({
         <View style={s.customInputRow}>
           <TextInput
             style={[s.input, { flex: 1 }]}
-            placeholder="Autre (précise...)"
-            placeholderTextColor="colors.text.primaryfff44"
+            placeholder="Autre (prÃ©cise...)"
+            placeholderTextColor={colors.text.disabled}
             value={otherInput}
             onChangeText={setOtherInput}
             onSubmitEditing={addCustomInterest}
@@ -700,13 +700,13 @@ function StepInterests({
             </TouchableOpacity>
           )}
         </View>
-        <Text style={s.hint}>Sépare tes intérêts par une virgule • Maximum {MAX_INTERESTS}</Text>
+        <Text style={s.hint}>SÃ©pare tes intÃ©rÃªts par une virgule â€¢ Maximum {MAX_INTERESTS}</Text>
       </View>
     </View>
   )
 }
 
-// ─── Step 3: Ville ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Step 3: Ville â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function StepCity({
   cityInput, onCityInputChange, citySuggestions, cityLoading, citySelected, selectCity,
 }: {
@@ -720,13 +720,13 @@ function StepCity({
   return (
     <View style={s.stepContainer}>
       <Text style={s.stepTitle}>Ta ville</Text>
-      <Text style={s.stepSubtitle}>Pour trouver des personnes près de toi</Text>
+      <Text style={s.stepSubtitle}>Pour trouver des personnes prÃ¨s de toi</Text>
 
       <View style={{ position: 'relative', zIndex: 100 }}>
         <TextInput
-          style={[s.input, citySelected && { borderColor: 'colors.primary', color: 'colors.primary' }]}
+          style={[s.input, citySelected && { borderColor: colors.primary, color: colors.primary }]}
           placeholder="Recherche une ville..."
-          placeholderTextColor="colors.text.primaryfff44"
+          placeholderTextColor={colors.text.disabled}
           value={cityInput}
           onChangeText={onCityInputChange}
           autoCorrect={false}
@@ -735,7 +735,7 @@ function StepCity({
         {cityLoading && (
           <ActivityIndicator
             size="small"
-            color="colors.primary"
+            color={colors.primary}
             style={{ position: 'absolute', right: 14, top: 14 }}
           />
         )}
@@ -749,7 +749,7 @@ function StepCity({
                 style={s.suggestionItem}
                 onPress={() => selectCity(city)}
               >
-                <Ionicons name="location-outline" size={16} color="colors.primary" />
+                <Ionicons name="location-outline" size={16} color={colors.primary} />
                 <Text style={s.suggestionText} numberOfLines={1}>
                   {city.description}
                 </Text>
@@ -761,17 +761,17 @@ function StepCity({
 
       {citySelected ? (
         <View style={s.cityConfirmed}>
-          <Ionicons name="checkmark-circle" size={18} color="colors.primary" />
-          <Text style={s.cityConfirmedText}>Ville sélectionnée : {citySelected.name}</Text>
+          <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
+          <Text style={s.cityConfirmedText}>Ville sÃ©lectionnÃ©e : {citySelected.name}</Text>
         </View>
       ) : cityInput.trim().length > 0 ? (
-        <Text style={s.hint}>Sélectionne une ville dans la liste pour continuer.</Text>
+        <Text style={s.hint}>SÃ©lectionne une ville dans la liste pour continuer.</Text>
       ) : null}
     </View>
   )
 }
 
-// ─── Step 4: Compétences ─────────────────────────────────────────────────────
+// â”€â”€â”€ Step 4: CompÃ©tences â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function StepSkills({
   selectedSkills, toggleSkill, updateSkillLevel, skillSearch, setSkillSearch,
 }: {
@@ -787,15 +787,15 @@ function StepSkills({
 
   return (
     <View style={s.stepContainer}>
-      <Text style={s.stepTitle}>Tes compétences</Text>
+      <Text style={s.stepTitle}>Tes compÃ©tences</Text>
       <Text style={s.stepSubtitle}>
-        Sélectionne uniquement celles que tu maîtrises vraiment.
+        SÃ©lectionne uniquement celles que tu maÃ®trises vraiment.
       </Text>
       <Text style={[s.hint, { marginTop: -8 }]}>
-        Chaque compétence nécessite un niveau honnête de 1 à 10.
+        Chaque compÃ©tence nÃ©cessite un niveau honnÃªte de 1 Ã  10.
       </Text>
 
-      {/* Skill list — search bar removed, all skills shown directly */}
+      {/* Skill list â€” search bar removed, all skills shown directly */}
       <View style={s.chipsRow}>
         {filtered.map((skill) => {
           const selected = selectedSkills.find((s) => s.name === skill)
@@ -838,14 +838,14 @@ function StepSkills({
 
       {selectedSkills.length === 0 && (
         <Text style={[s.hint, { textAlign: 'center', marginTop: 12 }]}>
-          Les compétences sont optionnelles. Tu peux les ajouter plus tard.
+          Les compÃ©tences sont optionnelles. Tu peux les ajouter plus tard.
         </Text>
       )}
     </View>
   )
 }
 
-// ─── Step 5: Photos ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Step 5: Photos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function StepPhotos({
   photos, pickPhoto, removePhoto, photoUploading,
 }: {
@@ -861,14 +861,14 @@ function StepPhotos({
     <View style={s.stepContainer}>
       <Text style={s.stepTitle}>Tes photos</Text>
       <Text style={s.stepSubtitle}>
-        Ajoute jusqu'à {MAX_PHOTOS} photos (minimum 1)
+        Ajoute jusqu'Ã  {MAX_PHOTOS} photos (minimum 1)
       </Text>
-      <Text style={s.hint}>JPG, PNG ou WebP • Conseillé : 3/4</Text>
+      <Text style={s.hint}>JPG, PNG ou WebP â€¢ ConseillÃ© : 3/4</Text>
 
       {photoUploading && (
         <View style={s.uploadingRow}>
-          <ActivityIndicator size="small" color="colors.primary" />
-          <Text style={{ color: 'colors.primary', fontSize: 13 }}>Upload des photos...</Text>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text style={{ color: colors.primary, fontSize: 13 }}>Upload des photos...</Text>
         </View>
       )}
 
@@ -894,7 +894,7 @@ function StepPhotos({
                     style={s.photoRemove}
                     onPress={(e) => { e.stopPropagation?.(); removePhoto(idx) }}
                   >
-                    <Ionicons name="close" size={14} color="colors.text.primary" />
+                    <Ionicons name="close" size={14} color={colors.text.primary} />
                   </TouchableOpacity>
                 </>
               ) : (
@@ -912,7 +912,7 @@ function StepPhotos({
   )
 }
 
-// ─── Base64 decoder for Supabase storage ─────────────────────────────────────
+// â”€â”€â”€ Base64 decoder for Supabase storage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function decode(base64: string): Uint8Array {
   const binaryString = atob(base64)
   const bytes = new Uint8Array(binaryString.length)
@@ -922,11 +922,11 @@ function decode(base64: string): Uint8Array {
   return bytes
 }
 
-// ─── Main Styles ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: 'colors.bg.primary',
+    backgroundColor: colors.bg.primary,
   },
   header: {
     flexDirection: 'row',
@@ -956,7 +956,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: 'colors.primary',
+    backgroundColor: colors.primary,
     borderRadius: 2,
   },
   progressText: {
@@ -979,7 +979,7 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(255,255,255,0.06)',
   },
   ctaButton: {
-    backgroundColor: 'colors.primary',
+    backgroundColor: colors.primary,
     borderRadius: 14,
     height: 54,
     flexDirection: 'row',
@@ -997,7 +997,7 @@ const styles = StyleSheet.create({
   },
 })
 
-// ─── Shared Step Styles ───────────────────────────────────────────────────────
+// â”€â”€â”€ Shared Step Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const s = StyleSheet.create({
   stepContainer: {
     paddingTop: 8,
@@ -1006,12 +1006,12 @@ const s = StyleSheet.create({
   stepTitle: {
     fontSize: 30,
     fontWeight: '800',
-    color: 'colors.text.primary',
+    color: colors.text.primary,
     letterSpacing: -0.5,
   },
   stepSubtitle: {
     fontSize: 15,
-    color: 'colors.text.secondary',
+    color: colors.text.secondary,
     marginTop: -12,
   },
   gap24: {
@@ -1024,7 +1024,7 @@ const s = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    color: 'colors.text.primary',
+    color: colors.text.primary,
     fontSize: 16,
   },
   textArea: {
@@ -1033,7 +1033,7 @@ const s = StyleSheet.create({
   },
   hint: {
     fontSize: 12,
-    color: 'colors.text.disabled',
+    color: colors.text.disabled,
     lineHeight: 18,
   },
   bioMeta: {
@@ -1073,8 +1073,8 @@ const s = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.12)',
   },
   chipActive: {
-    backgroundColor: 'colors.primary',
-    borderColor: 'colors.primary',
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
@@ -1091,7 +1091,7 @@ const s = StyleSheet.create({
     fontWeight: '500',
   },
   chipActiveText: {
-    color: 'colors.bg.primary',
+    color: colors.bg.primary,
     fontSize: 13,
     fontWeight: '700',
   },
@@ -1103,7 +1103,7 @@ const s = StyleSheet.create({
   addBtn: {
     width: 48,
     height: 48,
-    backgroundColor: 'colors.primary',
+    backgroundColor: colors.primary,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1113,7 +1113,7 @@ const s = StyleSheet.create({
     top: '100%',
     left: 0,
     right: 0,
-    backgroundColor: 'colors.bg.tertiary',
+    backgroundColor: colors.bg.tertiary,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.12)',
     borderRadius: 12,
@@ -1131,7 +1131,7 @@ const s = StyleSheet.create({
     borderBottomColor: 'rgba(255,255,255,0.06)',
   },
   suggestionText: {
-    color: 'colors.text.primary',
+    color: colors.text.primary,
     fontSize: 14,
     flex: 1,
   },
@@ -1142,12 +1142,12 @@ const s = StyleSheet.create({
     marginTop: 4,
   },
   cityConfirmedText: {
-    color: 'colors.primary',
+    color: colors.primary,
     fontSize: 14,
     fontWeight: '600',
   },
   sectionLabel: {
-    color: 'colors.text.secondary',
+    color: colors.text.secondary,
     fontSize: 12,
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -1157,7 +1157,7 @@ const s = StyleSheet.create({
     gap: 8,
   },
   skillName: {
-    color: 'colors.text.primary',
+    color: colors.text.primary,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -1175,11 +1175,11 @@ const s = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.12)',
   },
   levelDotFilled: {
-    backgroundColor: 'colors.primary',
-    borderColor: 'colors.primary',
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   levelNum: {
-    color: 'colors.primary',
+    color: colors.primary,
     fontSize: 12,
     fontWeight: '700',
     marginLeft: 6,
@@ -1212,7 +1212,7 @@ const s = StyleSheet.create({
     position: 'absolute',
     top: 6,
     left: 6,
-    backgroundColor: 'colors.primary',
+    backgroundColor: colors.primary,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
@@ -1244,25 +1244,25 @@ const s = StyleSheet.create({
     marginBottom: 8,
   },
   skipBtnText: {
-    color: 'colors.text.quaternary',
+    color: colors.text.quaternary,
     fontSize: 14,
   },
 })
 
-// ─── Step 6: Code de parrainage (optionnel) ───────────────────────────────────
+// â”€â”€â”€ Step 6: Code de parrainage (optionnel) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function StepReferral({ code, onChange }: { code: string; onChange: (v: string) => void }) {
   return (
     <View style={{ paddingHorizontal: 24, paddingTop: 16 }}>
-      <Text style={{ color: 'colors.text.primary', fontSize: 28, fontWeight: '800', marginBottom: 8 }}>
+      <Text style={{ color: colors.text.primary, fontSize: 28, fontWeight: '800', marginBottom: 8 }}>
         Code de parrainage
       </Text>
-      <Text style={{ color: 'colors.text.secondary', fontSize: 15, lineHeight: 22, marginBottom: 32 }}>
-        Tu as reçu un code d'un ami déjà sur PAKT ? Entre-le ici. Sinon, appuie sur "Je n'ai pas de code".
+      <Text style={{ color: colors.text.secondary, fontSize: 15, lineHeight: 22, marginBottom: 32 }}>
+        Tu as reÃ§u un code d'un ami dÃ©jÃ  sur PAKT ? Entre-le ici. Sinon, appuie sur "Je n'ai pas de code".
       </Text>
 
       <View style={{
-        backgroundColor: 'colors.bg.tertiary', borderRadius: 14, borderWidth: 1,
-        borderColor: code.trim() ? 'colors.primary' : 'colors.bg.quaternary',
+        backgroundColor: colors.bg.tertiary, borderRadius: 14, borderWidth: 1,
+        borderColor: code.trim() ? colors.primary : colors.bg.quaternary,
         paddingHorizontal: 16, paddingVertical: 14, marginBottom: 16,
       }}>
         <TextInput
@@ -1270,7 +1270,7 @@ function StepReferral({ code, onChange }: { code: string; onChange: (v: string) 
           onChangeText={(v) => onChange(v.toUpperCase())}
           placeholder="REF-XXXXXXXX-XXXXXX"
           placeholderTextColor="rgba(255,255,255,0.25)"
-          style={{ color: 'colors.text.primary', fontSize: 18, fontWeight: '700', letterSpacing: 1 }}
+          style={{ color: colors.text.primary, fontSize: 18, fontWeight: '700', letterSpacing: 1 }}
           autoCapitalize="characters"
           autoCorrect={false}
         />
@@ -1281,7 +1281,7 @@ function StepReferral({ code, onChange }: { code: string; onChange: (v: string) 
         borderWidth: 1, borderColor: 'rgba(212,168,83,0.15)', padding: 14,
       }}>
         <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, lineHeight: 20 }}>
-          🎁 En entrant un code valide, ton ami reçoit une récompense. Ce code n'est utilisable qu'une seule fois, lors de l'inscription.
+          ðŸŽ En entrant un code valide, ton ami reÃ§oit une rÃ©compense. Ce code n'est utilisable qu'une seule fois, lors de l'inscription.
         </Text>
       </View>
     </View>

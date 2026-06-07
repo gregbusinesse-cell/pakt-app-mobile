@@ -153,7 +153,7 @@ export default function MatchesPage() {
           <Ionicons
             name={activeTab === 'matches' ? 'heart' : 'heart-outline'}
             size={20}
-            color={activeTab === 'matches' ? colors.primary : colors.text.tertiary}
+            color={activeTab === 'matches' ? colors.bg.primary : colors.text.tertiary}
           />
           <Text
             style={[
@@ -178,7 +178,7 @@ export default function MatchesPage() {
           <Ionicons
             name={activeTab === 'likes' ? 'flame' : 'flame-outline'}
             size={20}
-            color={activeTab === 'likes' ? colors.warning : colors.text.tertiary}
+            color={activeTab === 'likes' ? colors.bg.primary : colors.text.tertiary}
           />
           <Text
             style={[
@@ -381,44 +381,48 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
-  // Tab Navigation
+  // Tab Navigation — pronounced segmented-pill control (Tinder-style)
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: colors.bg.tertiary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.primary,
-    paddingHorizontal: spacing.md,
-    gap: spacing.sm,
+    borderRadius: borderRadius.full,
+    padding: spacing.xs,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border.secondary,
   },
   tab: {
     flex: 1,
-    paddingVertical: spacing.lg,
+    paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    borderBottomWidth: 2.5,
-    borderBottomColor: 'transparent',
+    borderRadius: borderRadius.full,
   },
   tabActive: {
-    borderBottomColor: colors.primary,
+    backgroundColor: colors.primary,
+    ...shadows.glow,
   },
   tabLabel: {
-    color: colors.text.secondary,
+    color: colors.text.tertiary,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     letterSpacing: 0.2,
   },
   tabLabelActive: {
-    color: colors.text.primary,
-    fontWeight: '700',
+    color: colors.bg.primary,
+    fontWeight: '800',
   },
   tabCounter: {
-    backgroundColor: 'rgba(212, 175, 55, 0.15)',
+    backgroundColor: colors.bg.primary,
     borderRadius: borderRadius.full,
-    minWidth: 24,
-    height: 22,
+    minWidth: 22,
+    height: 20,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.xs,
@@ -427,7 +431,7 @@ const styles = StyleSheet.create({
   tabCounterText: {
     color: colors.primary,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 
   // Content

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+﻿import { useState, useEffect, useCallback, useRef } from 'react'
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Alert, Linking, ToastAndroid, Platform, TextInput } from 'react-native'
 import * as Clipboard from 'expo-clipboard'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -9,14 +9,14 @@ import { supabase } from '@/lib/supabase/client'
 import { LEGAL_SECTIONS, SUPPORT_EMAIL, LEGAL_CONTENT } from '@/lib/constants/legal-content'
 import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme'
 
-// ─── Coming Soon component ────────────────────────────────────────────────────
+// â”€â”€â”€ Coming Soon component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ComingSoon({ icon, title, subtitle }: { icon: string; title: string; subtitle: string }) {
   return (
     <View style={csStyles.container}>
       <View style={csStyles.iconCircle}>
         <Ionicons name={icon as any} size={40} color="#d4a853" />
       </View>
-      <Text style={csStyles.label}>Bientôt disponible</Text>
+      <Text style={csStyles.label}>BientÃ´t disponible</Text>
       <Text style={csStyles.title}>{title}</Text>
       <Text style={csStyles.subtitle}>{subtitle}</Text>
       <View style={csStyles.dotsRow}>
@@ -169,13 +169,13 @@ export default function SettingsPage() {
     fetchUserData()
   }, [])
 
-  // ── Use a referral code ──────────────────────────────────────────────────────
+  // â”€â”€ Use a referral code â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleUseCode = async () => {
     if (!inputCode.trim()) return
     setCodeLoading(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user?.id) throw new Error('Non connecté')
+      if (!session?.user?.id) throw new Error('Non connectÃ©')
 
       const SUPA_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
       const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
@@ -188,7 +188,7 @@ export default function SettingsPage() {
       if (!data.success) {
         Alert.alert('Erreur', data.error || 'Code invalide.')
       } else {
-        Alert.alert('Code appliqué ✅', 'Le code de parrainage a bien été enregistré !')
+        Alert.alert('Code appliquÃ© âœ…', 'Le code de parrainage a bien Ã©tÃ© enregistrÃ© !')
         setCodeUsed(true)
         setInputCode('')
 
@@ -203,24 +203,24 @@ export default function SettingsPage() {
 
   const handleCopyReferral = async () => {
     try {
-      const message = `🚀 Rejoins-moi sur PAKT — le Tinder du business !\n\nTélécharge l'app PAKT, crée ton compte et entre mon code de parrainage dans l'onglet Parrainage :\n\n👉 ${referralCode}\n\nDispo sur Android et bientôt sur iOS.`
+      const message = `ðŸš€ Rejoins-moi sur PAKT â€” le Tinder du business !\n\nTÃ©lÃ©charge l'app PAKT, crÃ©e ton compte et entre mon code de parrainage dans l'onglet Parrainage :\n\nðŸ‘‰ ${referralCode}\n\nDispo sur Android et bientÃ´t sur iOS.`
       await Clipboard.setStringAsync(message)
       if (Platform.OS === 'android') {
-        ToastAndroid.show('Message copié dans le presse-papiers ✓', ToastAndroid.LONG)
+        ToastAndroid.show('Message copiÃ© dans le presse-papiers âœ“', ToastAndroid.LONG)
       } else {
-        Alert.alert('Copié ✓', 'Le message de parrainage a été copié. Colle-le dans un SMS, WhatsApp ou email.')
+        Alert.alert('CopiÃ© âœ“', 'Le message de parrainage a Ã©tÃ© copiÃ©. Colle-le dans un SMS, WhatsApp ou email.')
       }
     } catch {
       Alert.alert('Erreur', 'Impossible de copier.')
     }
   }
 
-  // ── Claim reward ───────────────────────────────────────────────────────────────
+  // â”€â”€ Claim reward â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleClaimReward = async (requiredCount: number, planDays: string) => {
     setClaimingReward(requiredCount)
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user?.id) throw new Error('Non connecté')
+      if (!session?.user?.id) throw new Error('Non connectÃ©')
 
       const SUPA_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
       const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
@@ -234,15 +234,15 @@ export default function SettingsPage() {
       if (!data.success) throw new Error(data.error || 'Erreur serveur')
 
       setClaimedRewards([...claimedRewards, requiredCount])
-      Alert.alert('Récompense activée ✅', `Ton plan ${planDays} a été activé !`)
+      Alert.alert('RÃ©compense activÃ©e âœ…', `Ton plan ${planDays} a Ã©tÃ© activÃ© !`)
     } catch (err: any) {
-      Alert.alert('Erreur', err.message || 'Impossible de réclamer la récompense.')
+      Alert.alert('Erreur', err.message || 'Impossible de rÃ©clamer la rÃ©compense.')
     } finally {
       setClaimingReward(null)
     }
   }
 
-  // ── Scroll to Business Pro when ?scroll=pro ──────────────────────────────────
+  // â”€â”€ Scroll to Business Pro when ?scroll=pro â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     if (scroll === 'pro' && !loading) {
       setActiveTab('plans')
@@ -252,12 +252,12 @@ export default function SettingsPage() {
     }
   }, [scroll, loading])
 
-  // ── Password reset ──────────────────────────────────────────────────────────
+  // â”€â”€ Password reset â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleChangePassword = async () => {
     if (!userEmail) { Alert.alert('Erreur', 'Email introuvable'); return }
     Alert.alert(
-      'Réinitialiser le mot de passe',
-      `Un lien sera envoyé à :\n${userEmail}\n\nOuvre-le depuis ton téléphone.`,
+      'RÃ©initialiser le mot de passe',
+      `Un lien sera envoyÃ© Ã  :\n${userEmail}\n\nOuvre-le depuis ton tÃ©lÃ©phone.`,
       [
         { text: 'Annuler', style: 'cancel' },
         {
@@ -276,10 +276,10 @@ export default function SettingsPage() {
                 },
               })
               const data = await res.json()
-              if (data.success) Alert.alert('Email envoyé ✅', 'Vérifie ta boîte mail et clique sur le lien depuis ton téléphone pour choisir un nouveau mot de passe.')
+              if (data.success) Alert.alert('Email envoyÃ© âœ…', 'VÃ©rifie ta boÃ®te mail et clique sur le lien depuis ton tÃ©lÃ©phone pour choisir un nouveau mot de passe.')
               else Alert.alert('Erreur', data.error || 'Impossible d\'envoyer l\'email.')
             } catch {
-              Alert.alert('Erreur réseau', 'Impossible de contacter le serveur.')
+              Alert.alert('Erreur rÃ©seau', 'Impossible de contacter le serveur.')
             }
           },
         },
@@ -287,22 +287,22 @@ export default function SettingsPage() {
     )
   }
 
-  // ── Account suspension ──────────────────────────────────────────────────────
+  // â”€â”€ Account suspension â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleSuspendAccount = async () => {
     if (isSuspended) {
       // Reactivate
       Alert.alert(
-        'Réactiver mon compte',
+        'RÃ©activer mon compte',
         'Ton profil redeviendra visible par les autres membres PAKT.',
         [
           { text: 'Annuler', style: 'cancel' },
           {
-            text: 'Réactiver',
+            text: 'RÃ©activer',
             onPress: async () => {
               if (!userId) return
               const { error } = await supabase.from('profiles').update({ is_suspended: false }).eq('id', userId)
               if (error) Alert.alert('Erreur', error.message)
-              else { setIsSuspended(false); Alert.alert('Compte réactivé ✅', 'Ton profil est à nouveau visible.') }
+              else { setIsSuspended(false); Alert.alert('Compte rÃ©activÃ© âœ…', 'Ton profil est Ã  nouveau visible.') }
             },
           },
         ]
@@ -311,7 +311,7 @@ export default function SettingsPage() {
       // Suspend
       Alert.alert(
         'Mettre mon compte en pause',
-        'Ton profil ne sera plus affiché aux autres membres. Tu pourras le réactiver quand tu veux.',
+        'Ton profil ne sera plus affichÃ© aux autres membres. Tu pourras le rÃ©activer quand tu veux.',
         [
           { text: 'Annuler', style: 'cancel' },
           {
@@ -321,7 +321,7 @@ export default function SettingsPage() {
               if (!userId) return
               const { error } = await supabase.from('profiles').update({ is_suspended: true }).eq('id', userId)
               if (error) Alert.alert('Erreur', error.message)
-              else { setIsSuspended(true); Alert.alert('Compte en pause ⏸', 'Ton profil est masqué. Reviens ici pour le réactiver.') }
+              else { setIsSuspended(true); Alert.alert('Compte en pause â¸', 'Ton profil est masquÃ©. Reviens ici pour le rÃ©activer.') }
             },
           },
         ]
@@ -329,12 +329,12 @@ export default function SettingsPage() {
     }
   }
 
-  // ── Account deletion ────────────────────────────────────────────────────────
+  // â”€â”€ Account deletion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleDeleteAccount = () => {
     router.push('/delete-account' as any)
   }
 
-  // ── Re-fetch plan when screen comes into focus (after returning from payment) ──
+  // â”€â”€ Re-fetch plan when screen comes into focus (after returning from payment) â”€â”€
   useFocusEffect(
     useCallback(() => {
       const refreshPlan = async () => {
@@ -356,14 +356,14 @@ export default function SettingsPage() {
     }, [])
   )
 
-  // ── Start checkout (direct fetch - more reliable than supabase.functions.invoke) ─
+  // â”€â”€ Start checkout (direct fetch - more reliable than supabase.functions.invoke) â”€
   const handleUpgrade = async (plan: 'business' | 'business_pro') => {
     setCheckoutLoading(plan)
     try {
       // Get JWT
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.access_token) {
-        Alert.alert('Erreur', 'Tu dois être connecté pour souscrire.')
+        Alert.alert('Erreur', 'Tu dois Ãªtre connectÃ© pour souscrire.')
         return
       }
 
@@ -390,7 +390,7 @@ export default function SettingsPage() {
       }
 
       if (!data?.url) {
-        Alert.alert('Erreur paiement', data?.error || 'Aucune URL reçue')
+        Alert.alert('Erreur paiement', data?.error || 'Aucune URL reÃ§ue')
         return
       }
 
@@ -398,7 +398,7 @@ export default function SettingsPage() {
       await Linking.openURL(data.url)
 
     } catch (err: any) {
-      Alert.alert('Erreur réseau', err?.message || 'Impossible de contacter le serveur.')
+      Alert.alert('Erreur rÃ©seau', err?.message || 'Impossible de contacter le serveur.')
     } finally {
       setCheckoutLoading(null)
     }
@@ -410,7 +410,7 @@ export default function SettingsPage() {
       router.replace('/auth')
     } catch (err) {
       console.error('Sign out error:', err)
-      alert('Erreur lors de la déconnexion')
+      alert('Erreur lors de la dÃ©connexion')
     }
   }
 
@@ -420,23 +420,23 @@ export default function SettingsPage() {
       name: 'FREE',
       displayName: 'Gratuit',
       price: null,
-      features: ['Swipes illimités', 'Likes illimités', 'Impossible de communiquer'],
+      features: ['Swipes illimitÃ©s', 'Likes illimitÃ©s', 'Impossible de communiquer'],
     },
     {
       id: 'business',
       name: 'BUSINESS',
       displayName: 'Business',
-      price: '5€',
+      price: '5â‚¬',
       priceSubtext: '/mois',
-      features: ['Swipes illimités', 'Likes illimités', 'Messages illimités', 'Encourage les membres Free'],
+      features: ['Swipes illimitÃ©s', 'Likes illimitÃ©s', 'Messages illimitÃ©s', 'Encourage les membres Free'],
     },
     {
       id: 'business_pro',
       name: 'BUSINESS PRO',
       displayName: 'Business Pro',
-      price: '10€',
+      price: '10â‚¬',
       priceSubtext: '/mois',
-      features: ['Tout Business inclus', 'Voir qui vous a liké', 'Retour en arrière (annuler un swipe)', 'Filtres avancés (âge + distance)', 'Accès prioritaire aux événements'],
+      features: ['Tout Business inclus', 'Voir qui vous a likÃ©', 'Retour en arriÃ¨re (annuler un swipe)', 'Filtres avancÃ©s (Ã¢ge + distance)', 'AccÃ¨s prioritaire aux Ã©vÃ©nements'],
     },
   ]
 
@@ -456,11 +456,11 @@ export default function SettingsPage() {
       >
         {[
           { id: 'plans', label: 'Plans' },
-          { id: 'events', label: 'Événements' },
+          { id: 'events', label: 'Ã‰vÃ©nements' },
           { id: 'news', label: 'Actus' },
           { id: 'referral', label: 'Parrainage' },
           { id: 'compte', label: 'Compte' },
-          { id: 'legal', label: 'Mentions légales' },
+          { id: 'legal', label: 'Mentions lÃ©gales' },
         ].map((tab) => (
           <TouchableOpacity
             key={tab.id}
@@ -480,7 +480,7 @@ export default function SettingsPage() {
           <View style={styles.plansContainer}>
             {loading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="${colors.primary}" />
+                <ActivityIndicator size="large" color={colors.primary} />
               </View>
             ) : (
               <>
@@ -518,7 +518,7 @@ export default function SettingsPage() {
                     <View style={styles.featuresList}>
                       {plan.features.map((feature, idx) => (
                         <View key={idx} style={styles.featureItem}>
-                          <Ionicons name="checkmark" size={16} color="${colors.primary}" style={styles.featureIcon} />
+                          <Ionicons name="checkmark" size={16} color={colors.primary} style={styles.featureIcon} />
                           <Text style={styles.featureText}>{feature}</Text>
                         </View>
                       ))}
@@ -539,7 +539,7 @@ export default function SettingsPage() {
                       disabled={currentPlan === plan.name || plan.id === 'free' || !!checkoutLoading}
                     >
                       {checkoutLoading === plan.id ? (
-                        <ActivityIndicator color="${colors.bg.primary}" size="small" />
+                        <ActivityIndicator color={colors.bg.primary} size="small" />
                       ) : (
                         <Text
                           style={[
@@ -558,23 +558,23 @@ export default function SettingsPage() {
                   </View>
                 ))}
 
-                {/* Logout button removed from Plans — find it in Compte tab */}
+                {/* Logout button removed from Plans â€” find it in Compte tab */}
               </>
             )}
           </View>
         )}
 
-        {activeTab === 'events' && <ComingSoon icon="calendar-outline" title="Événements" subtitle="Les événements networking PAKT arrivent bientôt. Sois le premier informé." />}
+        {activeTab === 'events' && <ComingSoon icon="calendar-outline" title="Ã‰vÃ©nements" subtitle="Les Ã©vÃ©nements networking PAKT arrivent bientÃ´t. Sois le premier informÃ©." />}
 
-        {activeTab === 'news' && <ComingSoon icon="newspaper-outline" title="Actualités" subtitle="Les dernières nouvelles de PAKT seront disponibles ici très prochainement." />}
+        {activeTab === 'news' && <ComingSoon icon="newspaper-outline" title="ActualitÃ©s" subtitle="Les derniÃ¨res nouvelles de PAKT seront disponibles ici trÃ¨s prochainement." />}
 
         {activeTab === 'referral' && (
           <View>
             <Text style={styles.sectionHeader}>Programme de Parrainage</Text>
 
             <View style={styles.referralCard}>
-              <Ionicons name="gift" size={32} color="${colors.primary}" style={styles.referralIcon} />
-              <Text style={styles.referralTitle}>Gagnez des récompenses</Text>
+              <Ionicons name="gift" size={32} color={colors.primary} style={styles.referralIcon} />
+              <Text style={styles.referralTitle}>Gagnez des rÃ©compenses</Text>
               <Text style={styles.referralText}>
                 Invitez vos amis sur PAKT et recevez des avantages exclusifs
               </Text>
@@ -583,7 +583,7 @@ export default function SettingsPage() {
             {/* Progress Section */}
             <View style={styles.progressSection}>
               <View style={styles.progressHeader}>
-                <Text style={styles.progressLabel}>Amis invités</Text>
+                <Text style={styles.progressLabel}>Amis invitÃ©s</Text>
                 <Text style={styles.progressCount}>{referralCount} / 5</Text>
               </View>
               <View style={styles.progressBar}>
@@ -610,17 +610,17 @@ export default function SettingsPage() {
             </View>
 
             <View style={styles.benefitsContainer}>
-              <Text style={styles.benefitsTitle}>Paliers de récompense</Text>
+              <Text style={styles.benefitsTitle}>Paliers de rÃ©compense</Text>
               {[
-                { count: 1, title: '1 ami invité', reward: '3 jours Business', days: '3J Business' },
-                { count: 3, title: '3 amis invités', reward: '7 jours Business', days: '7J Business' },
-                { count: 5, title: '5 amis invités', reward: '1 mois Business', days: '1M Business' },
-                { count: 10, title: '10 amis invités', reward: '1 mois Business Pro', days: '1M Business Pro' },
+                { count: 1, title: '1 ami invitÃ©', reward: '3 jours Business', days: '3J Business' },
+                { count: 3, title: '3 amis invitÃ©s', reward: '7 jours Business', days: '7J Business' },
+                { count: 5, title: '5 amis invitÃ©s', reward: '1 mois Business', days: '1M Business' },
+                { count: 10, title: '10 amis invitÃ©s', reward: '1 mois Business Pro', days: '1M Business Pro' },
               ].map((benefit) => {
                 const canClaim = referralCount >= benefit.count
                 return (
                   <View key={benefit.count} style={[styles.benefitItem, canClaim && styles.benefitItemUnlocked]}>
-                    <Ionicons name="star" size={20} color={canClaim ? '#4caf50' : '${colors.primary}'} />
+                    <Ionicons name="star" size={20} color={canClaim ? '#4caf50' : colors.primary} />
                     <View style={styles.benefitContent}>
                       <Text style={styles.benefitTitle}>{benefit.title}</Text>
                       <Text style={styles.benefitReward}>{benefit.reward}</Text>
@@ -632,9 +632,9 @@ export default function SettingsPage() {
                         disabled={claimingReward === benefit.count}
                       >
                         {claimingReward === benefit.count ? (
-                          <ActivityIndicator color="${colors.bg.primary}" size="small" />
+                          <ActivityIndicator color={colors.bg.primary} size="small" />
                         ) : (
-                          <Text style={styles.claimButtonText}>Réclamer</Text>
+                          <Text style={styles.claimButtonText}>RÃ©clamer</Text>
                         )}
                       </TouchableOpacity>
                     )}
@@ -644,17 +644,17 @@ export default function SettingsPage() {
             </View>
 
 
-            {/* Referral Code — tap to copy full message */}
+            {/* Referral Code â€” tap to copy full message */}
             <View style={styles.codeSection}>
               <Text style={styles.codeLabel}>Ton code de parrainage</Text>
               <TouchableOpacity style={styles.codeBox} onPress={handleCopyReferral} activeOpacity={0.7}>
                 <Text style={styles.codeText}>{referralCode || '...'}</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Ionicons name="copy-outline" size={20} color="${colors.primary}" />
+                  <Ionicons name="copy-outline" size={20} color={colors.primary} />
                 </View>
               </TouchableOpacity>
               <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 8, textAlign: 'center', lineHeight: 18 }}>
-                Appuie sur le code pour copier un message prêt à envoyer{'\n'}(SMS, WhatsApp, email...)
+                Appuie sur le code pour copier un message prÃªt Ã  envoyer{'\n'}(SMS, WhatsApp, email...)
               </Text>
             </View>
           </View>
@@ -667,15 +667,15 @@ export default function SettingsPage() {
             {/* Email Section */}
             <View style={styles.accountSection}>
               <Text style={styles.accountLabel}>Adresse email</Text>
-              <Text style={styles.accountValue}>{userEmail || 'Non défini'}</Text>
+              <Text style={styles.accountValue}>{userEmail || 'Non dÃ©fini'}</Text>
             </View>
 
 
             {/* Change Password */}
             <TouchableOpacity style={styles.accountButton} onPress={handleChangePassword}>
-              <Ionicons name="lock-closed-outline" size={18} color="${colors.primary}" />
+              <Ionicons name="lock-closed-outline" size={18} color={colors.primary} />
               <Text style={styles.accountButtonText}>Modifier mon mot de passe</Text>
-              <Ionicons name="chevron-forward" size={18} color="${colors.text.primary}fff44" />
+              <Ionicons name="chevron-forward" size={18} color="#ffffff44" />
             </TouchableOpacity>
 
             {/* Suspend/Reactivate Account */}
@@ -683,13 +683,13 @@ export default function SettingsPage() {
               <Ionicons name={isSuspended ? 'play-outline' : 'pause-outline'} size={18} color={isSuspended ? '#4caf50' : '#ff9800'} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.accountButtonText}>
-                  {isSuspended ? 'Réactiver mon compte' : 'Mettre en pause'}
+                  {isSuspended ? 'RÃ©activer mon compte' : 'Mettre en pause'}
                 </Text>
                 <Text style={styles.accountButtonSubtext}>
-                  {isSuspended ? '⏸ Ton profil est actuellement masqué' : 'Ton profil ne sera plus visible par les autres'}
+                  {isSuspended ? 'â¸ Ton profil est actuellement masquÃ©' : 'Ton profil ne sera plus visible par les autres'}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="${colors.text.primary}fff44" />
+              <Ionicons name="chevron-forward" size={18} color="#ffffff44" />
             </TouchableOpacity>
 
             {/* Delete Account */}
@@ -697,9 +697,9 @@ export default function SettingsPage() {
               <Ionicons name="trash-outline" size={18} color="#ff4444" />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.accountButtonText, { color: '#ff4444' }]}>Supprimer mon compte</Text>
-                <Text style={[styles.accountButtonSubtext, { color: '#ff444488' }]}>Action définitive et irréversible</Text>
+                <Text style={[styles.accountButtonSubtext, { color: '#ff444488' }]}>Action dÃ©finitive et irrÃ©versible</Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="${colors.text.primary}fff44" />
+              <Ionicons name="chevron-forward" size={18} color="#ffffff44" />
             </TouchableOpacity>
 
             {/* Logout */}
@@ -707,15 +707,15 @@ export default function SettingsPage() {
               style={styles.logoutButtonAlt}
               onPress={handleSignOut}
             >
-              <Ionicons name="log-out-outline" size={18} color="${colors.text.primary}" />
-              <Text style={styles.logoutButtonTextAlt}>Se déconnecter</Text>
+              <Ionicons name="log-out-outline" size={18} color={colors.text.primary} />
+              <Text style={styles.logoutButtonTextAlt}>Se dÃ©connecter</Text>
             </TouchableOpacity>
           </View>
         )}
 
         {activeTab === 'legal' && (
           <View>
-            <Text style={styles.sectionHeader}>Mentions légales</Text>
+            <Text style={styles.sectionHeader}>Mentions lÃ©gales</Text>
             {LEGAL_SECTIONS.map((section) => (
               <TouchableOpacity
                 key={section.id}
@@ -723,7 +723,7 @@ export default function SettingsPage() {
                 onPress={() => setSelectedLegal(section.id)}
               >
                 <Text style={styles.legalTitle}>{section.label}</Text>
-                <Ionicons name="chevron-forward" size={20} color="${colors.text.primary}fff44" />
+                <Ionicons name="chevron-forward" size={20} color="#ffffff44" />
               </TouchableOpacity>
             ))}
 
@@ -735,7 +735,7 @@ export default function SettingsPage() {
 
             {/* Footer */}
             <View style={styles.footerInfo}>
-              <Text style={styles.footerText}>PAKT © 2026</Text>
+              <Text style={styles.footerText}>PAKT Â© 2026</Text>
               <Text style={styles.footerText}>Version 1.0.0</Text>
             </View>
           </View>
@@ -753,7 +753,7 @@ export default function SettingsPage() {
               {LEGAL_SECTIONS.find(s => s.id === selectedLegal)?.label || ''}
             </Text>
             <TouchableOpacity onPress={() => setSelectedLegal(null)}>
-              <Ionicons name="close" size={24} color="${colors.text.primary}" />
+              <Ionicons name="close" size={24} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
 
@@ -771,16 +771,16 @@ export default function SettingsPage() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '${colors.bg.primary}' },
+  container: { flex: 1, backgroundColor: colors.bg.primary },
 
   header: {
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '${colors.bg.tertiary}',
+    borderBottomColor: colors.bg.tertiary,
   },
   headerTitle: {
-    color: '${colors.primary}',
+    color: colors.primary,
     fontSize: 32,
     fontWeight: 'bold',
   },
@@ -788,7 +788,7 @@ const styles = StyleSheet.create({
   tabsContainer: {
     maxHeight: 50,
     borderBottomWidth: 1,
-    borderBottomColor: '${colors.bg.tertiary}',
+    borderBottomColor: colors.bg.tertiary,
   },
   tabsContent: {
     paddingHorizontal: 16,
@@ -801,15 +801,15 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabActive: {
-    borderBottomColor: '${colors.primary}',
+    borderBottomColor: colors.primary,
   },
   tabText: {
-    color: '${colors.text.tertiary}',
+    color: colors.text.tertiary,
     fontSize: 14,
     fontWeight: '600',
   },
   tabTextActive: {
-    color: '${colors.primary}',
+    color: colors.primary,
   },
 
   content: { flex: 1, paddingHorizontal: 16, paddingVertical: 20 },
@@ -826,24 +826,24 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   currentPlanLabel: {
-    color: '${colors.text.primary}',
+    color: colors.text.primary,
     fontSize: 14,
     fontWeight: '600',
   },
   currentPlanBadge: {
-    backgroundColor: '${colors.primary}',
+    backgroundColor: colors.primary,
     borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 4,
   },
   currentPlanText: {
-    color: '${colors.bg.primary}',
+    color: colors.bg.primary,
     fontSize: 12,
     fontWeight: '700',
   },
 
   planCard: {
-    backgroundColor: '${colors.bg.tertiary}',
+    backgroundColor: colors.bg.tertiary,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -857,8 +857,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   planBadge: {
-    backgroundColor: '${colors.primary}33',
-    color: '${colors.primary}',
+    backgroundColor: `${colors.primary}33`,
+    color: colors.primary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
@@ -868,7 +868,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   planTitle: {
-    color: '${colors.text.primary}',
+    color: colors.text.primary,
     fontSize: 20,
     fontWeight: 'bold',
   },
@@ -876,12 +876,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   price: {
-    color: '${colors.primary}',
+    color: colors.primary,
     fontSize: 18,
     fontWeight: 'bold',
   },
   priceSubtext: {
-    color: '${colors.text.tertiary}',
+    color: colors.text.tertiary,
     fontSize: 12,
   },
 
@@ -898,13 +898,13 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   featureText: {
-    color: '${colors.text.primary}fff99',
+    color: '#ffffff99',
     fontSize: 13,
     flex: 1,
   },
 
   planButton: {
-    backgroundColor: '${colors.primary}',
+    backgroundColor: colors.primary,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 10,
@@ -919,12 +919,12 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   planButtonText: {
-    color: '${colors.bg.primary}',
+    color: colors.bg.primary,
     fontSize: 14,
     fontWeight: '700',
   },
   planButtonTextCurrent: {
-    color: '${colors.text.primary}',
+    color: colors.text.primary,
   },
 
   logoutButton: {
@@ -938,30 +938,30 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   logoutButtonText: {
-    color: '${colors.text.primary}',
+    color: colors.text.primary,
     fontSize: 14,
     fontWeight: '600',
   },
 
   sectionHeader: {
-    color: '${colors.primary}',
+    color: colors.primary,
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 16,
   },
 
   eventCard: {
-    backgroundColor: '${colors.bg.tertiary}',
+    backgroundColor: colors.bg.tertiary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '${colors.bg.quaternary}',
+    borderColor: colors.bg.quaternary,
     flexDirection: 'row',
     gap: 12,
   },
   eventDateBadge: {
-    backgroundColor: '${colors.primary}33',
+    backgroundColor: `${colors.primary}33`,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
@@ -970,7 +970,7 @@ const styles = StyleSheet.create({
     minWidth: 70,
   },
   eventDate: {
-    color: '${colors.primary}',
+    color: colors.primary,
     fontSize: 11,
     fontWeight: '700',
   },
@@ -978,7 +978,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   eventTitle: {
-    color: '${colors.text.primary}',
+    color: colors.text.primary,
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 6,
@@ -990,59 +990,59 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   eventLocation: {
-    color: '${colors.primary}',
+    color: colors.primary,
     fontSize: 12,
   },
   eventDescription: {
-    color: '${colors.text.secondary}',
+    color: colors.text.secondary,
     fontSize: 12,
   },
 
   newsCard: {
-    backgroundColor: '${colors.bg.tertiary}',
+    backgroundColor: colors.bg.tertiary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '${colors.bg.quaternary}',
+    borderColor: colors.bg.quaternary,
   },
   newsDate: {
-    color: '${colors.text.tertiary}',
+    color: colors.text.tertiary,
     fontSize: 11,
     marginBottom: 6,
   },
   newsTitle: {
-    color: '${colors.text.primary}',
+    color: colors.text.primary,
     fontSize: 15,
     fontWeight: '600',
     marginBottom: 8,
   },
   newsDescription: {
-    color: '${colors.text.secondary}',
+    color: colors.text.secondary,
     fontSize: 13,
     lineHeight: 18,
   },
 
   referralCard: {
-    backgroundColor: '${colors.primary}15',
+    backgroundColor: `${colors.primary}15`,
     borderRadius: 12,
     padding: 20,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '${colors.primary}44',
+    borderColor: `${colors.primary}44`,
     alignItems: 'center',
   },
   referralIcon: {
     marginBottom: 12,
   },
   referralTitle: {
-    color: '${colors.primary}',
+    color: colors.primary,
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 8,
   },
   referralText: {
-    color: '${colors.text.secondary}',
+    color: colors.text.secondary,
     fontSize: 13,
     textAlign: 'center',
   },
@@ -1051,7 +1051,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   benefitsTitle: {
-    color: '${colors.primary}',
+    color: colors.primary,
     fontSize: 14,
     fontWeight: '700',
     marginBottom: 12,
@@ -1059,13 +1059,13 @@ const styles = StyleSheet.create({
   benefitItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '${colors.bg.tertiary}',
+    backgroundColor: colors.bg.tertiary,
     borderRadius: 10,
     padding: 12,
     marginBottom: 10,
     gap: 12,
     borderWidth: 1,
-    borderColor: '${colors.bg.quaternary}',
+    borderColor: colors.bg.quaternary,
   },
   benefitItemClaimed: {
     backgroundColor: '#4caf5015',
@@ -1075,23 +1075,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   benefitTitle: {
-    color: '${colors.text.primary}',
+    color: colors.text.primary,
     fontSize: 13,
     fontWeight: '600',
     marginBottom: 2,
   },
   benefitReward: {
-    color: '${colors.primary}',
+    color: colors.primary,
     fontSize: 12,
   },
   claimButton: {
-    backgroundColor: '${colors.primary}',
+    backgroundColor: colors.primary,
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 6,
   },
   claimButtonText: {
-    color: '${colors.bg.primary}',
+    color: colors.bg.primary,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -1103,13 +1103,13 @@ const styles = StyleSheet.create({
     color: '#4caf50',
   },
   claimButton: {
-    backgroundColor: '${colors.primary}',
+    backgroundColor: colors.primary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
   },
   claimButtonText: {
-    color: '${colors.bg.primary}',
+    color: colors.bg.primary,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -1122,15 +1122,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   explanationBox: {
-    backgroundColor: '${colors.primary}15',
+    backgroundColor: `${colors.primary}15`,
     borderRadius: 10,
     padding: 12,
     marginTop: 16,
     borderWidth: 1,
-    borderColor: '${colors.primary}44',
+    borderColor: `${colors.primary}44`,
   },
   explanationText: {
-    color: '${colors.text.secondary}',
+    color: colors.text.secondary,
     fontSize: 12,
     lineHeight: 18,
   },
@@ -1139,34 +1139,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '${colors.primary}',
+    backgroundColor: colors.primary,
     borderRadius: 10,
     paddingVertical: 12,
     gap: 10,
   },
   referralButtonText: {
-    color: '${colors.bg.primary}',
+    color: colors.bg.primary,
     fontSize: 14,
     fontWeight: '700',
   },
 
   /* Account Tab */
   accountSection: {
-    backgroundColor: '${colors.bg.tertiary}',
+    backgroundColor: colors.bg.tertiary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '${colors.bg.quaternary}',
+    borderColor: colors.bg.quaternary,
   },
   accountLabel: {
-    color: '${colors.text.tertiary}',
+    color: colors.text.tertiary,
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 8,
   },
   accountValue: {
-    color: '${colors.primary}',
+    color: colors.primary,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -1174,13 +1174,13 @@ const styles = StyleSheet.create({
   accountButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '${colors.bg.tertiary}',
+    backgroundColor: colors.bg.tertiary,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '${colors.bg.quaternary}',
+    borderColor: colors.bg.quaternary,
     gap: 12,
   },
   accountButtonSuccess: {
@@ -1220,12 +1220,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   accountButtonText: {
-    color: '${colors.text.primary}',
+    color: colors.text.primary,
     fontSize: 15,
     fontWeight: '600',
   },
   accountButtonSubtext: {
-    color: '${colors.text.tertiary}',
+    color: colors.text.tertiary,
     fontSize: 12,
     marginTop: 4,
   },
@@ -1234,7 +1234,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '${colors.bg.quaternary}',
+    backgroundColor: colors.bg.quaternary,
     borderRadius: 10,
     paddingVertical: 14,
     marginTop: 8,
@@ -1243,7 +1243,7 @@ const styles = StyleSheet.create({
     borderColor: '#3a3a3a',
   },
   logoutButtonTextAlt: {
-    color: '${colors.text.primary}',
+    color: colors.text.primary,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -1252,36 +1252,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '${colors.bg.tertiary}',
+    backgroundColor: colors.bg.tertiary,
     borderRadius: 10,
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '${colors.bg.quaternary}',
+    borderColor: colors.bg.quaternary,
   },
   legalTitle: {
-    color: '${colors.text.primary}',
+    color: colors.text.primary,
     fontSize: 14,
     fontWeight: '600',
   },
 
   supportSection: {
-    backgroundColor: '${colors.primary}15',
+    backgroundColor: `${colors.primary}15`,
     borderRadius: 10,
     padding: 16,
     marginTop: 20,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '${colors.primary}44',
+    borderColor: `${colors.primary}44`,
   },
   supportLabel: {
-    color: '${colors.primary}',
+    color: colors.primary,
     fontSize: 12,
     fontWeight: '700',
     marginBottom: 6,
   },
   supportEmail: {
-    color: '${colors.text.primary}',
+    color: colors.text.primary,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -1290,16 +1290,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 20,
     borderTopWidth: 1,
-    borderTopColor: '${colors.bg.tertiary}',
+    borderTopColor: colors.bg.tertiary,
   },
   footerText: {
-    color: '${colors.text.primary}fff44',
+    color: '#ffffff44',
     fontSize: 11,
   },
 
   modalContainer: {
     flex: 1,
-    backgroundColor: '${colors.bg.primary}',
+    backgroundColor: colors.bg.primary,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1308,10 +1308,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '${colors.bg.tertiary}',
+    borderBottomColor: colors.bg.tertiary,
   },
   modalTitle: {
-    color: '${colors.text.primary}',
+    color: colors.text.primary,
     fontSize: 20,
     fontWeight: 'bold',
   },
@@ -1321,19 +1321,19 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   modalText: {
-    color: '${colors.text.secondary}',
+    color: colors.text.secondary,
     fontSize: 13,
     lineHeight: 20,
   },
 
   // Referral Progress Styles
   progressSection: {
-    backgroundColor: '${colors.bg.tertiary}',
+    backgroundColor: colors.bg.tertiary,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '${colors.primary}44',
+    borderColor: `${colors.primary}44`,
   },
   progressHeader: {
     flexDirection: 'row',
@@ -1342,14 +1342,14 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   progressLabel: {
-    color: '${colors.primary}',
+    color: colors.primary,
     fontSize: 13,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   progressCount: {
-    color: '${colors.text.primary}',
+    color: colors.text.primary,
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -1362,7 +1362,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '${colors.primary}',
+    backgroundColor: colors.primary,
     borderRadius: 3,
   },
   milestoneContainer: {
@@ -1381,26 +1381,26 @@ const styles = StyleSheet.create({
     borderColor: '#555',
   },
   milestoneDone: {
-    backgroundColor: '${colors.primary}',
-    borderColor: '${colors.primary}',
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   milestoneText: {
-    color: '${colors.text.primary}',
+    color: colors.text.primary,
     fontSize: 12,
     fontWeight: 'bold',
   },
 
   // Code Section Styles
   codeSection: {
-    backgroundColor: '${colors.bg.tertiary}',
+    backgroundColor: colors.bg.tertiary,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '${colors.primary}44',
+    borderColor: `${colors.primary}44`,
   },
   codeLabel: {
-    color: '${colors.primary}',
+    color: colors.primary,
     fontSize: 13,
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -1419,7 +1419,7 @@ const styles = StyleSheet.create({
     borderColor: '#333',
   },
   codeText: {
-    color: '${colors.text.primary}',
+    color: colors.text.primary,
     fontSize: 14,
     fontWeight: '600',
     fontFamily: 'monospace',
