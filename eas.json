@@ -5,7 +5,6 @@
   "build": {
     "production": {
       "ios": {
-        "image": "latest",
         "autoIncrement": true
       },
       "android": {
