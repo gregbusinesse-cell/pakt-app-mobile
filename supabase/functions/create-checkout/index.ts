@@ -108,17 +108,41 @@ serve(async (req: Request) => {
     // ── Get/Create Stripe customer ────────────────────────────────────────────
     const { data: profile } = await supabase
       .from('profiles')
-      .select('email, stripe_customer_id')
+      .select('email, stripe_customer_id, stripe_subscription_id, subscription_plan')
       .eq('id', user.id)
       .single()
 
     const email = (profile as any)?.email || user.email || ''
     let customerId: string | null = (profile as any)?.stripe_customer_id || null
+    const existingSubscriptionId = (profile as any)?.stripe_subscription_id
+    const currentPlan = (profile as any)?.subscription_plan
 
     if (!customerId) {
       console.log('[CHECKOUT] Creating new customer for:', email)
       customerId = await createStripeCustomer(email, user.id)
       await supabase.from('profiles').update({ stripe_customer_id: customerId }).eq('id', user.id)
+    }
+
+    // ── Cancel existing subscription if upgrading/downgrading ─────────────────
+    if (existingSubscriptionId && currentPlan && currentPlan !== 'free') {
+      console.log(`[CHECKOUT] Cancelling existing subscription ${existingSubscriptionId} (current: ${currentPlan}, new: ${plan})`)
+      try {
+        const cancelRes = await fetch(`https://api.stripe.com/v1/subscriptions/${existingSubscriptionId}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        })
+        if (cancelRes.ok) {
+          console.log(`[CHECKOUT] Old subscription cancelled successfully`)
+        } else {
+          const err = await cancelRes.json()
+          console.warn('[CHECKOUT] Failed to cancel old subscription:', err?.error?.message)
+        }
+      } catch (err) {
+        console.error('[CHECKOUT] Error cancelling old subscription:', err)
+      }
     }
 
     // ── Create checkout session ───────────────────────────────────────────────
