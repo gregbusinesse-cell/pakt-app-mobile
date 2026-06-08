@@ -3,40 +3,11 @@
     "name": "PAKT",
     "slug": "pakt",
     "version": "1.0.0",
-    "sdkVersion": "50.0.0",
+    "sdkVersion": "54.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "scheme": "pakt",
-    "linking": {
-      "enabled": true,
-      "prefixes": [
-        "pakt://"
-      ],
-      "config": {
-        "screens": {
-          "index": "",
-          "auth": "auth",
-          "auth/callback": "auth/callback",
-          "onboarding": "onboarding",
-          "reset-password": "reset-password",
-          "confirm/[token]": "confirm/:token",
-          "payment/success": "payment/success",
-          "payment/cancel": "payment/cancel",
-          "delete-account": "delete-account",
-          "swipe": "swipe",
-          "matches": "matches",
-          "messages": "messages",
-          "messages/[id]": "messages/:id",
-          "chat/[id]": "chat/:id",
-          "profile": "profile",
-          "profile/edit": "profile/edit",
-          "profile/preferences": "profile/preferences",
-          "user/[id]": "user/:id",
-          "settings": "settings"
-        }
-      }
-    },
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -45,8 +16,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.pakt.app",
-      "buildNumber": "14",
-      "deploymentTarget": "15.0",
+      "buildNumber": "16",
       "infoPlist": {
         "NSCameraUsageDescription": "PAKT a besoin de la camera pour prendre des photos de profil.",
         "NSPhotoLibraryUsageDescription": "PAKT a besoin d'acceder a tes photos pour ton profil.",
@@ -81,7 +51,8 @@
       "expo-image-picker",
       "expo-location",
       "expo-asset",
-      "expo-av"
+      "expo-av",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
