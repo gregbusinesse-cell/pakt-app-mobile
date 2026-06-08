@@ -40,7 +40,7 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.pakt.app",
       "buildNumber": "3",
-      "deploymentTarget": "14.0",
+      "deploymentTarget": "15.0",
       "infoPlist": {
         "NSCameraUsageDescription": "PAKT a besoin de la camera pour prendre des photos de profil.",
         "NSPhotoLibraryUsageDescription": "PAKT a besoin d'acceder a tes photos pour ton profil.",
