@@ -4,7 +4,6 @@ import * as Clipboard from 'expo-clipboard'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter, useLocalSearchParams } from 'expo-router'
-import { useFocusEffect } from '@react-navigation/native'
 import { supabase } from '@/lib/supabase/client'
 // import { useInAppPurchases } from '@/lib/hooks/useInAppPurchases' // Disabled for MVP - Android compatibility
 import { LEGAL_SECTIONS, SUPPORT_EMAIL, LEGAL_CONTENT } from '@/lib/constants/legal-content'
@@ -382,27 +381,25 @@ export default function SettingsPage() {
     router.push('/delete-account' as any)
   }
 
-  // ── Re-fetch plan when screen comes into focus (after returning from payment) ──
-  useFocusEffect(
-    useCallback(() => {
-      const refreshPlan = async () => {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session?.user?.id) return
-        const { data } = await supabase
-          .from('profiles')
-          .select('subscription_plan')
-          .eq('id', session.user.id)
-          .single()
-        if (data?.subscription_plan) {
-          const planMap: Record<string, 'FREE' | 'BUSINESS' | 'BUSINESS PRO'> = {
-            free: 'FREE', business: 'BUSINESS', business_pro: 'BUSINESS PRO', pro: 'BUSINESS PRO',
-          }
-          setCurrentPlan(planMap[data.subscription_plan.toLowerCase()] || 'FREE')
+  // ── Re-fetch plan on mount (SDK 56 compatibility - no react-navigation) ──
+  useEffect(() => {
+    const refreshPlan = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user?.id) return
+      const { data } = await supabase
+        .from('profiles')
+        .select('subscription_plan')
+        .eq('id', session.user.id)
+        .single()
+      if (data?.subscription_plan) {
+        const planMap: Record<string, 'FREE' | 'BUSINESS' | 'BUSINESS PRO'> = {
+          free: 'FREE', business: 'BUSINESS', business_pro: 'BUSINESS PRO', pro: 'BUSINESS PRO',
         }
+        setCurrentPlan(planMap[data.subscription_plan.toLowerCase()] || 'FREE')
       }
-      refreshPlan()
-    }, [])
-  )
+    }
+    refreshPlan()
+  }, [])
 
   // ── Start checkout (iOS uses In-App Purchase, others use Stripe) ─
   const handleUpgrade = async (plan: 'business' | 'business_pro') => {
