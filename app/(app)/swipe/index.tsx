@@ -178,6 +178,11 @@ export default function SwipePage() {
     setPhotoIdx(0)
     setLastSwiped({ profile: target, dir })
 
+    // Reset animation for next card
+    setTimeout(() => {
+      cardScaleAnim.setValue(1)
+    }, 200)
+
     // Record swipe in DB
     const { error: swipeErr } = await supabase
       .from('swipes')
@@ -353,6 +358,16 @@ export default function SwipePage() {
           <Text style={styles.headerSubtitle}>Les meilleurs profils business, rien que pour toi</Text>
         </View>
 
+        {/* Profile Name & Age - Above Photo */}
+        {current && (
+          <View style={styles.profileHeaderCard}>
+            <Text style={styles.profileHeaderName}>
+              {current.first_name || 'Utilisateur'}
+              {current.age ? <Text style={styles.profileHeaderAge}>, {current.age}</Text> : null}
+            </Text>
+          </View>
+        )}
+
         {/* Photo Card */}
         <Animated.View style={[styles.cardContainer, { transform: [{ scale: cardScaleAnim }] }]}>
           <View style={[styles.card, { height: PHOTO_HEIGHT }]}>
@@ -437,6 +452,14 @@ export default function SwipePage() {
             </View>
           </View>
         </Animated.View>
+
+        {/* Location Card - Between Photo and Bio */}
+        {current?.city && (
+          <View style={styles.locationCard}>
+            <Ionicons name="location-sharp" size={16} color={colors.primary} />
+            <Text style={styles.locationText}>{current.city}</Text>
+          </View>
+        )}
 
         {/* ── BIOGRAPHIE ── */}
         {current?.bio && (
@@ -574,6 +597,15 @@ const styles = StyleSheet.create({
   header: { marginBottom: spacing.xxl, paddingHorizontal: spacing.sm },
   headerTitle: { color: colors.primary, fontSize: 32, fontWeight: '800', letterSpacing: 0.5, marginBottom: spacing.xs },
   headerSubtitle: { color: colors.text.secondary, fontSize: 13, fontWeight: '500', letterSpacing: 0.3 },
+
+  // Profile Header (Name & Age above photo)
+  profileHeaderCard: { marginBottom: spacing.lg, paddingHorizontal: spacing.sm },
+  profileHeaderName: { color: colors.text.primary, fontSize: 24, fontWeight: '700', letterSpacing: 0.3 },
+  profileHeaderAge: { color: colors.text.secondary, fontSize: 24, fontWeight: '500' },
+
+  // Location Card
+  locationCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xl, marginHorizontal: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: colors.bg.tertiary, borderRadius: borderRadius.lg, borderWidth: 1, borderColor: colors.border.secondary },
+  locationText: { color: colors.text.secondary, fontSize: 14, fontWeight: '500' },
 
   // Card Container
   cardContainer: { marginBottom: spacing.xxl },

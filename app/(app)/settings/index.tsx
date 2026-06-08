@@ -104,6 +104,8 @@ export default function SettingsPage() {
   const [codeLoading, setCodeLoading] = useState(false)
   const [codeUsed, setCodeUsed] = useState(false)
   const [claimingReward, setClaimingReward] = useState<number | null>(null)
+  const [selectedNews, setSelectedNews] = useState<{ id: number; title: string; date: string; category: string; content: string; fullContent: string } | null>(null)
+  const [showNewsDetail, setShowNewsDetail] = useState(false)
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -575,14 +577,28 @@ export default function SettingsPage() {
           <View style={styles.newsContainer}>
             <Text style={styles.sectionHeader}>Actualités</Text>
 
-            <TouchableOpacity style={styles.newsCard} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={styles.newsCard}
+              activeOpacity={0.7}
+              onPress={() => {
+                setSelectedNews({
+                  id: 1,
+                  title: 'Sortie officielle de PAKT',
+                  date: '10 juin 2026',
+                  category: 'Mise à jour majeure',
+                  content: 'PAKT est officiellement lancé ! Rejoignez la communauté des entrepreneurs et talents pour collaborer, créer et grandir ensemble.',
+                  fullContent: 'PAKT est officiellement lancé ! 🚀\n\nRejoignez la communauté des entrepreneurs et talents pour collaborer, créer et grandir ensemble.\n\nNouvelles fonctionnalités:\n• Découvrir les meilleurs profils business\n• Matcher avec des talents et entrepreneurs\n• Communiquer directement\n• Accéder au programme de parrainage\n\nBienvenue à bord!'
+                })
+                setShowNewsDetail(true)
+              }}
+            >
               <View style={styles.newsCardHeader}>
                 <View style={styles.newsDateBadge}>
                   <Text style={styles.newsDate}>10 juin</Text>
                   <Text style={styles.newsYear}>2026</Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.newsTitle}>🎉 Sortie officielle de PAKT</Text>
+                  <Text style={styles.newsTitle}>Sortie officielle de PAKT</Text>
                   <Text style={styles.newsCategory}>Mise à jour majeure</Text>
                 </View>
               </View>
@@ -792,6 +808,30 @@ export default function SettingsPage() {
             <Text style={styles.modalText}>
               {selectedLegal && LEGAL_CONTENT[selectedLegal as keyof typeof LEGAL_CONTENT]?.content}
             </Text>
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* News Detail Modal */}
+      <Modal visible={showNewsDetail} animationType="slide" transparent={false}>
+        <SafeAreaView style={styles.modalContainer}>
+          {/* Modal Header */}
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{selectedNews?.title || ''}</Text>
+            <TouchableOpacity onPress={() => setShowNewsDetail(false)}>
+              <Ionicons name="close" size={24} color={colors.text.primary} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Modal Content */}
+          <ScrollView style={styles.modalContent}>
+            <View style={styles.newsDetailDateBadge}>
+              <Ionicons name="calendar-outline" size={14} color={colors.primary} />
+              <Text style={styles.newsDetailDate}>{selectedNews?.date}</Text>
+            </View>
+            <Text style={styles.newsDetailCategory}>{selectedNews?.category}</Text>
+            <Text style={styles.newsDetailText}>{selectedNews?.fullContent}</Text>
             <View style={{ height: 40 }} />
           </ScrollView>
         </SafeAreaView>
@@ -1520,5 +1560,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
+  },
+
+  // News Detail Modal
+  newsDetailDateBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: 'rgba(212, 175, 55, 0.12)',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+    alignSelf: 'flex-start',
+    marginBottom: spacing.lg,
+  },
+  newsDetailDate: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  newsDetailCategory: {
+    color: colors.primary,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+    marginBottom: spacing.lg,
+  },
+  newsDetailText: {
+    color: colors.text.secondary,
+    fontSize: 15,
+    fontWeight: '500',
+    lineHeight: 26,
+    letterSpacing: 0.2,
   },
 })
