@@ -106,6 +106,7 @@ export default function SettingsPage() {
   const [claimingReward, setClaimingReward] = useState<number | null>(null)
   const [selectedNews, setSelectedNews] = useState<{ id: number; title: string; date: string; category: string; content: string; fullContent: string } | null>(null)
   const [showNewsDetail, setShowNewsDetail] = useState(false)
+  const [downgradingLoading, setDowngradingLoading] = useState(false)
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -174,6 +175,47 @@ export default function SettingsPage() {
 
     fetchUserData()
   }, [])
+
+  // ── Downgrade to free plan ──────────────────────────────────────────────────
+  const handleDowngradeToFree = async () => {
+    Alert.alert(
+      'Downgrader vers FREE?',
+      'Tu vas perdre accès aux fonctionnalités Business. Cette action est irréversible.',
+      [
+        { text: 'Annuler', onPress: () => {}, style: 'cancel' },
+        {
+          text: 'Confirmer',
+          onPress: async () => {
+            setDowngradingLoading(true)
+            try {
+              const { data: { session } } = await supabase.auth.getSession()
+              if (!session?.access_token) {
+                Alert.alert('Erreur', 'Tu dois être connecté.')
+                return
+              }
+
+              const { data, error } = await supabase.functions.invoke('cancel-subscription', {
+                headers: { Authorization: `Bearer ${session.access_token}` },
+              })
+
+              if (error || !data?.success) {
+                Alert.alert('Erreur', error?.message || data?.error || 'Impossible d\'annuler.')
+                return
+              }
+
+              Alert.alert('Succès', 'Tu es passé au plan FREE.')
+              setCurrentPlan('FREE')
+            } catch (err: any) {
+              Alert.alert('Erreur', err.message || 'Erreur réseau.')
+            } finally {
+              setDowngradingLoading(false)
+            }
+          },
+          style: 'destructive',
+        },
+      ]
+    )
+  }
 
   // ── Use a referral code ──────────────────────────────────────────────────────
   const handleUseCode = async () => {
@@ -536,16 +578,19 @@ export default function SettingsPage() {
                       style={[
                         styles.planButton,
                         currentPlan === plan.name && styles.planButtonCurrent,
-                        checkoutLoading === plan.id && styles.planButtonLoading,
+                        (checkoutLoading === plan.id || downgradingLoading) && styles.planButtonLoading,
                       ]}
                       onPress={() => {
                         if (currentPlan === plan.name) return
-                        if (plan.id === 'free') return
+                        if (plan.id === 'free') {
+                          handleDowngradeToFree()
+                          return
+                        }
                         handleUpgrade(plan.id as 'business' | 'business_pro')
                       }}
-                      disabled={currentPlan === plan.name || plan.id === 'free' || !!checkoutLoading}
+                      disabled={currentPlan === plan.name || !!(checkoutLoading) || !!downgradingLoading}
                     >
-                      {checkoutLoading === plan.id ? (
+                      {(checkoutLoading === plan.id || downgradingLoading) ? (
                         <ActivityIndicator color={colors.bg.primary} size="small" />
                       ) : (
                         <Text
@@ -557,7 +602,7 @@ export default function SettingsPage() {
                           {currentPlan === plan.name
                             ? 'Plan actuel'
                             : plan.id === 'free'
-                            ? 'Gratuit'
+                            ? 'Passer à Gratuit'
                             : `Passer ${plan.displayName}`}
                         </Text>
                       )}
