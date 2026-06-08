@@ -11,6 +11,7 @@
     "prebuild": "expo prebuild"
   },
   "dependencies": {
+    "@expo/config-plugins": "^8.0.0",
     "@expo/metro-runtime": "~4.0.1",
     "@expo/vector-icons": "~14.0.4",
     "@opentelemetry/api": "^1.9.1",
