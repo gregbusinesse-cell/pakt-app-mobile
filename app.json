@@ -40,7 +40,6 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.pakt.app",
       "buildNumber": "3",
-      "deploymentTarget": "15.0",
       "infoPlist": {
         "NSCameraUsageDescription": "PAKT a besoin de la camera pour prendre des photos de profil.",
         "NSPhotoLibraryUsageDescription": "PAKT a besoin d'acceder a tes photos pour ton profil.",
@@ -75,7 +74,15 @@
       "expo-image-picker",
       "expo-location",
       "expo-asset",
-      "expo-av"
+      "expo-av",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "18.0"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
