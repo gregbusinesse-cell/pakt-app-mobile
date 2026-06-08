@@ -209,10 +209,23 @@ export default function SwipePage() {
     if (!likeErr) {
       const SUPA = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
       const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
-      const myName = (await supabase.from('profiles').select('first_name').eq('id', userId).single()).data?.first_name || 'Quelqu\'un'
+
+      // Get sender name and target plan
+      const myNameRes = await supabase.from('profiles').select('first_name').eq('id', userId).single()
+      const myName = myNameRes.data?.first_name || 'Quelqu\'un'
+
+      const targetPlanRes = await supabase.from('profiles').select('subscription_plan').eq('id', target.id).single()
+      const targetPlan = ((targetPlanRes.data as any)?.subscription_plan || '').toLowerCase()
+      const isTargetPro = targetPlan === 'business_pro'
+
+      // If target is Pro, show who liked them. Otherwise, generic message
+      const notifBody = isTargetPro
+        ? `${myName} a liké ton profil`
+        : 'Tu as reçu un like ! Passe Business Pro pour savoir qui'
+
       fetch(`${SUPA}/functions/v1/send-push-notification`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': ANON },
-        body: JSON.stringify({ to_user_id: target.id, title: '❤️ Nouveau like !', body: `${myName} a liké ton profil`, data: { type: 'like' } }),
+        body: JSON.stringify({ to_user_id: target.id, title: '❤️ Nouveau like !', body: notifBody, data: { type: 'like' } }),
       }).catch(() => {})
     }
 
