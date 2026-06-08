@@ -80,15 +80,7 @@
       "expo-image-picker",
       "expo-location",
       "expo-asset",
-      "expo-av",
-      [
-        "expo-build-properties",
-        {
-          "ios": {
-            "deploymentTarget": "18.0"
-          }
-        }
-      ]
+      "expo-av"
     ],
     "experiments": {
       "typedRoutes": true
