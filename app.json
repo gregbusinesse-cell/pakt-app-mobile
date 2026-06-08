@@ -3,7 +3,7 @@
     "name": "PAKT",
     "slug": "pakt",
     "version": "1.0.0",
-    "sdkVersion": "51.0.0",
+    "sdkVersion": "52.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -45,7 +45,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.pakt.app",
-      "buildNumber": "12",
+      "buildNumber": "13",
       "infoPlist": {
         "NSCameraUsageDescription": "PAKT a besoin de la camera pour prendre des photos de profil.",
         "NSPhotoLibraryUsageDescription": "PAKT a besoin d'acceder a tes photos pour ton profil.",
@@ -80,7 +80,15 @@
       "expo-image-picker",
       "expo-location",
       "expo-asset",
-      "expo-av"
+      "expo-av",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "15.0"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
