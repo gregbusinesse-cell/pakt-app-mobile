@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   cardWrapper: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     paddingHorizontal: 4,
     paddingTop: 4,
     paddingBottom: 4,

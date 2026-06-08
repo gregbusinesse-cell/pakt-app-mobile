@@ -280,7 +280,6 @@ export default function SettingsPage() {
       const data = await res.json()
       if (!data.success) throw new Error(data.error || 'Erreur serveur')
 
-      setClaimedRewards([...claimedRewards, requiredCount])
       Alert.alert('Récompense activée ✅', `Ton plan ${planDays} a été activé !`)
     } catch (err: any) {
       Alert.alert('Erreur', err.message || 'Impossible de réclamer la récompense.')

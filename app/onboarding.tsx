@@ -650,7 +650,7 @@ function CreatingProfileScreen({ firstName }: { firstName: string }) {
 
 const loadingStyles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: colors.bg.primary,
     alignItems: 'center',
     justifyContent: 'center',
