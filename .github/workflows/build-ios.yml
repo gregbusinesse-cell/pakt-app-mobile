@@ -25,8 +25,8 @@ jobs:
       - name: Install EAS CLI
         run: npm install -g eas-cli@latest --force
 
-      - name: Build iOS (local)
-        run: eas build --local --platform ios --profile preview
+      - name: Build iOS (remote - Expo servers)
+        run: eas build --platform ios --profile production
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
