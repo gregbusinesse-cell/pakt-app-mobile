@@ -24,9 +24,18 @@ serve(async (req: Request) => {
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
 
   try {
+    // ── Config check ──────────────────────────────────────────────────────
+    if (!STRIPE_SECRET_KEY) {
+      console.error('[CANCEL] Missing STRIPE_SECRET_KEY')
+      return json({ error: 'Payment not configured' }, 500)
+    }
+
     // ── Auth ──────────────────────────────────────────────────────────────
     const authHeader = req.headers.get('Authorization') || req.headers.get('authorization')
-    if (!authHeader?.startsWith('Bearer ')) return json({ error: 'Missing token' }, 401)
+    if (!authHeader?.startsWith('Bearer ')) {
+      console.error('[CANCEL] Missing authorization header')
+      return json({ error: 'Missing token' }, 401)
+    }
     const token = authHeader.replace('Bearer ', '').trim()
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_KEY!, {
@@ -39,10 +48,12 @@ serve(async (req: Request) => {
       return json({ error: 'Unauthorized' }, 401)
     }
 
+    console.log(`[CANCEL] User ${user.id} requesting downgrade`)
+
     // ── Get user's subscription ────────────────────────────────────────────
     const { data: profile, error: profileErr } = await supabase
       .from('profiles')
-      .select('stripe_subscription_id, plan')
+      .select('stripe_subscription_id, plan, subscription_plan')
       .eq('id', user.id)
       .single()
 
@@ -52,29 +63,48 @@ serve(async (req: Request) => {
     }
 
     const subscriptionId = (profile as any)?.stripe_subscription_id
-    const currentPlan = (profile as any)?.plan
+    const currentPlan = (profile as any)?.subscription_plan || (profile as any)?.plan
+
+    console.log(`[CANCEL] User plan: ${currentPlan}, subscription: ${subscriptionId}`)
 
     // Already on free plan
     if (currentPlan === 'free' || !subscriptionId) {
+      console.log(`[CANCEL] Already free or no subscription, updating profile`)
+      // Just update to free in case subscription was deleted in Stripe
+      await supabase
+        .from('profiles')
+        .update({
+          plan: 'free',
+          subscription_plan: 'free',
+          subscription_status: 'cancelled',
+          stripe_subscription_id: null,
+        })
+        .eq('id', user.id)
       return json({ success: true, message: 'Already on free plan' }, 200)
     }
 
     // ── Cancel Stripe subscription ─────────────────────────────────────────
-    console.log(`[CANCEL] Cancelling subscription ${subscriptionId} for user ${user.id}`)
+    console.log(`[CANCEL] Cancelling Stripe subscription ${subscriptionId}`)
 
     const cancelRes = await fetch(`https://api.stripe.com/v1/subscriptions/${subscriptionId}`, {
       method: 'DELETE',
       headers: {
         Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
     })
 
     const canceledSub = await cancelRes.json()
 
     if (!cancelRes.ok) {
-      console.error('[CANCEL] Stripe error:', canceledSub?.error)
-      return json({ error: canceledSub?.error?.message || 'Failed to cancel subscription' }, 500)
+      console.error('[CANCEL] Stripe error:', canceledSub?.error?.message, '| Code:', canceledSub?.error?.code)
+      return json(
+        { error: canceledSub?.error?.message || 'Failed to cancel subscription' },
+        canceledSub?.error?.code === 'resource_missing' ? 404 : 500
+      )
     }
+
+    console.log(`[CANCEL] Stripe subscription cancelled: ${canceledSub.id}`)
 
     // ── Update Supabase: downgrade to free ─────────────────────────────────
     const { error: updateErr } = await supabase
@@ -88,7 +118,7 @@ serve(async (req: Request) => {
       .eq('id', user.id)
 
     if (updateErr) {
-      console.error('[CANCEL] Update error:', updateErr.message)
+      console.error('[CANCEL] Supabase update error:', updateErr.message)
       return json({ error: 'Failed to update plan' }, 500)
     }
 

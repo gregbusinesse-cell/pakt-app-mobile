@@ -39,14 +39,14 @@ async function createStripeCustomer(email: string, userId: string) {
 
 // ─── Create a Stripe Checkout session ────────────────────────────────────────
 async function createCheckoutSession(customerId: string, priceId: string, plan: string, userId: string) {
-  const baseUrl = 'https://pakt-sigma.vercel.app'
+  // Use deep links to redirect back to the mobile app instead of a web page
   const params = new URLSearchParams()
   params.append('mode', 'subscription')
   params.append('customer', customerId)
   params.append('line_items[0][price]', priceId)
   params.append('line_items[0][quantity]', '1')
-  params.append('success_url', `${baseUrl}/payment/mobile-success?plan=${plan}&session_id={CHECKOUT_SESSION_ID}`)
-  params.append('cancel_url', `${baseUrl}/payment/mobile-cancel`)
+  params.append('success_url', `pakt://payment/success?plan=${plan}&session_id={CHECKOUT_SESSION_ID}`)
+  params.append('cancel_url', 'pakt://payment/cancel')
   params.append('metadata[user_id]', userId)
   params.append('metadata[plan]', plan)
   params.append('metadata[price_id]', priceId)
