@@ -15,19 +15,25 @@
       ],
       "config": {
         "screens": {
+          "index": "",
           "auth": "auth",
           "auth/callback": "auth/callback",
+          "onboarding": "onboarding",
+          "reset-password": "reset-password",
+          "confirm/[token]": "confirm/:token",
           "payment/success": "payment/success",
           "payment/cancel": "payment/cancel",
-          "(app)": {
-            "screens": {
-              "swipe/index": "swipe",
-              "matches/index": "matches",
-              "messages/index": "messages",
-              "messages/[id]": "messages/:id",
-              "profile/index": "profile"
-            }
-          }
+          "delete-account": "delete-account",
+          "swipe": "swipe",
+          "matches": "matches",
+          "messages": "messages",
+          "messages/[id]": "messages/:id",
+          "chat/[id]": "chat/:id",
+          "profile": "profile",
+          "profile/edit": "profile/edit",
+          "profile/preferences": "profile/preferences",
+          "user/[id]": "user/:id",
+          "settings": "settings"
         }
       }
     },
@@ -39,7 +45,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.pakt.app",
-      "buildNumber": "5",
+      "buildNumber": "8",
       "infoPlist": {
         "NSCameraUsageDescription": "PAKT a besoin de la camera pour prendre des photos de profil.",
         "NSPhotoLibraryUsageDescription": "PAKT a besoin d'acceder a tes photos pour ton profil.",
