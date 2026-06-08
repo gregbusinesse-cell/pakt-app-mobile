@@ -38,15 +38,18 @@ async function createStripeCustomer(email: string, userId: string) {
 }
 
 // ─── Create a Stripe Checkout session ────────────────────────────────────────
-async function createCheckoutSession(customerId: string, priceId: string, plan: string, userId: string) {
-  // Use deep links to redirect back to the mobile app instead of a web page
+async function createCheckoutSession(customerId: string, priceId: string, plan: string, userId: string, supabaseUrl: string) {
+  // Use Supabase redirect functions that convert Stripe URLs to mobile deep links
+  const successUrl = `${supabaseUrl}/functions/v1/stripe-success-redirect?plan=${encodeURIComponent(plan)}&session_id={CHECKOUT_SESSION_ID}`
+  const cancelUrl = `${supabaseUrl}/functions/v1/stripe-cancel-redirect`
+
   const params = new URLSearchParams()
   params.append('mode', 'subscription')
   params.append('customer', customerId)
   params.append('line_items[0][price]', priceId)
   params.append('line_items[0][quantity]', '1')
-  params.append('success_url', `pakt://payment/success?plan=${plan}&session_id={CHECKOUT_SESSION_ID}`)
-  params.append('cancel_url', 'pakt://payment/cancel')
+  params.append('success_url', successUrl)
+  params.append('cancel_url', cancelUrl)
   params.append('metadata[user_id]', userId)
   params.append('metadata[plan]', plan)
   params.append('metadata[price_id]', priceId)
@@ -119,7 +122,7 @@ serve(async (req: Request) => {
     }
 
     // ── Create checkout session ───────────────────────────────────────────────
-    let { ok, data: session } = await createCheckoutSession(customerId!, priceId!, plan, user.id)
+    let { ok, data: session } = await createCheckoutSession(customerId!, priceId!, plan, user.id, SUPABASE_URL!)
 
     // If customer doesn't exist in this Stripe account (e.g. old test customer),
     // clear it and create a fresh one
@@ -127,7 +130,7 @@ serve(async (req: Request) => {
       console.log('[CHECKOUT] Customer not found, creating fresh one...')
       customerId = await createStripeCustomer(email, user.id)
       await supabase.from('profiles').update({ stripe_customer_id: customerId }).eq('id', user.id)
-      const retry = await createCheckoutSession(customerId!, priceId!, plan, user.id)
+      const retry = await createCheckoutSession(customerId!, priceId!, plan, user.id, SUPABASE_URL!)
       ok = retry.ok
       session = retry.data
     }
