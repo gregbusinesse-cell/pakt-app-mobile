@@ -114,7 +114,7 @@ export default function ProfilePage() {
               onPress={() => router.push('/profile/preferences' as any)}
               activeOpacity={0.75}
             >
-              <Ionicons name="sliders" size={16} color={colors.success} />
+              <Ionicons name="sliders-horizontal-sharp" size={16} color={colors.success} />
               <Text style={styles.filterBtnText}>Filtres</Text>
             </TouchableOpacity>
           )}

@@ -583,7 +583,7 @@ export default function SwipePage() {
             </Text>
             <Text style={styles.paywallFeature}>💎 Fonctionnalité exclusive Business Pro</Text>
             <TouchableOpacity style={styles.paywallBtn} onPress={() => { setShowUndoPaywall(false); router.push('/settings?scroll=pro' as any) }} activeOpacity={0.8}>
-              <Ionicons name="crown" size={18} color={colors.bg.primary} />
+              <Ionicons name="trophy" size={18} color={colors.bg.primary} />
               <Text style={styles.paywallBtnTxt}>Passer Business Pro</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.paywallBtnSec} onPress={() => setShowUndoPaywall(false)}>

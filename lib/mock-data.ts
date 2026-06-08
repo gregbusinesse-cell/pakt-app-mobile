@@ -51,7 +51,6 @@ export const mockProfiles: Profile[] = [
     stripe_subscription_id: null,
     subscription_status: null,
     subscription_plan: 'business',
-    subscription_plan: 'business',
     swipes_today: 0,
     messages_today: 0,
     likes_today: 0,

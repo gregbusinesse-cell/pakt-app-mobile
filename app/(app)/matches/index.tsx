@@ -318,7 +318,7 @@ export default function MatchesPage() {
                         onPress={() => router.push('/settings' as any)}
                         activeOpacity={0.8}
                       >
-                        <Ionicons name="crown" size={16} color={colors.bg.primary} style={{ marginRight: spacing.sm }} />
+                        <Ionicons name="trophy" size={16} color={colors.bg.primary} style={{ marginRight: spacing.sm }} />
                         <Text style={styles.paywallButtonText}>Passer Business Pro</Text>
                       </TouchableOpacity>
                     </View>
