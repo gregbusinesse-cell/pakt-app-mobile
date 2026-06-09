@@ -792,9 +792,11 @@ export default function SettingsPage() {
                 { count: 5, title: '5 amis invités', reward: '1 mois Business', days: '1M Business' },
                 { count: 10, title: '10 amis invités', reward: '1 mois Business Pro', days: '1M Business Pro' },
               ].map((benefit) => {
-                const canClaim = referralCount >= benefit.count
+                // Only FREE users can claim rewards (prevent downgrades for Business/Pro users)
+                const canClaim = referralCount >= benefit.count && currentPlan === 'free'
                 const claimedReward = activeRewards.find(r => r.days_granted === (benefit.days.includes('1M') ? 30 : benefit.days.includes('7') ? 7 : 3) && r.plan_granted === (benefit.days.includes('Pro') ? 'business_pro' : 'business'))
                 const countdown = claimedReward ? rewardCountdowns[claimedReward.id] : null
+                const isBusinessUser = currentPlan === 'business' || currentPlan === 'business_pro'
 
                 return (
                   <View key={benefit.count} style={[styles.benefitItem, canClaim && styles.benefitItemUnlocked, claimedReward && { backgroundColor: 'rgba(76, 175, 80, 0.1)', borderColor: 'rgba(76, 175, 80, 0.3)' }]}>
@@ -804,6 +806,9 @@ export default function SettingsPage() {
                       <Text style={styles.benefitReward}>{benefit.reward}</Text>
                       {claimedReward && (
                         <Text style={{ color: '#4caf50', fontSize: 12, marginTop: 4 }}>✓ Expire dans {countdown || '...'}</Text>
+                      )}
+                      {isBusinessUser && !claimedReward && (
+                        <Text style={{ color: '#ff9800', fontSize: 12, marginTop: 4 }}>Réservé aux plans Free</Text>
                       )}
                     </View>
                     {!claimedReward && canClaim && (
