@@ -131,7 +131,7 @@ export default function SwipePage() {
       if (isBusinessPro && userPrefs) {
         const minAge = userPrefs.min_age || 15
         const maxAge = userPrefs.max_age || 99
-        const maxDistance = userPrefs.max_distance_km || 10000
+        const maxDistance = userPrefs.max_distance_km || 100000
         const preferredSkills = Array.isArray(userPrefs.preferred_skills) ? userPrefs.preferred_skills : []
 
         // Helper to calculate distance between two points (Haversine formula)

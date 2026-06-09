@@ -25,11 +25,13 @@ export default function PreferencesPage() {
   // Filter states
   const [minAge, setMinAge] = useState('15')
   const [maxAge, setMaxAge] = useState('99')
-  const [maxDistance, setMaxDistance] = useState('10000')
+  const [maxDistance, setMaxDistance] = useState('100000')
   const [selectedSkills, setSelectedSkills] = useState<string[]>([])
 
   // Load user preferences
   useEffect(() => {
+    let channel: any = null
+
     const loadPreferences = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
@@ -55,19 +57,19 @@ export default function PreferencesPage() {
           console.log('[PREFERENCES] Plan is not business_pro, locking filters')
           setMinAge('15')
           setMaxAge('99')
-          setMaxDistance('10000')
+          setMaxDistance('100000')
           setSelectedSkills([])
         } else {
           // Load actual preferences for Business Pro
           console.log('[PREFERENCES] Plan is business_pro, unlocking filters')
           setMinAge(String(data?.min_age || 15))
           setMaxAge(String(data?.max_age || 99))
-          setMaxDistance(String(data?.max_distance_km || 10000))
+          setMaxDistance(String(data?.max_distance_km || 100000))
           setSelectedSkills(Array.isArray(data?.preferred_skills) ? data.preferred_skills : [])
         }
 
-        // Listen for real-time plan changes
-        const channel = supabase
+        // Setup real-time listener for plan changes
+        channel = supabase
           .channel(`preferences-${session.user.id}`)
           .on(
             'postgres_changes',
@@ -85,21 +87,19 @@ export default function PreferencesPage() {
               if (newPlan === 'business_pro') {
                 setMinAge(String((payload.new as any)?.min_age || 15))
                 setMaxAge(String((payload.new as any)?.max_age || 99))
-                setMaxDistance(String((payload.new as any)?.max_distance_km || 10000))
+                setMaxDistance(String((payload.new as any)?.max_distance_km || 100000))
                 setSelectedSkills(Array.isArray((payload.new as any)?.preferred_skills) ? (payload.new as any).preferred_skills : [])
               } else {
                 setMinAge('15')
                 setMaxAge('99')
-                setMaxDistance('10000')
+                setMaxDistance('100000')
                 setSelectedSkills([])
               }
             }
           )
           .subscribe()
 
-        return () => {
-          supabase.removeChannel(channel)
-        }
+        setLoading(false)
       } catch (err) {
         console.error('Error loading preferences:', err)
         // Only show error if it's a critical issue (not just missing data)
@@ -110,14 +110,20 @@ export default function PreferencesPage() {
         setUserPlan('free')
         setMinAge('15')
         setMaxAge('99')
-        setMaxDistance('10000')
+        setMaxDistance('100000')
         setSelectedSkills([])
-      } finally {
         setLoading(false)
       }
     }
 
     loadPreferences()
+
+    // Cleanup listener when component unmounts
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel)
+      }
+    }
   }, [])
 
   const handleSavePreferences = async () => {
@@ -132,7 +138,7 @@ export default function PreferencesPage() {
 
       const minAgeNum = Math.max(15, Math.min(parseInt(minAge) || 15, 99))
       const maxAgeNum = Math.max(15, Math.min(parseInt(maxAge) || 99, 99))
-      const maxDistNum = Math.max(1, parseInt(maxDistance) || 10000)
+      const maxDistNum = Math.max(1, Math.min(parseInt(maxDistance) || 100000, 100000))
 
       const { error } = await supabase
         .from('profiles')
@@ -222,38 +228,27 @@ export default function PreferencesPage() {
             {/* Age Section */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Âge</Text>
-              <View style={styles.rangeContainer}>
-                <View style={styles.rangeInput}>
-                  <Text style={styles.rangeLabel}>Min</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="15"
-                    placeholderTextColor={colors.text.disabled}
-                    value={minAge}
-                    onChangeText={setMinAge}
-                    keyboardType="number-pad"
-                    maxLength={3}
-                  />
-                </View>
-
-                <View style={styles.rangeSeparator}>
-                  <View style={styles.separatorLine} />
-                  <Text style={styles.separatorText}>à</Text>
-                  <View style={styles.separatorLine} />
-                </View>
-
-                <View style={styles.rangeInput}>
-                  <Text style={styles.rangeLabel}>Max</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="99"
-                    placeholderTextColor={colors.text.disabled}
-                    value={maxAge}
-                    onChangeText={setMaxAge}
-                    keyboardType="number-pad"
-                    maxLength={3}
-                  />
-                </View>
+              <View style={styles.ageRangeContainer}>
+                <Text style={styles.ageRangeLabel}>De</Text>
+                <TextInput
+                  style={styles.ageInput}
+                  placeholder="15"
+                  placeholderTextColor={colors.text.disabled}
+                  value={minAge}
+                  onChangeText={setMinAge}
+                  keyboardType="number-pad"
+                  maxLength={3}
+                />
+                <Text style={styles.ageRangeLabel}>à</Text>
+                <TextInput
+                  style={styles.ageInput}
+                  placeholder="99"
+                  placeholderTextColor={colors.text.disabled}
+                  value={maxAge}
+                  onChangeText={setMaxAge}
+                  keyboardType="number-pad"
+                  maxLength={3}
+                />
               </View>
             </View>
 
@@ -441,6 +436,30 @@ const styles = StyleSheet.create({
   },
   separatorLine: { flex: 1, height: 1, backgroundColor: '#333' },
   separatorText: { color: '#ffffff66', fontSize: 12 },
+
+  // Age Range (new style)
+  ageRangeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  ageRangeLabel: {
+    color: colors.text.primary,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  ageInput: {
+    flex: 1,
+    backgroundColor: colors.bg.tertiary,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#333',
+    color: colors.text.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    textAlign: 'center',
+  },
 
   // Distance
   distanceHeader: {
