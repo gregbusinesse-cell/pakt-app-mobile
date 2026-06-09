@@ -102,7 +102,16 @@ export default function PreferencesPage() {
         }
       } catch (err) {
         console.error('Error loading preferences:', err)
-        Alert.alert('Erreur', 'Impossible de charger les préférences')
+        // Only show error if it's a critical issue (not just missing data)
+        if (err instanceof Error && err.message.includes('permission')) {
+          Alert.alert('Erreur', 'Accès refusé aux préférences')
+        }
+        // Set defaults silently for missing data
+        setUserPlan('free')
+        setMinAge('15')
+        setMaxAge('99')
+        setMaxDistance('10000')
+        setSelectedSkills([])
       } finally {
         setLoading(false)
       }

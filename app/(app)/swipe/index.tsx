@@ -74,6 +74,16 @@ export default function SwipePage() {
     setLoading(true)
 
     try {
+      // Load user preferences for filtering (Business Pro only)
+      const { data: userPrefs } = await supabase
+        .from('profiles')
+        .select('subscription_plan, min_age, max_age, max_distance_km, preferred_skills, lat, lon')
+        .eq('id', userId)
+        .single()
+
+      const plan = (userPrefs?.subscription_plan || '').toLowerCase()
+      const isBusinessPro = plan === 'business_pro'
+
       // Get already swiped IDs (must never show these again)
       const { data: swiped } = await supabase
         .from('swipes')
@@ -113,9 +123,60 @@ export default function SwipePage() {
       }
 
       // Filter: exclude swiped, recently viewed, AND suspended accounts
-      const eligible = (data || []).filter(
+      let eligible = (data || []).filter(
         (p: any) => !swipedIds.has(p.id) && !recentViewIds.has(p.id) && p.is_suspended !== true
       )
+
+      // Apply Business Pro user preferences filters
+      if (isBusinessPro && userPrefs) {
+        const minAge = userPrefs.min_age || 15
+        const maxAge = userPrefs.max_age || 99
+        const maxDistance = userPrefs.max_distance_km || 10000
+        const preferredSkills = Array.isArray(userPrefs.preferred_skills) ? userPrefs.preferred_skills : []
+
+        // Helper to calculate distance between two points (Haversine formula)
+        const calcDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+          const R = 6371 // Earth radius in km
+          const dLat = (lat2 - lat1) * Math.PI / 180
+          const dLon = (lon2 - lon1) * Math.PI / 180
+          const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                    Math.sin(dLon / 2) * Math.sin(dLon / 2)
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+          return R * c
+        }
+
+        eligible = eligible.filter((profile: any) => {
+          // Age filter
+          if (profile.age && (profile.age < minAge || profile.age > maxAge)) {
+            return false
+          }
+
+          // Distance filter
+          if (userPrefs.lat && userPrefs.lon && profile.lat && profile.lon) {
+            const distance = calcDistance(userPrefs.lat, userPrefs.lon, profile.lat, profile.lon)
+            if (distance > maxDistance) {
+              return false
+            }
+          }
+
+          // Skills filter (if any skills selected, profile must have at least one match)
+          if (preferredSkills.length > 0) {
+            const profileSkills = Array.isArray(profile.skills) ? profile.skills : []
+            const hasMatchingSkill = profileSkills.some((s: any) => {
+              const skillName = typeof s === 'string' ? s : s?.name
+              return preferredSkills.includes(skillName)
+            })
+            if (!hasMatchingSkill) {
+              return false
+            }
+          }
+
+          return true
+        })
+
+        console.log('[SWIPE] Applied Business Pro filters - eligible after filtering:', eligible.length)
+      }
 
       console.log('[SWIPE] Total profiles:', data?.length || 0)
       console.log('[SWIPE] Swiped:', swipedIds.size)
