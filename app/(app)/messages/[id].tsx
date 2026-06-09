@@ -57,6 +57,7 @@ export default function ChatDetailPage() {
   const [messages, setMessages] = useState<MessageWithStatus[]>([])
   const [participant, setParticipant] = useState<Profile | null>(null)
   const [currentUser, setCurrentUser] = useState<Profile | null>(null)
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null)
   const [messageText, setMessageText] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
@@ -871,12 +872,17 @@ export default function ChatDetailPage() {
 
       const status = await recordingToStop.stopAndUnloadAsync()
       const uri = recordingToStop.getURI() || ''
-      const duration = Math.floor((status.durationMillis || 0) / 1000)
+      const durationMs = status.durationMillis || 0
+      const duration = Math.floor(durationMs / 1000)
 
-      console.log('[REC] Recording stopped, duration:', duration, 'uri:', uri)
+      console.log('[REC] Recording stopped - durationMillis:', durationMs, 'duration:', duration, 'uri:', uri, 'status:', status)
 
-      if (uri && duration >= 1) {
-        setRecordedAudio({ uri, duration })
+      // If status duration is 0 but we recorded, use recordingDuration from timer
+      const finalDuration = duration > 0 ? duration : recordingDuration
+      console.log('[REC] Final duration to use:', finalDuration)
+
+      if (uri && finalDuration >= 1) {
+        setRecordedAudio({ uri, duration: finalDuration })
       } else if (!uri) {
         showToast('Erreur: Impossible de sauvegarder l\'enregistrement', 'error')
         setRecordingDuration(0)
@@ -1095,18 +1101,20 @@ export default function ChatDetailPage() {
 
                   {/* IMAGE message */}
                   {(msg as any).message_type === 'image' && (msg as any).file_url ? (
-                    <View>
-                      <Image
-                        source={{ uri: (msg as any).file_url }}
-                        style={{ width: 200, height: 200, borderRadius: 12 }}
-                        resizeMode="cover"
-                      />
-                      <View style={styles.messageFooter}>
-                        <Text style={[styles.messageTime, isOwn && styles.messageTimeOwn]}>
-                          {formatExactTime(msg.created_at)}
-                        </Text>
+                    <TouchableOpacity onPress={() => setFullscreenImage((msg as any).file_url)} activeOpacity={0.8}>
+                      <View>
+                        <Image
+                          source={{ uri: (msg as any).file_url }}
+                          style={{ width: 200, height: 200, borderRadius: 12 }}
+                          resizeMode="cover"
+                        />
+                        <View style={styles.messageFooter}>
+                          <Text style={[styles.messageTime, isOwn && styles.messageTimeOwn]}>
+                            {formatExactTime(msg.created_at)}
+                          </Text>
+                        </View>
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   ) : (msg as any).message_type === 'audio' && (msg as any).file_url ? (
                     /* AUDIO message — compact horizontal */
                     <TouchableOpacity
@@ -1395,6 +1403,18 @@ export default function ChatDetailPage() {
               </TouchableOpacity>
             </View>
           </View>
+        </View>
+      </Modal>
+
+      {/* Fullscreen Image Modal */}
+      <Modal visible={!!fullscreenImage} transparent onRequestClose={() => setFullscreenImage(null)}>
+        <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+          <TouchableOpacity style={{ flex: 1, width: '100%', justifyContent: 'center', alignItems: 'center' }} onPress={() => setFullscreenImage(null)}>
+            {fullscreenImage && <Image source={{ uri: fullscreenImage }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />}
+          </TouchableOpacity>
+          <TouchableOpacity style={{ position: 'absolute', top: 40, left: 20 }} onPress={() => setFullscreenImage(null)}>
+            <Ionicons name="close" size={28} color="#fff" />
+          </TouchableOpacity>
         </View>
       </Modal>
 

@@ -123,7 +123,7 @@ export default function SettingsPage() {
 
         const { data, error } = await supabase
           .from('profiles')
-          .select('subscription_plan, is_suspended')
+          .select('plan, subscription_plan, is_suspended')
           .eq('id', session.user.id)
           .single()
 
@@ -137,7 +137,10 @@ export default function SettingsPage() {
             'business_pro': 'BUSINESS PRO',
             'pro': 'BUSINESS PRO',
           }
-          setCurrentPlan(planMap[data.subscription_plan?.toLowerCase()] || 'FREE')
+          // Use 'plan' as source of truth, fallback to subscription_plan
+          const planValue = (data as any).plan || data.subscription_plan
+          setCurrentPlan(planMap[planValue?.toLowerCase()] || 'FREE')
+          setUserPlan(planValue?.toLowerCase() as any)
           setIsSuspended(!!(data as any).is_suspended)
         }
 
@@ -307,12 +310,13 @@ export default function SettingsPage() {
       // Refetch profile to update plan immediately
       const { data: updatedProfile } = await supabase
         .from('profiles')
-        .select('subscription_plan,plan_expires_at')
+        .select('plan,subscription_plan,plan_expires_at')
         .eq('id', session.user.id)
         .single()
 
-      if (updatedProfile?.subscription_plan) {
-        setUserPlan(updatedProfile.subscription_plan.toLowerCase() as any)
+      if (updatedProfile) {
+        const planValue = (updatedProfile as any).plan || updatedProfile.subscription_plan
+        setUserPlan(planValue?.toLowerCase() as any)
       }
     } catch (err: any) {
       console.error('[REFERRAL] Claim error:', err)
