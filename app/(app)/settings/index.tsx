@@ -108,6 +108,7 @@ export default function SettingsPage() {
   const [downgradingLoading, setDowngradingLoading] = useState(false)
   const [userPlan, setUserPlan] = useState<'free' | 'business' | 'business_pro'>('free')
   const [activeRewards, setActiveRewards] = useState<any[]>([])
+  const [rewardCountdowns, setRewardCountdowns] = useState<{ [key: string]: string }>({})
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -155,6 +156,21 @@ export default function SettingsPage() {
 
         if (rewards) {
           setActiveRewards(rewards)
+          // Initialize countdowns
+          const countdowns: { [key: string]: string } = {}
+          rewards.forEach(r => {
+            const now = new Date().getTime()
+            const expiresAt = new Date(r.expires_at).getTime()
+            const diffMs = expiresAt - now
+            if (diffMs > 0) {
+              const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+              const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+              const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+              const secs = Math.floor((diffMs % (1000 * 60)) / 1000)
+              countdowns[r.id] = days > 0 ? `${days}j` : `${hours}h ${mins}m`
+            }
+          })
+          setRewardCountdowns(countdowns)
         }
 
         // Fetch referral code from profiles (where it's actually stored)
@@ -192,6 +208,40 @@ export default function SettingsPage() {
 
     fetchUserData()
   }, [])
+
+  // Live countdown for rewards
+  useEffect(() => {
+    if (activeRewards.length === 0) return
+
+    const interval = setInterval(() => {
+      const countdowns: { [key: string]: string } = {}
+      const now = new Date().getTime()
+
+      activeRewards.forEach(r => {
+        const expiresAt = new Date(r.expires_at).getTime()
+        const diffMs = expiresAt - now
+
+        if (diffMs > 0) {
+          const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+          const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+          const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+          const secs = Math.floor((diffMs % (1000 * 60)) / 1000)
+
+          if (days > 0) {
+            countdowns[r.id] = `${days}j ${hours}h`
+          } else if (hours > 0) {
+            countdowns[r.id] = `${hours}h ${mins}m`
+          } else {
+            countdowns[r.id] = `${mins}m ${secs}s`
+          }
+        }
+      })
+
+      setRewardCountdowns(countdowns)
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [activeRewards])
 
   // ── Downgrade to free plan ──────────────────────────────────────────────────
   const handleDowngradeToFree = async () => {
@@ -304,7 +354,7 @@ export default function SettingsPage() {
 
       Alert.alert(
         'Récompense récupérée ✅',
-        `Ton plan ${planDays} a été activé !\n\nExpire dans ${daysLeft}j`,
+        `Ton plan ${planDays} a été activé !`,
         [{ text: 'OK' }]
       )
 
@@ -744,8 +794,7 @@ export default function SettingsPage() {
               ].map((benefit) => {
                 const canClaim = referralCount >= benefit.count
                 const claimedReward = activeRewards.find(r => r.days_granted === (benefit.days.includes('1M') ? 30 : benefit.days.includes('7') ? 7 : 3) && r.plan_granted === (benefit.days.includes('Pro') ? 'business_pro' : 'business'))
-                const hoursLeft = claimedReward ? Math.ceil((new Date(claimedReward.expires_at).getTime() - new Date().getTime()) / (1000 * 60 * 60)) : 0
-                const daysLeft = Math.ceil(hoursLeft / 24)
+                const countdown = claimedReward ? rewardCountdowns[claimedReward.id] : null
 
                 return (
                   <View key={benefit.count} style={[styles.benefitItem, canClaim && styles.benefitItemUnlocked, claimedReward && { backgroundColor: 'rgba(76, 175, 80, 0.1)', borderColor: 'rgba(76, 175, 80, 0.3)' }]}>
@@ -753,15 +802,11 @@ export default function SettingsPage() {
                     <View style={styles.benefitContent}>
                       <Text style={styles.benefitTitle}>{benefit.title}</Text>
                       <Text style={styles.benefitReward}>{benefit.reward}</Text>
-                      {claimedReward && daysLeft > 0 && (
-                        <Text style={{ color: '#4caf50', fontSize: 12, marginTop: 4 }}>Actif pendant {daysLeft}j</Text>
+                      {claimedReward && (
+                        <Text style={{ color: '#4caf50', fontSize: 12, marginTop: 4 }}>✓ Expire dans {countdown || '...'}</Text>
                       )}
                     </View>
-                    {claimedReward && daysLeft > 0 ? (
-                      <View style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#4caf50', borderRadius: 6 }}>
-                        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>✓ Actif</Text>
-                      </View>
-                    ) : canClaim && (
+                    {!claimedReward && canClaim && (
                       <TouchableOpacity
                         style={styles.claimButton}
                         onPress={() => handleClaimReward(benefit.count, benefit.days)}

@@ -38,6 +38,14 @@ export function useCurrentUser() {
       // Mettre à jour le store global — tous les abonnés reçoivent la mise à jour
       profileStore.set(profileData)
       setError(null)
+
+      // Check for expired plans and restore original plans if needed
+      try {
+        await supabase.rpc('check_expired_plans')
+        console.log('[useCurrentUser] Checked and restored expired plans')
+      } catch (err) {
+        console.error('[useCurrentUser] Error checking expired plans:', err)
+      }
     } catch (err) {
       console.error('[useCurrentUser] fetch error:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch profile')
