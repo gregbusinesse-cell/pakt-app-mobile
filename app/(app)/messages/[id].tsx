@@ -15,12 +15,14 @@ import {
   PanResponder,
   GestureResponderEvent,
   Image,
+  AppState,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
 import * as FileSystem from 'expo-file-system'
+import { readAsStringAsync } from 'expo-file-system/legacy'
 import { Audio } from 'expo-av'
 import { supabase } from '@/lib/supabase/client'
 
@@ -291,6 +293,52 @@ export default function ChatDetailPage() {
     return () => {
       supabase.removeChannel(channel)
     }
+  }, [conversationId])
+
+  // Refetch profiles when app returns to foreground (in case plan changed in settings)
+  const refetchProfiles = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user?.id || !conversationId) return
+
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single()
+
+      if (userProfile) setCurrentUser(userProfile)
+
+      // Get conversation to find participant
+      const { data: conv } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('id', conversationId)
+        .single()
+
+      if (conv) {
+        const participantId = conv.user1_id === session.user.id ? conv.user2_id : conv.user1_id
+        const { data: participantProfile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', participantId)
+          .single()
+
+        if (participantProfile) setParticipant(participantProfile)
+      }
+    } catch (err) {
+      console.error('[CHAT] Error refetching profiles:', err)
+    }
+  }
+
+  // Refetch profiles when app returns to foreground
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        refetchProfiles()
+      }
+    })
+    return () => subscription.remove()
   }, [conversationId])
 
   const fetchMessages = async (convId: string) => {
@@ -691,7 +739,7 @@ export default function ChatDetailPage() {
       setSending(true)
 
       // Use expo-file-system to handle Android content:// URIs
-      const base64 = await FileSystem.readAsStringAsync(selectedImage.uri, {
+      const base64 = await readAsStringAsync(selectedImage.uri, {
         encoding: FileSystem.EncodingType.Base64,
       })
       const binaryString = atob(base64)
@@ -770,6 +818,7 @@ export default function ChatDetailPage() {
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
+        active: true,
       })
 
       const recording = new Audio.Recording()

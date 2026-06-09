@@ -33,6 +33,7 @@ export default function UserProfilePage() {
 
     const loadProfile = async () => {
       try {
+        setPhotoIdx(0)
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
