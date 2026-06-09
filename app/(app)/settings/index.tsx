@@ -281,6 +281,17 @@ export default function SettingsPage() {
       if (!data.success) throw new Error(data.error || 'Erreur serveur')
 
       Alert.alert('Récompense activée ✅', `Ton plan ${planDays} a été activé !`)
+
+      // Refetch profile to update plan immediately
+      const { data: updatedProfile } = await supabase
+        .from('profiles')
+        .select('subscription_plan')
+        .eq('id', session.user.id)
+        .single()
+
+      if (updatedProfile?.subscription_plan) {
+        setUserPlan(updatedProfile.subscription_plan.toLowerCase() as any)
+      }
     } catch (err: any) {
       Alert.alert('Erreur', err.message || 'Impossible de réclamer la récompense.')
     } finally {

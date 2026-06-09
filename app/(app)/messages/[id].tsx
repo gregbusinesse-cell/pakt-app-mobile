@@ -740,7 +740,7 @@ export default function ChatDetailPage() {
 
       // Use expo-file-system to handle Android content:// URIs
       const base64 = await readAsStringAsync(selectedImage.uri, {
-        encoding: FileSystem.EncodingType.Base64,
+        encoding: 'base64' as any,
       })
       const binaryString = atob(base64)
       const byteArray = new Uint8Array(binaryString.length)
@@ -875,10 +875,13 @@ export default function ChatDetailPage() {
 
       console.log('[REC] Recording stopped, duration:', duration, 'uri:', uri)
 
-      if (uri && duration > 0) {
+      if (uri && duration >= 1) {
         setRecordedAudio({ uri, duration })
+      } else if (!uri) {
+        showToast('Erreur: Impossible de sauvegarder l\'enregistrement', 'error')
+        setRecordingDuration(0)
       } else {
-        showToast('Enregistrement trop court', 'error')
+        showToast('Le vocal doit faire minimum une seconde', 'error')
         setRecordingDuration(0)
       }
     } catch (err) {
@@ -952,7 +955,11 @@ export default function ChatDetailPage() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+        style={{ flex: 1 }}
+      >
         {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
