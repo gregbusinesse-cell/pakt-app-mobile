@@ -47,20 +47,58 @@ export default function PreferencesPage() {
         if (error) throw error
 
         const plan = data?.subscription_plan?.toLowerCase() as any || 'free'
+        console.log('[PREFERENCES] User plan:', plan)
         setUserPlan(plan)
 
         // Set defaults for FREE/BUSINESS users
         if (plan !== 'business_pro') {
+          console.log('[PREFERENCES] Plan is not business_pro, locking filters')
           setMinAge('15')
           setMaxAge('99')
           setMaxDistance('10000')
           setSelectedSkills([])
         } else {
           // Load actual preferences for Business Pro
+          console.log('[PREFERENCES] Plan is business_pro, unlocking filters')
           setMinAge(String(data?.min_age || 15))
           setMaxAge(String(data?.max_age || 99))
           setMaxDistance(String(data?.max_distance_km || 10000))
           setSelectedSkills(Array.isArray(data?.preferred_skills) ? data.preferred_skills : [])
+        }
+
+        // Listen for real-time plan changes
+        const channel = supabase
+          .channel(`preferences-${session.user.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'profiles',
+              filter: `id=eq.${session.user.id}`,
+            },
+            (payload) => {
+              const newPlan = (payload.new as any)?.subscription_plan?.toLowerCase() || 'free'
+              console.log('[PREFERENCES] Real-time plan update:', newPlan)
+              setUserPlan(newPlan)
+
+              if (newPlan === 'business_pro') {
+                setMinAge(String((payload.new as any)?.min_age || 15))
+                setMaxAge(String((payload.new as any)?.max_age || 99))
+                setMaxDistance(String((payload.new as any)?.max_distance_km || 10000))
+                setSelectedSkills(Array.isArray((payload.new as any)?.preferred_skills) ? (payload.new as any).preferred_skills : [])
+              } else {
+                setMinAge('15')
+                setMaxAge('99')
+                setMaxDistance('10000')
+                setSelectedSkills([])
+              }
+            }
+          )
+          .subscribe()
+
+        return () => {
+          supabase.removeChannel(channel)
         }
       } catch (err) {
         console.error('Error loading preferences:', err)

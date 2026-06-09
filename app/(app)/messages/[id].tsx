@@ -900,31 +900,44 @@ export default function ChatDetailPage() {
   }
 
   const sendRecordedAudio = async () => {
-    if (!recordedAudio || !conversationId || !currentUser?.id) return
+    if (!recordedAudio || !conversationId || !currentUser?.id) {
+      console.log('[AUDIO] Missing data:', { recordedAudio, conversationId, userId: currentUser?.id })
+      return
+    }
 
     try {
       setSending(true)
+      console.log('[AUDIO] Starting send, duration:', recordedAudio.duration)
 
-      // Use expo-file-system to handle file:// URIs on Android
-      const base64 = await FileSystem.readAsStringAsync(recordedAudio.uri, {
-        encoding: FileSystem.EncodingType.Base64,
+      // Use legacy readAsStringAsync for audio
+      const base64 = await readAsStringAsync(recordedAudio.uri, {
+        encoding: 'base64' as any,
       })
+      console.log('[AUDIO] Base64 encoded, size:', base64.length)
+
       const binaryString = atob(base64)
       const byteArray = new Uint8Array(binaryString.length)
       for (let j = 0; j < binaryString.length; j++) byteArray[j] = binaryString.charCodeAt(j)
+
+      console.log('[AUDIO] ByteArray size:', byteArray.length)
       const fileName = `audio_${Date.now()}.m4a`
 
       const { error: uploadError } = await supabase.storage
         .from('message_attachments')
         .upload(`audio/${conversationId}/${fileName}`, byteArray, { contentType: 'audio/m4a', upsert: false })
 
-      if (uploadError) throw uploadError
+      if (uploadError) {
+        console.error('[AUDIO] Upload error:', uploadError)
+        throw uploadError
+      }
 
+      console.log('[AUDIO] Upload success, getting URL')
       const { data: urlData } = supabase.storage
         .from('message_attachments')
         .getPublicUrl(`audio/${conversationId}/${fileName}`)
 
-      await supabase.from('messages').insert({
+      console.log('[AUDIO] URL:', urlData.publicUrl)
+      const { error: insertError } = await supabase.from('messages').insert({
         conversation_id: conversationId,
         sender_id: currentUser.id,
         content: `[AUDIO ${recordedAudio.duration}s]`,
@@ -933,12 +946,19 @@ export default function ChatDetailPage() {
         file_name: fileName,
       })
 
+      if (insertError) {
+        console.error('[AUDIO] Insert error:', insertError)
+        throw insertError
+      }
+
+      console.log('[AUDIO] Message inserted, fetching')
       setRecordedAudio(null)
       setRecordingDuration(0)
       await fetchMessages(conversationId)
+      showToast('Message vocal envoyé ✅', 'success')
     } catch (err) {
-      console.error('Error sending audio:', err)
-      showToast('Erreur lors de l\'envoi du message vocal', 'error')
+      console.error('[AUDIO] Error sending audio:', err)
+      showToast('Erreur lors de l\'envoi du message vocal: ' + (err instanceof Error ? err.message : 'Inconnu'), 'error')
     } finally {
       setSending(false)
     }
