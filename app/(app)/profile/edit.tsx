@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
-import * as FileSystem from 'expo-file-system'
+import { readAsStringAsync } from 'expo-file-system/legacy'
 import { supabase } from '@/lib/supabase/client'
 import { profileStore } from '@/lib/profileStore'
 
@@ -423,7 +423,7 @@ export default function EditProfilePage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) { Alert.alert('Session expirée'); setUploading(false); return }
       // Use expo-file-system to handle Android content:// URIs
-      const base64 = await FileSystem.readAsStringAsync(asset.uri, {
+      const base64 = await readAsStringAsync(asset.uri, {
         encoding: 'base64' as any,
       })
       const binaryString = atob(base64)
@@ -448,6 +448,10 @@ export default function EditProfilePage() {
     }
   }
   const removePhoto = (i: number) => {
+    if (photos.length <= 1) {
+      Alert.alert('Minimum requis', 'Vous devez garder au moins une photo.')
+      return
+    }
     const next = photos.filter((_, idx) => idx !== i)
     isDirtyRef.current = true
     setPhotos(next)

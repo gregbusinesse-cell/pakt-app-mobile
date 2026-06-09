@@ -1,6 +1,6 @@
 ﻿import { useState, useRef, useCallback, useEffect } from 'react'
 import { profileStore } from '@/lib/profileStore'
-import * as FileSystem from 'expo-file-system'
+import { readAsStringAsync } from 'expo-file-system/legacy'
 import {
   View,
   Text,
@@ -336,7 +336,7 @@ export default function OnboardingPage() {
           const fileName = `${userId}/photo_${Date.now()}_${i}.${ext}`
 
           // Use expo-file-system to read as base64 (handles Android content:// URIs)
-          const base64 = await FileSystem.readAsStringAsync(uri, {
+          const base64 = await readAsStringAsync(uri, {
             encoding: 'base64' as any,
           })
           // Decode base64 → Uint8Array
