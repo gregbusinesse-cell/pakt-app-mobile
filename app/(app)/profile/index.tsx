@@ -76,8 +76,17 @@ export default function ProfilePage() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
-          <Ionicons name="alert-circle" size={48} color={colors.text.disabled} />
-          <Text style={styles.emptyText}>Profil non disponible</Text>
+          <Ionicons name="person-circle-outline" size={64} color={colors.primary} />
+          <Text style={styles.emptyText}>Profil incomplet</Text>
+          <Text style={[styles.emptyText, { fontSize: 14, marginTop: 8, color: colors.text.secondary }]}>
+            Termine ton profil pour accéder à PAKT
+          </Text>
+          <TouchableOpacity
+            style={{ marginTop: 24, backgroundColor: colors.primary, paddingHorizontal: 32, paddingVertical: 14, borderRadius: 12 }}
+            onPress={() => router.replace('/onboarding' as any)}
+          >
+            <Text style={{ color: '#0a0a0a', fontWeight: '800', fontSize: 16 }}>Compléter mon profil</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     )

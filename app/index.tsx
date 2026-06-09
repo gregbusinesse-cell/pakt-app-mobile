@@ -7,11 +7,22 @@ export default function Index() {
   const router = useRouter()
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session?.user) {
+        router.replace('/auth' as any)
+        return
+      }
+      // Check if onboarding is complete
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_onboarded')
+        .eq('id', session.user.id)
+        .single()
+
+      if (profile?.is_onboarded) {
         router.replace('/(app)/swipe' as any)
       } else {
-        router.replace('/auth' as any)
+        router.replace('/onboarding' as any)
       }
     })
   }, [])

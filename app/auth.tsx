@@ -132,7 +132,7 @@ export default function AuthPage() {
       })
       if (error) throw error
       if (!data.url) throw new Error('No OAuth URL')
-      await WebBrowser.openBrowserAsync(data.url)
+      await WebBrowser.openAuthSessionAsync(data.url, redirectTo)
     } catch (err: any) {
       if (!err?.message?.includes('cancel') && !err?.message?.includes('dismiss')) {
         Alert.alert('Erreur Google', err?.message || 'Impossible de se connecter avec Google')
