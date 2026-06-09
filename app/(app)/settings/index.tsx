@@ -833,23 +833,26 @@ export default function SettingsPage() {
 
       {/* Legal Modal */}
       <Modal visible={selectedLegal !== null} animationType="slide" transparent={false}>
-        <SafeAreaView style={styles.modalContainer}>
-          {/* Modal Header */}
+        <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
+          {/* Modal Header with back button */}
           <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setSelectedLegal(null)} hitSlop={8}>
+              <Ionicons name="chevron-back" size={28} color={colors.text.primary} />
+            </TouchableOpacity>
             <Text style={styles.modalTitle}>
               {LEGAL_SECTIONS.find(s => s.id === selectedLegal)?.label || ''}
             </Text>
-            <TouchableOpacity onPress={() => setSelectedLegal(null)}>
-              <Ionicons name="close" size={24} color={colors.text.primary} />
-            </TouchableOpacity>
+            <View style={{ width: 28 }} />
           </View>
 
-          {/* Modal Content */}
+          {/* Modal Content with padding */}
           <ScrollView style={styles.modalContent}>
-            <Text style={styles.modalText}>
-              {selectedLegal && LEGAL_CONTENT[selectedLegal as keyof typeof LEGAL_CONTENT]?.content}
-            </Text>
-            <View style={{ height: 40 }} />
+            <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
+              <Text style={styles.modalText}>
+                {selectedLegal && LEGAL_CONTENT[selectedLegal as keyof typeof LEGAL_CONTENT]?.content}
+              </Text>
+              <View style={{ height: 40 }} />
+            </View>
           </ScrollView>
         </SafeAreaView>
       </Modal>
