@@ -2,7 +2,7 @@ import { Slot, usePathname, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useEffect, useRef } from 'react'
 import { Pressable, StyleSheet, Text, View, Platform, Animated } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNotificationCount } from '@/lib/hooks/useNotificationCount'
 import { useActivityTracker } from '@/lib/hooks/useActivityTracker'
 import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme'
@@ -97,17 +97,20 @@ export default function AppLayout() {
   const router   = useRouter()
   const pathname = usePathname() || ''
   const { messages, matchesAndLikes } = useNotificationCount()
+  const insets = useSafeAreaInsets()
 
   useActivityTracker()
 
   return (
-    <SafeAreaView edges={['top', 'bottom']} style={styles.root}>
+    // edges={['top']} only — the tab bar handles bottom safe area itself
+    // so its background extends all the way to the screen edge (no gap)
+    <SafeAreaView edges={['top']} style={styles.root}>
       <View style={styles.content}>
         <Slot />
       </View>
 
       <View style={styles.tabBarShadow}>
-        <View style={styles.tabBar}>
+        <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
             const badgeCount =
@@ -155,7 +158,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     paddingTop: spacing.md,
-    paddingBottom: Platform.OS === 'ios' ? spacing.sm : spacing.md,
     paddingHorizontal: spacing.xs,
   },
   tabItem: {

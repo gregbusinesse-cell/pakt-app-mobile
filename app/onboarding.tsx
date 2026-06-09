@@ -337,7 +337,7 @@ export default function OnboardingPage() {
 
           // Use expo-file-system to read as base64 (handles Android content:// URIs)
           const base64 = await FileSystem.readAsStringAsync(uri, {
-            encoding: FileSystem.EncodingType.Base64,
+            encoding: 'base64' as any,
           })
           // Decode base64 → Uint8Array
           const binaryString = atob(base64)

@@ -424,7 +424,7 @@ export default function EditProfilePage() {
       if (!session?.user) { Alert.alert('Session expirée'); setUploading(false); return }
       // Use expo-file-system to handle Android content:// URIs
       const base64 = await FileSystem.readAsStringAsync(asset.uri, {
-        encoding: FileSystem.EncodingType.Base64,
+        encoding: 'base64' as any,
       })
       const binaryString = atob(base64)
       const byteArray = new Uint8Array(binaryString.length)
