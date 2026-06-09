@@ -9,7 +9,9 @@
         "autoIncrement": true
       },
       "android": {
-        "image": "latest"
+        "image": "latest",
+        "autoIncrement": true,
+        "buildType": "app-bundle"
       }
     },
     "preview": {
