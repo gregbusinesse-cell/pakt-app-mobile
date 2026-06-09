@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { AppState } from 'react-native'
 import { supabase } from '@/lib/supabase/client'
 import { profileStore } from '@/lib/profileStore'
 import type { Database } from '@/lib/supabase/types'
@@ -47,6 +48,16 @@ export function useCurrentUser() {
 
   useEffect(() => {
     fetchCurrentUser()
+  }, [fetchCurrentUser])
+
+  // Refetch when app comes back to foreground (e.g., plan changed in Supabase)
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        fetchCurrentUser()
+      }
+    })
+    return () => subscription.remove()
   }, [fetchCurrentUser])
 
   // S'abonner au store global pour recevoir les mises à jour

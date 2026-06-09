@@ -2,6 +2,7 @@ import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme
 import { useEffect, useState, useRef } from 'react'
 import {
   View,
+  KeyboardAvoidingView,
   Text,
   StyleSheet,
   ScrollView,
@@ -902,7 +903,8 @@ export default function ChatDetailPage() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color="#fff" />
@@ -1360,6 +1362,7 @@ export default function ChatDetailPage() {
           </View>
         ))}
       </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   )
 }

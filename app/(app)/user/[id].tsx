@@ -81,6 +81,16 @@ export default function UserProfilePage() {
   const interests = Array.isArray(profile?.interests) ? (profile.interests as string[]) : []
   const skills = Array.isArray((profile as any)?.skills) ? ((profile as any).skills as any[]) : []
 
+  const handleSendMessage = async () => {
+    if (!id) return
+    try {
+      // Navigate to messages page with this user
+      router.push(`/messages/${id}` as any)
+    } catch (err) {
+      console.error('Error navigating to message:', err)
+    }
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerBar}>
@@ -181,8 +191,16 @@ export default function UserProfilePage() {
           )}
         </View>
 
-        <View style={{ height: 60 }} />
+        <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Message Button (Sticky) */}
+      <View style={styles.stickyButtonContainer}>
+        <TouchableOpacity style={styles.messageButton} onPress={handleSendMessage}>
+          <Ionicons name="send" size={20} color="#000" />
+          <Text style={styles.messageButtonText}>Envoyer un message</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   )
 }
@@ -227,4 +245,7 @@ const styles = StyleSheet.create({
   reloadBtn: { marginTop: 24, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: '#ffd700', borderRadius: 8 },
   reloadBtnText: { color: '#000', fontWeight: '700' },
   emptyTitle: { color: '#fff', fontSize: 18, fontWeight: '600', marginTop: 16 },
+  stickyButtonContainer: { borderTopWidth: 1, borderTopColor: '#1a1a1a', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#0a0a0a' },
+  messageButton: { backgroundColor: '#ffd700', paddingVertical: 14, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  messageButtonText: { color: '#000', fontWeight: '700', fontSize: 16 },
 })
