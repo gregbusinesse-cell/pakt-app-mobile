@@ -106,6 +106,8 @@ export default function SettingsPage() {
   const [selectedNews, setSelectedNews] = useState<{ id: number; title: string; date: string; category: string; content: string; fullContent: string } | null>(null)
   const [showNewsDetail, setShowNewsDetail] = useState(false)
   const [downgradingLoading, setDowngradingLoading] = useState(false)
+  const [userPlan, setUserPlan] = useState<'free' | 'business' | 'business_pro'>('free')
+  const [activeRewards, setActiveRewards] = useState<any[]>([])
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -137,6 +139,18 @@ export default function SettingsPage() {
           }
           setCurrentPlan(planMap[data.subscription_plan?.toLowerCase()] || 'FREE')
           setIsSuspended(!!(data as any).is_suspended)
+        }
+
+        // Fetch active rewards
+        const { data: rewards } = await supabase
+          .from('referral_rewards')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .gt('expires_at', new Date().toISOString())
+          .order('expires_at', { ascending: false })
+
+        if (rewards) {
+          setActiveRewards(rewards)
         }
 
         // Fetch referral code from profiles (where it's actually stored)
@@ -269,23 +283,31 @@ export default function SettingsPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user?.id) throw new Error('Non connecté')
 
-      const SUPA_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
-      const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
-
-      const res = await fetch(`${SUPA_URL}/functions/v1/claim-referral-reward`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY, 'Authorization': `Bearer ${session.access_token}` },
-        body: JSON.stringify({ requiredCount, planDays }),
+      // Call the database function directly
+      const { data, error } = await supabase.rpc('claim_referral_reward', {
+        p_required_count: requiredCount,
+        p_plan_days: planDays,
       })
-      const data = await res.json()
-      if (!data.success) throw new Error(data.error || 'Erreur serveur')
 
-      Alert.alert('Récompense activée ✅', `Ton plan ${planDays} a été activé !`)
+      if (error) throw error
+      if (!data?.success) throw new Error(data?.error || 'Erreur serveur')
+
+      // Show success with countdown timer
+      const expiresAt = new Date(data.expires_at)
+      const now = new Date()
+      const hoursLeft = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60))
+      const daysLeft = Math.ceil(hoursLeft / 24)
+
+      Alert.alert(
+        'Récompense récupérée ✅',
+        `Ton plan ${planDays} a été activé !\n\nExpire dans ${daysLeft}j`,
+        [{ text: 'OK' }]
+      )
 
       // Refetch profile to update plan immediately
       const { data: updatedProfile } = await supabase
         .from('profiles')
-        .select('subscription_plan')
+        .select('subscription_plan,plan_expires_at')
         .eq('id', session.user.id)
         .single()
 
@@ -293,6 +315,7 @@ export default function SettingsPage() {
         setUserPlan(updatedProfile.subscription_plan.toLowerCase() as any)
       }
     } catch (err: any) {
+      console.error('[REFERRAL] Claim error:', err)
       Alert.alert('Erreur', err.message || 'Impossible de réclamer la récompense.')
     } finally {
       setClaimingReward(null)
@@ -716,14 +739,25 @@ export default function SettingsPage() {
                 { count: 10, title: '10 amis invités', reward: '1 mois Business Pro', days: '1M Business Pro' },
               ].map((benefit) => {
                 const canClaim = referralCount >= benefit.count
+                const claimedReward = activeRewards.find(r => r.days_granted === (benefit.days.includes('1M') ? 30 : benefit.days.includes('7') ? 7 : 3) && r.plan_granted === (benefit.days.includes('Pro') ? 'business_pro' : 'business'))
+                const hoursLeft = claimedReward ? Math.ceil((new Date(claimedReward.expires_at).getTime() - new Date().getTime()) / (1000 * 60 * 60)) : 0
+                const daysLeft = Math.ceil(hoursLeft / 24)
+
                 return (
-                  <View key={benefit.count} style={[styles.benefitItem, canClaim && styles.benefitItemUnlocked]}>
-                    <Ionicons name="star" size={20} color={canClaim ? '#4caf50' : colors.primary} />
+                  <View key={benefit.count} style={[styles.benefitItem, canClaim && styles.benefitItemUnlocked, claimedReward && { backgroundColor: 'rgba(76, 175, 80, 0.1)', borderColor: 'rgba(76, 175, 80, 0.3)' }]}>
+                    <Ionicons name="star" size={20} color={claimedReward ? '#4caf50' : canClaim ? '#4caf50' : colors.primary} />
                     <View style={styles.benefitContent}>
                       <Text style={styles.benefitTitle}>{benefit.title}</Text>
                       <Text style={styles.benefitReward}>{benefit.reward}</Text>
+                      {claimedReward && daysLeft > 0 && (
+                        <Text style={{ color: '#4caf50', fontSize: 12, marginTop: 4 }}>Actif pendant {daysLeft}j</Text>
+                      )}
                     </View>
-                    {canClaim && (
+                    {claimedReward && daysLeft > 0 ? (
+                      <View style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#4caf50', borderRadius: 6 }}>
+                        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>✓ Actif</Text>
+                      </View>
+                    ) : canClaim && (
                       <TouchableOpacity
                         style={styles.claimButton}
                         onPress={() => handleClaimReward(benefit.count, benefit.days)}

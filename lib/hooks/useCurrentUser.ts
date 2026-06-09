@@ -60,6 +60,41 @@ export function useCurrentUser() {
     return () => subscription.remove()
   }, [fetchCurrentUser])
 
+  // Listen for real-time profile changes in Supabase
+  useEffect(() => {
+    const setupRealtimeListener = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user?.id) return
+
+      const channel = supabase
+        .channel(`profile-changes-${session.user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'profiles',
+            filter: `id=eq.${session.user.id}`,
+          },
+          (payload) => {
+            console.log('[useCurrentUser] Real-time profile update:', payload)
+            if (payload.new) {
+              profileStore.set(payload.new as any)
+            }
+          }
+        )
+        .subscribe()
+
+      return () => {
+        supabase.removeChannel(channel)
+      }
+    }
+
+    let cleanup: (() => void) | undefined
+    setupRealtimeListener().then(fn => { cleanup = fn })
+    return () => cleanup?.()
+  }, [])
+
   // S'abonner au store global pour recevoir les mises à jour
   useEffect(() => {
     const unsubscribe = profileStore.subscribe((p) => {
