@@ -132,7 +132,32 @@ export default function AuthPage() {
       })
       if (error) throw error
       if (!data.url) throw new Error('No OAuth URL')
-      await WebBrowser.openAuthSessionAsync(data.url, redirectTo)
+
+      // openAuthSessionAsync intercepts the deep link and returns the URL directly
+      // → Linking listener in _layout.tsx never fires, we must handle it here
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo)
+
+      if (result.type === 'success') {
+        const url = result.url
+        // Implicit flow: tokens are in the hash fragment
+        // pakt://auth/callback#access_token=...&refresh_token=...
+        const fragment = url.includes('#') ? url.split('#')[1] : url.split('?')[1] || ''
+        const params = new URLSearchParams(fragment)
+        const accessToken = params.get('access_token')
+        const refreshToken = params.get('refresh_token')
+
+        if (accessToken && refreshToken) {
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          })
+          if (sessionError) throw sessionError
+          // onAuthStateChange in _layout.tsx will handle the redirect to swipe/onboarding
+        } else {
+          throw new Error('Tokens manquants dans la réponse OAuth')
+        }
+      }
+      // result.type === 'cancel' or 'dismiss' → user closed, do nothing
     } catch (err: any) {
       if (!err?.message?.includes('cancel') && !err?.message?.includes('dismiss')) {
         Alert.alert('Erreur Google', err?.message || 'Impossible de se connecter avec Google')
