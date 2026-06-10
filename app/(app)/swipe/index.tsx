@@ -148,30 +148,36 @@ export default function SwipePage() {
           return R * c
         }
 
+        const hasAgeFilter = minAge !== 15 || maxAge !== 99
+        const hasDistanceFilter = maxDistance < 100000
+        const hasSkillFilter = preferredSkills.length > 0
+
         eligible = eligible.filter((profile: any) => {
-          // Age filter
-          if (profile.age && (profile.age < minAge || profile.age > maxAge)) {
-            return false
+          // Age filter: si un filtre est actif, exclure les profils sans âge ET hors tranche
+          if (hasAgeFilter) {
+            const profileAge = profile.age ? Number(profile.age) : null
+            if (!profileAge) return false // profil sans âge exclu si filtre actif
+            if (profileAge < minAge || profileAge > maxAge) return false
           }
 
-          // Distance filter
-          if (userPrefs.lat && userPrefs.lon && profile.lat && profile.lon) {
-            const distance = calcDistance(userPrefs.lat, userPrefs.lon, profile.lat, profile.lon)
-            if (distance > maxDistance) {
-              return false
-            }
+          // Distance filter: seulement si les deux profils ont des coords
+          if (hasDistanceFilter && userPrefs.lat && userPrefs.lon) {
+            if (!profile.lat || !profile.lon) return true // pas de coords → on garde
+            const distance = calcDistance(
+              Number(userPrefs.lat), Number(userPrefs.lon),
+              Number(profile.lat), Number(profile.lon)
+            )
+            if (distance > maxDistance) return false
           }
 
-          // Skills filter (if any skills selected, profile must have at least one match)
-          if (preferredSkills.length > 0) {
+          // Skills filter: au moins une compétence en commun
+          if (hasSkillFilter) {
             const profileSkills = Array.isArray(profile.skills) ? profile.skills : []
-            const hasMatchingSkill = profileSkills.some((s: any) => {
-              const skillName = typeof s === 'string' ? s : s?.name
-              return preferredSkills.includes(skillName)
+            const hasMatch = profileSkills.some((s: any) => {
+              const name = typeof s === 'string' ? s : s?.name
+              return preferredSkills.includes(name)
             })
-            if (!hasMatchingSkill) {
-              return false
-            }
+            if (!hasMatch) return false
           }
 
           return true

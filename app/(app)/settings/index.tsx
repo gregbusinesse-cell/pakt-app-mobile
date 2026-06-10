@@ -1520,9 +1520,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 20,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.bg.tertiary,
+    minHeight: 70,
   },
   modalTitle: {
     color: colors.text.primary,
