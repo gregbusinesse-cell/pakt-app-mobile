@@ -79,7 +79,7 @@ export default function SwipePage() {
       // Load user preferences for filtering (Business Pro only)
       const { data: userPrefs } = await supabase
         .from('profiles')
-        .select('subscription_plan, min_age, max_age, max_distance_km, preferred_skills, lat, lon')
+        .select('subscription_plan, min_age, max_age, max_distance_km, preferred_skills, city_lat, city_lng')
         .eq('id', userId)
         .single()
 
@@ -129,61 +129,74 @@ export default function SwipePage() {
         (p: any) => !swipedIds.has(p.id) && !recentViewIds.has(p.id) && p.is_suspended !== true
       )
 
+      // Haversine distance (km) entre deux points GPS
+      const calcDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+        const R = 6371
+        const dLat = (lat2 - lat1) * Math.PI / 180
+        const dLon = (lon2 - lon1) * Math.PI / 180
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+          Math.sin(dLon / 2) * Math.sin(dLon / 2)
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+      }
+
       // Apply Business Pro user preferences filters
       if (isBusinessPro && userPrefs) {
-        const minAge = userPrefs.min_age || 15
-        const maxAge = userPrefs.max_age || 99
-        const maxDistance = userPrefs.max_distance_km || 100000
-        const preferredSkills = Array.isArray(userPrefs.preferred_skills) ? userPrefs.preferred_skills : []
+        const minAge = Number(userPrefs.min_age) || 15
+        const maxAge = Number(userPrefs.max_age) || 99
+        const maxDistance = Number(userPrefs.max_distance_km) || 100000
 
-        // Helper to calculate distance between two points (Haversine formula)
-        const calcDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-          const R = 6371 // Earth radius in km
-          const dLat = (lat2 - lat1) * Math.PI / 180
-          const dLon = (lon2 - lon1) * Math.PI / 180
-          const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                    Math.sin(dLon / 2) * Math.sin(dLon / 2)
-          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-          return R * c
+        // preferred_skills peut être JSONB array de strings
+        let preferredSkills: string[] = []
+        if (Array.isArray(userPrefs.preferred_skills)) {
+          preferredSkills = userPrefs.preferred_skills.map((s: any) =>
+            typeof s === 'string' ? s : s?.name || ''
+          ).filter(Boolean)
         }
 
         const hasAgeFilter = minAge !== 15 || maxAge !== 99
         const hasDistanceFilter = maxDistance < 100000
         const hasSkillFilter = preferredSkills.length > 0
 
+        console.log('[SWIPE] Filters — age:', minAge, '-', maxAge, '| dist:', maxDistance, '| skills:', preferredSkills)
+
         eligible = eligible.filter((profile: any) => {
-          // Age filter: si un filtre est actif, exclure les profils sans âge ET hors tranche
+          // Filtre âge strict
           if (hasAgeFilter) {
-            const profileAge = profile.age ? Number(profile.age) : null
-            if (!profileAge) return false // profil sans âge exclu si filtre actif
-            if (profileAge < minAge || profileAge > maxAge) return false
+            const age = profile.age ? Number(profile.age) : null
+            if (!age) return false
+            if (age < minAge || age > maxAge) return false
           }
 
-          // Distance filter: seulement si les deux profils ont des coords
-          if (hasDistanceFilter && userPrefs.lat && userPrefs.lon) {
-            if (!profile.lat || !profile.lon) return true // pas de coords → on garde
-            const distance = calcDistance(
-              Number(userPrefs.lat), Number(userPrefs.lon),
-              Number(profile.lat), Number(profile.lon)
-            )
-            if (distance > maxDistance) return false
+          // Filtre distance via city_lat/city_lng
+          if (hasDistanceFilter) {
+            const uLat = Number(userPrefs.city_lat)
+            const uLon = Number(userPrefs.city_lng)
+            const pLat = Number(profile.city_lat)
+            const pLon = Number(profile.city_lng)
+            if (uLat && uLon && pLat && pLon) {
+              const dist = calcDistance(uLat, uLon, pLat, pLon)
+              if (dist > maxDistance) return false
+            }
+            // Si le profil n'a pas de coordonnées, on le garde (pas de données = pas exclu)
           }
 
-          // Skills filter: au moins une compétence en commun
+          // Filtre compétences: au moins une compétence en commun
           if (hasSkillFilter) {
-            const profileSkills = Array.isArray(profile.skills) ? profile.skills : []
-            const hasMatch = profileSkills.some((s: any) => {
-              const name = typeof s === 'string' ? s : s?.name
-              return preferredSkills.includes(name)
-            })
+            const rawSkills = Array.isArray(profile.skills) ? profile.skills : []
+            const profileSkillNames = rawSkills.map((s: any) =>
+              typeof s === 'string' ? s : s?.name || ''
+            ).filter(Boolean)
+            const hasMatch = profileSkillNames.some((name: string) =>
+              preferredSkills.includes(name)
+            )
             if (!hasMatch) return false
           }
 
           return true
         })
 
-        console.log('[SWIPE] Applied Business Pro filters - eligible after filtering:', eligible.length)
+        console.log('[SWIPE] Après filtres Business Pro — profils restants:', eligible.length)
       }
 
       console.log('[SWIPE] Total profiles:', data?.length || 0)

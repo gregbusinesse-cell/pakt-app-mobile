@@ -1,23 +1,26 @@
 -- 016_add_check_expired_plans_function.sql
 -- Create check_expired_plans function to restore original plans after reward expiration
 
--- Create function to check and restore expired plans
 CREATE OR REPLACE FUNCTION check_expired_plans()
 RETURNS void AS $$
 BEGIN
-  -- Find all expired temporary plans and restore them
+  -- Trouver les plans expirés, restaurer le plan original ET réinitialiser les filtres
   UPDATE profiles
-  SET subscription_plan = original_plan
-  WHERE id IN (
-    SELECT DISTINCT user_id FROM plan_expirations
-    WHERE expires_at <= NOW()
-  );
+  SET
+    subscription_plan = pe.original_plan,
+    -- Réinitialiser les filtres avancés quand le plan Business Pro expire
+    min_age = 15,
+    max_age = 99,
+    max_distance_km = 100000,
+    preferred_skills = '[]'::jsonb
+  FROM plan_expirations pe
+  WHERE profiles.id = pe.user_id
+    AND pe.expires_at <= NOW();
 
-  -- Delete expired plan records
+  -- Supprimer les enregistrements expirés
   DELETE FROM plan_expirations
   WHERE expires_at <= NOW();
 
-  -- Log the operation
   RAISE NOTICE 'check_expired_plans: Restored expired plans at %', NOW();
 END;
 $$ LANGUAGE plpgsql;

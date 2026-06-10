@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect, useCallback, useRef } from 'react'
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Alert, Linking, ToastAndroid, Platform, TextInput } from 'react-native'
 import * as Clipboard from 'expo-clipboard'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { supabase } from '@/lib/supabase/client'
@@ -79,6 +79,7 @@ const csStyles = StyleSheet.create({
 
 export default function SettingsPage() {
   const router = useRouter()
+  const insets = useSafeAreaInsets()
   const { scroll } = useLocalSearchParams<{ scroll?: string }>()
   const scrollViewRef = useRef<ScrollView>(null)
   const proCardRef = useRef<View>(null)
@@ -933,10 +934,10 @@ export default function SettingsPage() {
 
       {/* Legal Modal */}
       <Modal visible={selectedLegal !== null} animationType="slide" transparent={false}>
-        <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
-          {/* Modal Header with back button */}
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setSelectedLegal(null)} hitSlop={8}>
+        <SafeAreaView style={styles.modalContainer} edges={['bottom']}>
+          {/* Modal Header with back button — paddingTop adapté à l'encoche */}
+          <View style={[styles.modalHeader, { paddingTop: Math.max(insets.top + 12, 28) }]}>
+            <TouchableOpacity onPress={() => setSelectedLegal(null)} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
               <Ionicons name="chevron-back" size={28} color={colors.text.primary} />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>
