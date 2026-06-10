@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useFocusEffect } from 'expo-router'
 import {
   View,
   Text,
@@ -10,6 +11,7 @@ import {
   ScrollView,
   Dimensions,
   Animated,
+  Alert,
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -194,6 +196,13 @@ export default function SwipePage() {
   useEffect(() => {
     if (userId) loadProfiles()
   }, [userId, loadProfiles])
+
+  // Recharger les profils quand on revient sur la page (après avoir modifié les filtres)
+  useFocusEffect(
+    useCallback(() => {
+      if (userId) loadProfiles()
+    }, [userId, loadProfiles])
+  )
 
   // ── 2B. RECORD PROFILE VIEW ──────────────────────────────
   useEffect(() => {
@@ -428,8 +437,32 @@ export default function SwipePage() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Découvrir</Text>
-          <Text style={styles.headerSubtitle}>Les meilleurs profils business, rien que pour toi</Text>
+          <View style={styles.headerRow}>
+            <View>
+              <Text style={styles.headerTitle}>Découvrir</Text>
+              <Text style={styles.headerSubtitle}>Les meilleurs profils business</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.filterIconBtn}
+              onPress={() => {
+                if (isPro) {
+                  router.push('/profile/preferences' as any)
+                } else {
+                  Alert.alert(
+                    '🔒 Fonctionnalité Business Pro',
+                    'Les filtres avancés sont réservés aux membres Business Pro.',
+                    [
+                      { text: 'Annuler', style: 'cancel' },
+                      { text: 'Passer Business Pro', onPress: () => router.push('/settings?scroll=pro' as any) },
+                    ]
+                  )
+                }
+              }}
+              activeOpacity={0.75}
+            >
+              <Ionicons name="options" size={22} color={isPro ? colors.primary : colors.text.secondary} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Profile Name & Age - Above Photo */}
@@ -669,8 +702,19 @@ const styles = StyleSheet.create({
 
   // Header
   header: { marginBottom: spacing.xxl, paddingHorizontal: spacing.sm },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerTitle: { color: colors.primary, fontSize: 32, fontWeight: '800', letterSpacing: 0.5, marginBottom: spacing.xs },
   headerSubtitle: { color: colors.text.secondary, fontSize: 13, fontWeight: '500', letterSpacing: 0.3 },
+  filterIconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.bg.tertiary,
+    borderWidth: 1.5,
+    borderColor: colors.border.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
   // Profile Header (Name & Age above photo)
   profileHeaderCard: { marginBottom: spacing.lg, paddingHorizontal: spacing.sm },

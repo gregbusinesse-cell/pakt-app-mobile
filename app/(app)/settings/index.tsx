@@ -793,10 +793,11 @@ export default function SettingsPage() {
                 { count: 10, title: '10 amis invités', reward: '1 mois Business Pro', days: '1M Business Pro' },
               ].map((benefit) => {
                 // Only FREE users can claim rewards (prevent downgrades for Business/Pro users)
-                const canClaim = referralCount >= benefit.count && currentPlan === 'free'
+                const planLower = currentPlan.toLowerCase()
+                const canClaim = referralCount >= benefit.count && planLower === 'free'
                 const claimedReward = activeRewards.find(r => r.days_granted === (benefit.days.includes('1M') ? 30 : benefit.days.includes('7') ? 7 : 3) && r.plan_granted === (benefit.days.includes('Pro') ? 'business_pro' : 'business'))
                 const countdown = claimedReward ? rewardCountdowns[claimedReward.id] : null
-                const isBusinessUser = currentPlan === 'business' || currentPlan === 'business_pro'
+                const isBusinessUser = planLower === 'business' || planLower === 'business_pro'
 
                 return (
                   <View key={benefit.count} style={[styles.benefitItem, canClaim && styles.benefitItemUnlocked, claimedReward && { backgroundColor: 'rgba(76, 175, 80, 0.1)', borderColor: 'rgba(76, 175, 80, 0.3)' }]}>
