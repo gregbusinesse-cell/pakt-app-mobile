@@ -181,14 +181,16 @@ export default function SwipePage() {
             // Si le profil n'a pas de coordonnées, on le garde (pas de données = pas exclu)
           }
 
-          // Filtre compétences: au moins une compétence en commun
+          // Filtre compétences: au moins une compétence en commun (insensible accents/casse)
           if (hasSkillFilter) {
+            const normalize = (s: string) =>
+              s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim()
             const rawSkills = Array.isArray(profile.skills) ? profile.skills : []
             const profileSkillNames = rawSkills.map((s: any) =>
               typeof s === 'string' ? s : s?.name || ''
-            ).filter(Boolean)
+            ).filter(Boolean).map(normalize)
             const hasMatch = profileSkillNames.some((name: string) =>
-              preferredSkills.includes(name)
+              preferredSkills.map(normalize).includes(name)
             )
             if (!hasMatch) return false
           }

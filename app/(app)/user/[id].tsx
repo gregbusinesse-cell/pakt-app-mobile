@@ -85,8 +85,18 @@ export default function UserProfilePage() {
   const handleSendMessage = async () => {
     if (!id) return
     try {
-      // Navigate to messages page with this user
-      router.push(`/messages/${id}` as any)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user?.id) return
+      const uid = session.user.id
+      const [u1, u2] = [uid, id as string].sort()
+      const { data: conv } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`and(user1_id.eq.${u1},user2_id.eq.${u2}),and(user1_id.eq.${u2},user2_id.eq.${u1})`)
+        .maybeSingle()
+      if (conv?.id) {
+        router.push(`/messages/${conv.id}` as any)
+      }
     } catch (err) {
       console.error('Error navigating to message:', err)
     }

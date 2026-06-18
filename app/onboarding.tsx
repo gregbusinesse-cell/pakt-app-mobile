@@ -27,7 +27,7 @@ import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme
 import type { UserSkill } from '@/lib/types'
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
-const TOTAL_STEPS = 7 // Step 6 = referral code (optional)
+const TOTAL_STEPS = 6
 // Using OpenStreetMap Nominatim - free, no API key needed, works on Android
 const MAX_INTERESTS = 5
 
@@ -482,13 +482,6 @@ export default function OnboardingPage() {
             photoUploading={photoUploading}
           />
         )
-      case 6:
-        return (
-          <StepReferral
-            code={referralCode}
-            onChange={setReferralCode}
-          />
-        )
     }
   }
 
@@ -534,12 +527,6 @@ export default function OnboardingPage() {
 
         {/* Footer CTA */}
         <View style={styles.footer}>
-          {/* Skip button on referral step */}
-          {step === 6 && (
-            <TouchableOpacity style={s.skipBtn} onPress={goNext} disabled={loading}>
-              <Text style={s.skipBtnText}>Je n'ai pas de code →</Text>
-            </TouchableOpacity>
-          )}
           <Animated.View style={{ transform: [{ scale: ctaScale }] }}>
           <TouchableOpacity
             style={[styles.ctaButton, !canProceed() && styles.ctaDisabled, shadows.glow]}
@@ -554,9 +541,7 @@ export default function OnboardingPage() {
             ) : (
               <>
                 <Text style={styles.ctaText}>
-                  {step === TOTAL_STEPS - 1
-                    ? (referralCode.trim() ? 'Appliquer et lancer PAKT' : 'Lancer PAKT')
-                    : 'Continuer'}
+                  {step === TOTAL_STEPS - 1 ? 'Lancer PAKT' : 'Continuer'}
                 </Text>
                 {step < TOTAL_STEPS - 1 && (
                   <Ionicons name="chevron-forward" size={18} color="#000" />

@@ -87,9 +87,10 @@ export default function EditProfilePage() {
   const [selectedDesiredSkillLevel, setSelectedDesiredSkillLevel] = useState(5)
 
   // ── États ville ──
-  const [citySuggestions, setCitySuggestions] = useState<string[]>([])
+  const [citySuggestions, setCitySuggestions] = useState<{ label: string; lat: number; lng: number }[]>([])
   const [showCitySuggestions, setShowCitySuggestions] = useState(false)
   const [cityLoading, setCityLoading] = useState(false)
+  const [cityCoords, setCityCoords] = useState<{ lat: number; lng: number } | null>(null)
 
   // ── Refs ──
   const profileIdRef = useRef<string | null>(null)
@@ -200,6 +201,12 @@ export default function EditProfilePage() {
       skills: data.skills.slice(0, MAX_SKILLS),
     }
 
+    // Sauvegarder les coordonnées GPS si une ville a été sélectionnée depuis la liste
+    if (cityCoords) {
+      updatePayload.city_lat = cityCoords.lat
+      updatePayload.city_lng = cityCoords.lng
+    }
+
     // Add filters if Business Pro
     if (userPlan === 'business_pro' && data.ageMin && data.ageMax && data.distanceMin && data.distanceMax) {
       updatePayload.search_filters = {
@@ -283,7 +290,7 @@ export default function EditProfilePage() {
       })
       const results: any[] = await res.json()
       const seen = new Set<string>()
-      const cities: string[] = []
+      const cities: { label: string; lat: number; lng: number }[] = []
       for (const r of results) {
         const addr = r.address || {}
         const cityName = addr.city || addr.town || addr.village || addr.municipality || addr.county || r.name
@@ -292,7 +299,7 @@ export default function EditProfilePage() {
         const label = country ? `${cityName}, ${country}` : cityName
         if (!seen.has(label)) {
           seen.add(label)
-          cities.push(label)
+          cities.push({ label, lat: parseFloat(r.lat), lng: parseFloat(r.lon) })
         }
         if (cities.length >= 5) break
       }
@@ -315,11 +322,11 @@ export default function EditProfilePage() {
     citySearchTimerRef.current = setTimeout(() => fetchCitySuggestions(v), 350)
   }
 
-  const selectCity = (label: string) => {
-    // Ne garder que la partie avant la virgule (nom de la ville sans le pays)
-    const cityOnly = label.split(',')[0].trim()
+  const selectCity = (suggestion: { label: string; lat: number; lng: number }) => {
+    const cityOnly = suggestion.label.split(',')[0].trim()
     isDirtyRef.current = true
     setCity(cityOnly)
+    setCityCoords({ lat: suggestion.lat, lng: suggestion.lng })
     setCitySuggestions([])
     setShowCitySuggestions(false)
     triggerAutoSave({ firstName, age, bio, city: cityOnly, interests, skills, photos })
@@ -568,7 +575,7 @@ export default function EditProfilePage() {
                   activeOpacity={0.75}
                 >
                   <Ionicons name="location" size={14} color={colors.primary} style={{ marginRight: 8, flexShrink: 0 }} />
-                  <Text style={styles.suggestionText} numberOfLines={1}>{suggestion}</Text>
+                  <Text style={styles.suggestionText} numberOfLines={1}>{suggestion.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>

@@ -112,15 +112,49 @@ export default function MatchesPage() {
 
   const handleLikePress = async (likeId: string, otherUserId: string) => {
     if (userPlan !== 'business_pro' || !userId) return
+    await supabase.from('likes').update({ is_viewed: true }).eq('id', likeId)
+    if (userId) await refreshNotificationCount(userId)
+    router.push(`/user/${otherUserId}` as any)
+  }
 
+  const handleLikeBack = async (likeId: string, otherUserId: string) => {
+    if (!userId) return
     try {
-      await supabase.from('likes').update({ is_viewed: true }).eq('id', likeId)
-      if (userId) {
-        await refreshNotificationCount(userId)
+      // Like them back
+      await supabase.from('likes').insert({ liker_id: userId, liked_id: otherUserId, is_viewed: false })
+      // Record swipe
+      await supabase.from('swipes').insert({ swiper_id: userId, target_id: otherUserId, action: 'like' })
+      // Create match
+      const [u1, u2] = [userId, otherUserId].sort()
+      const { error: matchErr } = await supabase.from('matches').insert({ user1_id: u1, user2_id: u2, is_viewed: false })
+      if (!matchErr || matchErr.code === '23505') {
+        // Create conversation if not exists
+        const { data: existingConv } = await supabase
+          .from('conversations')
+          .select('id')
+          .or(`and(user1_id.eq.${u1},user2_id.eq.${u2}),and(user1_id.eq.${u2},user2_id.eq.${u1})`)
+          .maybeSingle()
+        if (!existingConv) {
+          await supabase.from('conversations').insert({ user1_id: u1, user2_id: u2 })
+        }
       }
-      router.push(`/user/${otherUserId}` as any)
-    } catch (error) {
-      console.error('[MATCHES] handleLikePress error', error)
+      // Remove from local list
+      reload()
+    } catch (err) {
+      console.error('[MATCHES] handleLikeBack error', err)
+    }
+  }
+
+  const handleDislikeLiker = async (likeId: string, otherUserId: string) => {
+    if (!userId) return
+    try {
+      // Delete the like they sent us
+      await supabase.from('likes').delete().eq('id', likeId)
+      // Record dislike swipe so they don't reappear in discover
+      await supabase.from('swipes').insert({ swiper_id: userId, target_id: otherUserId, action: 'dislike' })
+      reload()
+    } catch (err) {
+      console.error('[MATCHES] handleDislikeLiker error', err)
     }
   }
 
@@ -259,14 +293,14 @@ export default function MatchesPage() {
                   {likes.map((item) => (
                     <TouchableOpacity
                       key={item.likeId}
-                      style={styles.gridCard}
+                      style={[styles.gridCard, userPlan === 'business_pro' && styles.gridCardLike]}
                       onPress={() => handleLikePress(item.likeId, item.otherUser.id)}
                       disabled={userPlan !== 'business_pro'}
                       activeOpacity={userPlan === 'business_pro' ? 0.8 : 1}
                     >
                       {!item.isViewed && <View style={styles.gridNewBadge} />}
 
-                      {/* For Business Pro: Show photo */}
+                      {/* For Business Pro: Show photo + action buttons */}
                       {userPlan === 'business_pro' && (
                         <>
                           <ProfileImage
@@ -286,6 +320,22 @@ export default function MatchesPage() {
                                 </Text>
                               </View>
                             )}
+                            <View style={styles.likeActions}>
+                              <TouchableOpacity
+                                style={styles.dislikeActionBtn}
+                                onPress={(e) => { e.stopPropagation?.(); handleDislikeLiker(item.likeId, item.otherUser.id) }}
+                                activeOpacity={0.8}
+                              >
+                                <Ionicons name="close" size={18} color="#FF6B6B" />
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={styles.likeActionBtn}
+                                onPress={(e) => { e.stopPropagation?.(); handleLikeBack(item.likeId, item.otherUser.id) }}
+                                activeOpacity={0.8}
+                              >
+                                <Ionicons name="heart" size={16} color={colors.bg.primary} />
+                              </TouchableOpacity>
+                            </View>
                           </View>
                         </>
                       )}
@@ -474,6 +524,10 @@ const styles = StyleSheet.create({
   gridCard: {
     width: gridItemSize,
     height: gridItemSize,
+  },
+  gridCardLike: {
+    width: gridItemSize,
+    height: gridItemSize + 60,
     borderRadius: borderRadius.xl,
     overflow: 'hidden',
     backgroundColor: colors.bg.tertiary,
@@ -526,6 +580,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     marginTop: spacing.xs,
+  },
+  likeActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  dislikeActionBtn: {
+    flex: 1,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(255,107,107,0.15)',
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255,107,107,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  likeActionBtn: {
+    flex: 1,
+    paddingVertical: 6,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.glow,
   },
   gridCity: {
     color: colors.text.secondary,

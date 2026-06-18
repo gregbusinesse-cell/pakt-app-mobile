@@ -5,6 +5,7 @@ import * as SplashScreen from 'expo-splash-screen'
 import * as Linking from 'expo-linking'
 import { setPendingOAuthUrl } from '@/lib/oauthPending'
 import { supabase } from '@/lib/supabase/client'
+import { ThemeProvider } from '@/lib/ThemeContext'
 
 SplashScreen.preventAutoHideAsync().catch(() => {})
 
@@ -85,5 +86,9 @@ export default function RootLayout() {
 
   if (!loaded && !error) return null
 
-  return <Stack screenOptions={{ headerShown: false }} />
+  return (
+    <ThemeProvider>
+      <Stack screenOptions={{ headerShown: false }} />
+    </ThemeProvider>
+  )
 }

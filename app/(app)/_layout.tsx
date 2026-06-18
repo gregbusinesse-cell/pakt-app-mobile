@@ -6,6 +6,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNotificationCount } from '@/lib/hooks/useNotificationCount'
 import { useActivityTracker } from '@/lib/hooks/useActivityTracker'
 import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme'
+import TutorialModal from '@/app/_tutorial'
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name']
 
@@ -108,6 +109,9 @@ export default function AppLayout() {
       <View style={styles.content}>
         <Slot />
       </View>
+
+      {/* Tutorial Modal - affiche au premier login */}
+      <TutorialModal />
 
       <View style={styles.tabBarShadow}>
         <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>

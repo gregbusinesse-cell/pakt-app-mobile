@@ -11,7 +11,7 @@
       "android": {
         "image": "latest",
         "autoIncrement": true,
-        "buildType": "app-bundle"
+        "buildType": "apk"
       }
     },
     "preview": {

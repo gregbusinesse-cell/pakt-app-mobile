@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useCallback, useRef } from 'react'
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Alert, Linking, ToastAndroid, Platform, TextInput } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Alert, Linking, ToastAndroid, Platform, TextInput, Switch } from 'react-native'
 import * as Clipboard from 'expo-clipboard'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase/client'
 // import { useInAppPurchases } from '@/lib/hooks/useInAppPurchases' // Disabled for MVP - Android compatibility
 import { LEGAL_SECTIONS, SUPPORT_EMAIL, LEGAL_CONTENT } from '@/lib/constants/legal-content'
 import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme'
+import { useTheme } from '@/lib/ThemeContext'
 
 // ─── Coming Soon component ────────────────────────────────────────────────────
 function ComingSoon({ icon, title, subtitle }: { icon: string; title: string; subtitle: string }) {
@@ -84,6 +85,7 @@ export default function SettingsPage() {
   const scrollViewRef = useRef<ScrollView>(null)
   const proCardRef = useRef<View>(null)
   const proCardY = useRef<number>(0)
+  const { theme, toggleTheme } = useTheme()
 
   // IAP Hook - Disabled for MVP
   // const { loading: iapLoading, error: iapError, requestPurchase } = useInAppPurchases()
@@ -469,6 +471,25 @@ export default function SettingsPage() {
     router.push('/delete-account' as any)
   }
 
+  // ── Rate app on Google Play ─────────────────────────────────────────────────
+  const handleRateApp = async () => {
+    try {
+      const packageName = 'com.pakt.app'
+      // Try market:// scheme first (native Play Store app)
+      const marketUrl = `market://details?id=${packageName}`
+      const playStoreUrl = `https://play.google.com/store/apps/details?id=${packageName}`
+
+      try {
+        await Linking.openURL(marketUrl)
+      } catch {
+        // Fallback to web URL if market:// doesn't work
+        await Linking.openURL(playStoreUrl)
+      }
+    } catch (err) {
+      Alert.alert('Erreur', 'Impossible d\'ouvrir Google Play Store.')
+    }
+  }
+
   // ── Re-fetch plan on mount (SDK 56 compatibility - no react-navigation) ──
   useEffect(() => {
     const refreshPlan = async () => {
@@ -592,7 +613,6 @@ export default function SettingsPage() {
           { id: 'plans', label: 'Plans' },
           { id: 'events', label: 'Événements' },
           { id: 'news', label: 'Actus' },
-          { id: 'referral', label: 'Parrainage' },
           { id: 'compte', label: 'Compte' },
           { id: 'legal', label: 'Mentions légales' },
         ].map((tab) => (
@@ -744,109 +764,6 @@ export default function SettingsPage() {
           </View>
         )}
 
-        {activeTab === 'referral' && (
-          <View>
-            <Text style={styles.sectionHeader}>Programme de Parrainage</Text>
-
-            <View style={styles.referralCard}>
-              <Ionicons name="gift" size={32} color={colors.primary} style={styles.referralIcon} />
-              <Text style={styles.referralTitle}>Gagnez des récompenses</Text>
-              <Text style={styles.referralText}>
-                Invitez vos amis sur PAKT et recevez des avantages exclusifs
-              </Text>
-            </View>
-
-            {/* Progress Section */}
-            <View style={styles.progressSection}>
-              <View style={styles.progressHeader}>
-                <Text style={styles.progressLabel}>Amis invités</Text>
-                <Text style={styles.progressCount}>{referralCount} / 5</Text>
-              </View>
-              <View style={styles.progressBar}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    { width: `${(referralCount / 5) * 100}%` }
-                  ]}
-                />
-              </View>
-              <View style={styles.milestoneContainer}>
-                {[1, 2, 3, 4, 5].map((num) => (
-                  <View
-                    key={num}
-                    style={[
-                      styles.milestone,
-                      referralCount >= num && styles.milestoneDone
-                    ]}
-                  >
-                    <Text style={styles.milestoneText}>{num}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.benefitsContainer}>
-              <Text style={styles.benefitsTitle}>Paliers de récompense</Text>
-              {[
-                { count: 1, title: '1 ami invité', reward: '3 jours Business', days: '3J Business' },
-                { count: 3, title: '3 amis invités', reward: '7 jours Business', days: '7J Business' },
-                { count: 5, title: '5 amis invités', reward: '1 mois Business', days: '1M Business' },
-                { count: 10, title: '10 amis invités', reward: '1 mois Business Pro', days: '1M Business Pro' },
-              ].map((benefit) => {
-                // Only FREE users can claim rewards (prevent downgrades for Business/Pro users)
-                const planLower = currentPlan.toLowerCase()
-                const canClaim = referralCount >= benefit.count && planLower === 'free'
-                const claimedReward = activeRewards.find(r => r.days_granted === (benefit.days.includes('1M') ? 30 : benefit.days.includes('7') ? 7 : 3) && r.plan_granted === (benefit.days.includes('Pro') ? 'business_pro' : 'business'))
-                const countdown = claimedReward ? rewardCountdowns[claimedReward.id] : null
-                const isBusinessUser = planLower === 'business' || planLower === 'business_pro'
-
-                return (
-                  <View key={benefit.count} style={[styles.benefitItem, canClaim && styles.benefitItemUnlocked, claimedReward && { backgroundColor: 'rgba(76, 175, 80, 0.1)', borderColor: 'rgba(76, 175, 80, 0.3)' }]}>
-                    <Ionicons name="star" size={20} color={claimedReward ? '#4caf50' : canClaim ? '#4caf50' : colors.primary} />
-                    <View style={styles.benefitContent}>
-                      <Text style={styles.benefitTitle}>{benefit.title}</Text>
-                      <Text style={styles.benefitReward}>{benefit.reward}</Text>
-                      {claimedReward && (
-                        <Text style={{ color: '#4caf50', fontSize: 12, marginTop: 4 }}>✓ Expire dans {countdown || '...'}</Text>
-                      )}
-                      {isBusinessUser && !claimedReward && (
-                        <Text style={{ color: '#ff9800', fontSize: 12, marginTop: 4 }}>Réservé aux plans Free</Text>
-                      )}
-                    </View>
-                    {!claimedReward && canClaim && (
-                      <TouchableOpacity
-                        style={styles.claimButton}
-                        onPress={() => handleClaimReward(benefit.count, benefit.days)}
-                        disabled={claimingReward === benefit.count}
-                      >
-                        {claimingReward === benefit.count ? (
-                          <ActivityIndicator color={colors.bg.primary} size="small" />
-                        ) : (
-                          <Text style={styles.claimButtonText}>Réclamer</Text>
-                        )}
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                )
-              })}
-            </View>
-
-
-            {/* Referral Code — tap to copy full message */}
-            <View style={styles.codeSection}>
-              <Text style={styles.codeLabel}>Ton code de parrainage</Text>
-              <TouchableOpacity style={styles.codeBox} onPress={handleCopyReferral} activeOpacity={0.7}>
-                <Text style={styles.codeText}>{referralCode || '...'}</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Ionicons name="copy-outline" size={20} color={colors.primary} />
-                </View>
-              </TouchableOpacity>
-              <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 8, textAlign: 'center', lineHeight: 18 }}>
-                Appuie sur le code pour copier un message prêt à envoyer{'\n'}(SMS, WhatsApp, email...)
-              </Text>
-            </View>
-          </View>
-        )}
 
         {activeTab === 'compte' && (
           <View>
@@ -865,6 +782,29 @@ export default function SettingsPage() {
               <Text style={styles.accountButtonText}>Modifier mon mot de passe</Text>
               <Ionicons name="chevron-forward" size={18} color="#ffffff44" />
             </TouchableOpacity>
+
+            {/* Rate App */}
+            <TouchableOpacity style={styles.accountButton} onPress={handleRateApp}>
+              <Ionicons name="star-outline" size={18} color={colors.primary} />
+              <Text style={styles.accountButtonText}>Noter notre app</Text>
+              <Ionicons name="chevron-forward" size={18} color="#ffffff44" />
+            </TouchableOpacity>
+
+            {/* Light Mode Toggle */}
+            <View style={styles.accountButton}>
+              <Ionicons name={theme === 'light' ? 'sunny-outline' : 'moon-outline'} size={18} color={colors.primary} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.accountButtonText}>Mode clair</Text>
+                <Text style={styles.accountButtonSubtext}>{theme === 'light' ? 'Activé' : 'Désactivé'}</Text>
+              </View>
+              <Switch
+                value={theme === 'light'}
+                onValueChange={toggleTheme}
+                trackColor={{ false: '#3a3a3a', true: colors.primary }}
+                thumbColor={theme === 'light' ? '#ffffff' : '#999999'}
+                style={{ marginLeft: spacing.md }}
+              />
+            </View>
 
             {/* Suspend/Reactivate Account */}
             <TouchableOpacity style={isSuspended ? styles.accountButtonSuccess : styles.accountButtonWarning} onPress={handleSuspendAccount}>
