@@ -28,19 +28,25 @@ jobs:
       - name: Build iOS (remote - Expo servers)
         run: eas build --platform ios --profile production --wait --json > build-output.json
 
-      - name: Extract IPA URL and Download
+      - name: Extract Build ID and Download IPA
         run: |
-          echo "🔍 Extracting IPA URL from EAS build..."
-          cat build-output.json | grep buildUrl || echo "No buildUrl found, trying different approach"
-          IPA_URL=$(grep -oP '(?<="buildUrl":")([^"]+)' build-output.json | head -1)
-          if [ -z "$IPA_URL" ]; then
-            echo "❌ Failed to extract URL"
+          echo "🔍 Extracting Build ID from EAS..."
+          BUILD_ID=$(grep -oP '"id":\s*"\K[^"]+' build-output.json | head -1)
+          if [ -z "$BUILD_ID" ]; then
+            echo "❌ Failed to extract Build ID"
             cat build-output.json
             exit 1
           fi
-          echo "📥 IPA URL: $IPA_URL"
+          echo "✅ Build ID: $BUILD_ID"
+          IPA_URL="https://expo.dev/artifacts/eas/${BUILD_ID}.ipa"
+          echo "📥 Downloading from: $IPA_URL"
           curl -L -o app.ipa "$IPA_URL"
+          if [ ! -f app.ipa ] || [ ! -s app.ipa ]; then
+            echo "❌ IPA download failed or empty"
+            exit 1
+          fi
           ls -lh app.ipa
+          echo "✅ IPA downloaded successfully!"
 
       - name: Upload to TestFlight with Transporter
         run: |
