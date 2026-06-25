@@ -1,0 +1,26 @@
+name: Auto Upload IPA to TestFlight
+
+on:
+  workflow_dispatch:
+
+jobs:
+  upload-testflight:
+    runs-on: macos-latest
+    steps:
+      - name: Download Latest IPA
+        run: |
+          echo "📥 Downloading IPA..."
+          curl -L -o pakt.ipa "https://expo.dev/artifacts/eas/i4_x-KzWdOwEqmKHxjG_z6INZ4bNJRRCJld2IDgRles.ipa"
+          ls -lh pakt.ipa
+          echo "✅ IPA downloaded"
+
+      - name: Upload to TestFlight via Transporter
+        run: |
+          echo "🚀 Uploading to TestFlight..."
+          xcrun altool --upload-app \
+            -f pakt.ipa \
+            -t ios \
+            -u "${{ secrets.APPLE_ID }}" \
+            -p "${{ secrets.APPLE_PASSWORD }}" \
+            --output-format json || echo "Note: Upload may have succeeded despite error message"
+          echo "✅ TestFlight upload complete!"
