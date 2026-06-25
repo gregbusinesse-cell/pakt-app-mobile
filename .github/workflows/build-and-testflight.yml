@@ -1,0 +1,52 @@
+name: Build iOS and Upload to TestFlight
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-upload:
+    runs-on: macos-latest
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli@latest --force
+
+      - name: Build iOS (remote - Expo servers)
+        run: eas build --platform ios --profile production --wait --json > build-output.json
+
+      - name: Extract IPA URL
+        run: |
+          IPA_URL=$(cat build-output.json | grep -o '"buildUrl":"[^"]*"' | head -1 | cut -d'"' -f4)
+          echo "IPA_URL=$IPA_URL" >> $GITHUB_ENV
+          echo "📥 IPA URL: $IPA_URL"
+
+      - name: Download IPA
+        run: |
+          echo "Downloading IPA from: ${{ env.IPA_URL }}"
+          curl -L -o app.ipa "${{ env.IPA_URL }}"
+          ls -lh app.ipa
+
+      - name: Upload to TestFlight with Transporter
+        run: |
+          echo "🚀 Uploading to TestFlight..."
+          xcrun altool --upload-app \
+            -f app.ipa \
+            -t ios \
+            -u "${{ secrets.APPLE_ID }}" \
+            -p "${{ secrets.APPLE_PASSWORD }}" \
+            --output-format json || true
+          echo "✅ Upload request sent to TestFlight!"
