@@ -31,18 +31,24 @@ jobs:
       - name: Extract Build ID and Download IPA
         run: |
           echo "🔍 Extracting Build ID from EAS..."
-          BUILD_ID=$(grep -oP '"id":\s*"\K[^"]+' build-output.json | head -1)
+          cat build-output.json | head -20
+          BUILD_ID=$(node -e "const fs=require('fs'); const data=JSON.parse(fs.readFileSync('build-output.json')); console.log(Array.isArray(data) ? data[0].id : data.id)" 2>/dev/null || echo "")
           if [ -z "$BUILD_ID" ]; then
-            echo "❌ Failed to extract Build ID"
+            echo "❌ Failed to extract Build ID, trying grep..."
+            BUILD_ID=$(cat build-output.json | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+          fi
+          if [ -z "$BUILD_ID" ]; then
+            echo "❌ Still failed. Dumping JSON:"
             cat build-output.json
             exit 1
           fi
           echo "✅ Build ID: $BUILD_ID"
           IPA_URL="https://expo.dev/artifacts/eas/${BUILD_ID}.ipa"
           echo "📥 Downloading from: $IPA_URL"
-          curl -L -o app.ipa "$IPA_URL"
+          curl -L -o app.ipa "$IPA_URL" --progress-bar
           if [ ! -f app.ipa ] || [ ! -s app.ipa ]; then
             echo "❌ IPA download failed or empty"
+            ls -la app.ipa 2>&1
             exit 1
           fi
           ls -lh app.ipa
