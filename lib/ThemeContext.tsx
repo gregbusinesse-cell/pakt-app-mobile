@@ -1,7 +1,7 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useState, useEffect } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
-type ThemeType = 'light' | 'dark'
+type ThemeType = 'dark' | 'light'
 
 interface ThemeContextType {
   theme: ThemeType
@@ -12,21 +12,17 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<ThemeType>('dark')
-  const [loaded, setLoaded] = useState(false)
+  const [isLoaded, setIsLoaded] = useState(false)
 
-  // Load theme from storage on mount
   useEffect(() => {
     const loadTheme = async () => {
       try {
-        const savedTheme = await AsyncStorage.getItem('PAKT_THEME')
-        if (savedTheme === 'light' || savedTheme === 'dark') {
-          setTheme(savedTheme)
-        }
-      } catch (err) {
-        console.error('Error loading theme:', err)
-      } finally {
-        setLoaded(true)
+        const saved = await AsyncStorage.getItem('PAKT_THEME')
+        if (saved) setTheme(saved as ThemeType)
+      } catch (e) {
+        console.log('Theme load error:', e)
       }
+      setIsLoaded(true)
     }
     loadTheme()
   }, [])
@@ -36,12 +32,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setTheme(newTheme)
     try {
       await AsyncStorage.setItem('PAKT_THEME', newTheme)
-    } catch (err) {
-      console.error('Error saving theme:', err)
+    } catch (e) {
+      console.log('Theme save error:', e)
     }
   }
 
-  if (!loaded) return children
+  if (!isLoaded) return <>{children}</>
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
