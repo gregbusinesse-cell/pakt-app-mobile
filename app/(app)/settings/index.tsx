@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useCallback, useRef } from 'react'
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Alert, Linking, ToastAndroid, Platform, TextInput } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Alert, Linking, ToastAndroid, Platform, TextInput, Switch } from 'react-native'
 import * as Clipboard from 'expo-clipboard'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase/client'
 // import { useInAppPurchases } from '@/lib/hooks/useInAppPurchases' // Disabled for MVP - Android compatibility
 import { LEGAL_SECTIONS, SUPPORT_EMAIL, LEGAL_CONTENT } from '@/lib/constants/legal-content'
 import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme'
+import { useTheme } from '@/lib/ThemeContext'
 
 // ─── Coming Soon component ────────────────────────────────────────────────────
 function ComingSoon({ icon, title, subtitle }: { icon: string; title: string; subtitle: string }) {
@@ -83,6 +84,7 @@ export default function SettingsPage() {
   const scrollViewRef = useRef<ScrollView>(null)
   const proCardRef = useRef<View>(null)
   const proCardY = useRef<number>(0)
+  const { theme, toggleTheme } = useTheme()
 
   // IAP Hook - Disabled for MVP
   // const { loading: iapLoading, error: iapError, requestPurchase } = useInAppPurchases()
@@ -856,6 +858,19 @@ export default function SettingsPage() {
               <Text style={styles.accountValue}>{userEmail || 'Non défini'}</Text>
             </View>
 
+            {/* Theme Toggle */}
+            <View style={styles.themeToggleContainer}>
+              <View style={styles.themeToggleLeft}>
+                <Ionicons name={theme === 'dark' ? 'moon' : 'sunny'} size={18} color={colors.primary} />
+                <Text style={styles.themeToggleLabel}>Mode clair</Text>
+              </View>
+              <Switch
+                value={theme === 'light'}
+                onValueChange={toggleTheme}
+                trackColor={{ false: '#333', true: colors.primary }}
+                thumbColor={theme === 'light' ? '#ffffff' : '#999'}
+              />
+            </View>
 
             {/* Change Password */}
             <TouchableOpacity style={styles.accountButton} onPress={handleChangePassword}>
@@ -1736,5 +1751,27 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     lineHeight: 26,
     letterSpacing: 0.2,
+  },
+  themeToggleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.bg.tertiary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    borderRadius: borderRadius.lg,
+    marginVertical: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border.secondary,
+  },
+  themeToggleLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  themeToggleLabel: {
+    color: colors.text.primary,
+    fontSize: 16,
+    fontWeight: '600',
   },
 })
