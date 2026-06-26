@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useCallback, useRef } from 'react'
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Alert, Linking, ToastAndroid, Platform, TextInput, Switch } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Alert, Linking, ToastAndroid, Platform, TextInput, Switch, useColorScheme } from 'react-native'
 import * as Clipboard from 'expo-clipboard'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
@@ -474,19 +474,26 @@ export default function SettingsPage() {
   // ── Rate app on Google Play ─────────────────────────────────────────────────
   const handleRateApp = async () => {
     try {
-      const packageName = 'com.pakt.app'
-      // Try market:// scheme first (native Play Store app)
-      const marketUrl = `market://details?id=${packageName}`
-      const playStoreUrl = `https://play.google.com/store/apps/details?id=${packageName}`
+      if (Platform.OS === 'ios') {
+        // iOS → App Store
+        const appStoreUrl = 'https://apps.apple.com/app/pakt/id6775117392'
+        await Linking.openURL(appStoreUrl)
+      } else {
+        // Android → Play Store
+        const packageName = 'com.pakt.app'
+        const marketUrl = `market://details?id=${packageName}`
+        const playStoreUrl = `https://play.google.com/store/apps/details?id=${packageName}`
 
-      try {
-        await Linking.openURL(marketUrl)
-      } catch {
-        // Fallback to web URL if market:// doesn't work
-        await Linking.openURL(playStoreUrl)
+        try {
+          await Linking.openURL(marketUrl)
+        } catch {
+          // Fallback to web URL if market:// doesn't work
+          await Linking.openURL(playStoreUrl)
+        }
       }
     } catch (err) {
-      Alert.alert('Erreur', 'Impossible d\'ouvrir Google Play Store.')
+      const store = Platform.OS === 'ios' ? 'App Store' : 'Play Store'
+      Alert.alert('Erreur', `Impossible d\'ouvrir ${store}.`)
     }
   }
 
@@ -778,8 +785,11 @@ export default function SettingsPage() {
             {/* Theme Toggle */}
             <View style={styles.themeToggleContainer}>
               <View style={styles.themeToggleLeft}>
-                <Ionicons name={theme === 'dark' ? 'moon' : 'sunny'} size={18} color={colors.primary} />
-                <Text style={styles.themeToggleLabel}>Mode clair</Text>
+                <Ionicons name={theme === 'light' ? 'sunny' : 'moon'} size={18} color={colors.primary} />
+                <View>
+                  <Text style={styles.themeToggleLabel}>Mode clair</Text>
+                  <Text style={styles.themeToggleStatus}>{theme === 'light' ? 'Activé' : 'Désactivé'}</Text>
+                </View>
               </View>
               <Switch
                 value={theme === 'light'}
@@ -802,22 +812,6 @@ export default function SettingsPage() {
               <Text style={styles.accountButtonText}>Noter notre app</Text>
               <Ionicons name="chevron-forward" size={18} color="#ffffff44" />
             </TouchableOpacity>
-
-            {/* Light Mode Toggle */}
-            <View style={styles.accountButton}>
-              <Ionicons name={theme === 'light' ? 'sunny-outline' : 'moon-outline'} size={18} color={colors.primary} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.accountButtonText}>Mode clair</Text>
-                <Text style={styles.accountButtonSubtext}>{theme === 'light' ? 'Activé' : 'Désactivé'}</Text>
-              </View>
-              <Switch
-                value={theme === 'light'}
-                onValueChange={toggleTheme}
-                trackColor={{ false: '#3a3a3a', true: colors.primary }}
-                thumbColor={theme === 'light' ? '#ffffff' : '#999999'}
-                style={{ marginLeft: spacing.md }}
-              />
-            </View>
 
             {/* Suspend/Reactivate Account */}
             <TouchableOpacity style={isSuspended ? styles.accountButtonSuccess : styles.accountButtonWarning} onPress={handleSuspendAccount}>
@@ -1715,5 +1709,10 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     fontSize: 16,
     fontWeight: '600',
+  },
+  themeToggleStatus: {
+    color: colors.text.secondary,
+    fontSize: 12,
+    marginTop: 2,
   },
 })
