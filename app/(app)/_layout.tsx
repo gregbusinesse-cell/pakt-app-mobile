@@ -1,4 +1,7 @@
 import { Slot, usePathname, useRouter } from 'expo-router'
+import { useTheme } from '@/lib/ThemeContext'
+import { getColors } from '@/lib/themeColors'
+
 import { Ionicons } from '@expo/vector-icons'
 import { useEffect, useRef } from 'react'
 import { Pressable, StyleSheet, Text, View, Platform, Animated } from 'react-native'
@@ -95,6 +98,9 @@ function NavButton({
 }
 
 export default function AppLayout() {
+  const { theme } = useTheme()
+  const colors = getColors(theme)
+  const styles = getStyles(colors)
   const router   = useRouter()
   const pathname = usePathname() || ''
   const { messages, matchesAndLikes } = useNotificationCount()
@@ -137,7 +143,7 @@ export default function AppLayout() {
   )
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: ReturnType<typeof getColors>) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.bg.primary,

@@ -1,4 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
+import { useTheme } from '@/lib/ThemeContext'
+import { getColors } from '@/lib/themeColors'
+
 import {
   View, Text, StyleSheet, TouchableOpacity, TouchableWithoutFeedback,
   ActivityIndicator, ScrollView, Dimensions, Animated,
@@ -21,6 +24,9 @@ const LEVEL_LABELS: Record<number, string> = {
 }
 
 export default function ProfilePage() {
+  const { theme } = useTheme()
+  const colors = getColors(theme)
+  const styles = getStyles(colors)
   const router = useRouter()
   const { profile, loading } = useCurrentUser()
   const [photoIdx, setPhotoIdx] = useState(0)
@@ -85,7 +91,7 @@ export default function ProfilePage() {
             style={{ marginTop: 24, backgroundColor: colors.primary, paddingHorizontal: 32, paddingVertical: 14, borderRadius: 12 }}
             onPress={() => router.replace('/onboarding' as any)}
           >
-            <Text style={{ color: '#0a0a0a', fontWeight: '800', fontSize: 16 }}>Compléter mon profil</Text>
+            <Text style={{ color: colors.bg.primary, fontWeight: '800', fontSize: 16 }}>Compléter mon profil</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -260,7 +266,7 @@ export default function ProfilePage() {
   )
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: ReturnType<typeof getColors>) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg.primary },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.lg },
   emptyText: { color: colors.text.primary, fontSize: 18, fontWeight: '700', letterSpacing: 0.2 },

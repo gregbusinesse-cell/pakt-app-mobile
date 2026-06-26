@@ -1,4 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
+import { useTheme } from '@/lib/ThemeContext'
+import { getColors } from '@/lib/themeColors'
+
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, Animated } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useMatches } from '@/lib/hooks/useMatches'
@@ -10,6 +13,9 @@ import { refreshNotificationCount } from '@/lib/hooks/useNotificationCount'
 import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme'
 
 export default function MatchesPage() {
+  const { theme } = useTheme()
+  const colors = getColors(theme)
+  const styles = getStyles(colors)
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { matches, likes, loading, error, reload } = useMatches()
@@ -394,7 +400,7 @@ export default function MatchesPage() {
 const { width } = Dimensions.get('window')
 const gridItemSize = Math.floor((width - spacing.lg * 2 - spacing.md) / 2)
 
-const styles = StyleSheet.create({
+const getStyles = (colors: ReturnType<typeof getColors>) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bg.primary,

@@ -1,4 +1,7 @@
 import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme'
+import { useTheme } from '@/lib/ThemeContext'
+import { getColors } from '@/lib/themeColors'
+
 import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator, ScrollView, Dimensions } from 'react-native'
 import { useRouter, useLocalSearchParams } from 'expo-router'
@@ -19,6 +22,9 @@ const LEVEL_LABELS: Record<number, string> = {
 }
 
 export default function UserProfilePage() {
+  const { theme } = useTheme()
+  const colors = getColors(theme)
+  const styles = getStyles(colors)
   const router = useRouter()
   const { id } = useLocalSearchParams<{ id: string }>()
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -216,11 +222,11 @@ export default function UserProfilePage() {
   )
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: ReturnType<typeof getColors>) => StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
   loadingText: { color: '#fff', marginTop: 12 },
-  headerBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#1a1a1a' },
+  headerBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.bg.tertiary },
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: '600' },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 20 },
@@ -229,7 +235,7 @@ const styles = StyleSheet.create({
   age: { fontSize: 24 },
   cityRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   city: { color: '#ffd700', fontSize: 14, fontWeight: '500' },
-  card: { marginHorizontal: 16, marginVertical: 12, borderRadius: 16, overflow: 'hidden', backgroundColor: '#1a1a1a' },
+  card: { marginHorizontal: 16, marginVertical: 12, borderRadius: 16, overflow: 'hidden', backgroundColor: colors.bg.tertiary },
   photoContainer: { width: '100%', backgroundColor: '#333', position: 'relative' },
   photo: { width: '100%', height: '100%' },
   photoPlaceholder: { width: '100%', height: '100%', backgroundColor: '#333' },
@@ -241,22 +247,22 @@ const styles = StyleSheet.create({
   photoNavBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
   section: { marginHorizontal: 20, marginVertical: 16 },
   sectionTitle: { color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 12 },
-  bioText: { color: '#ffffff', fontSize: 14, lineHeight: 20 },
+  bioText: { color: colors.text.primary, fontSize: 14, lineHeight: 20 },
   emptyMsg: { color: '#ffffff66', fontSize: 14, fontStyle: 'italic' },
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tag: { backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#ffd700', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
+  tag: { backgroundColor: colors.bg.tertiary, borderWidth: 1, borderColor: '#ffd700', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
   tagText: { color: '#ffd700', fontSize: 13, fontWeight: '500' },
   skillsList: { gap: 16 },
   skillRow: { gap: 12 },
   skillMeta: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   skillName: { color: '#fff', fontSize: 14, fontWeight: '600' },
   skillLevel: { color: '#ffd700', fontSize: 12, fontWeight: '500' },
-  levelTrack: { height: 6, backgroundColor: '#1a1a1a', borderRadius: 3, overflow: 'hidden' },
+  levelTrack: { height: 6, backgroundColor: colors.bg.tertiary, borderRadius: 3, overflow: 'hidden' },
   levelFill: { height: '100%', backgroundColor: '#ffd700' },
   reloadBtn: { marginTop: 24, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: '#ffd700', borderRadius: 8 },
   reloadBtnText: { color: '#000', fontWeight: '700' },
   emptyTitle: { color: '#fff', fontSize: 18, fontWeight: '600', marginTop: 16 },
-  stickyButtonContainer: { borderTopWidth: 1, borderTopColor: '#1a1a1a', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#0a0a0a' },
+  stickyButtonContainer: { borderTopWidth: 1, borderTopColor: colors.bg.tertiary, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: colors.bg.primary },
   messageButton: { backgroundColor: '#ffd700', paddingVertical: 14, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   messageButtonText: { color: '#000', fontWeight: '700', fontSize: 16 },
 })

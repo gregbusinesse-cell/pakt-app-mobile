@@ -1,5 +1,8 @@
 ﻿import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme'
 import { useEffect, useState } from 'react'
+import { useTheme } from '@/lib/ThemeContext'
+import { getColors } from '@/lib/themeColors'
+
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
   SafeAreaView, ActivityIndicator, Alert, Switch,
@@ -15,6 +18,9 @@ const BASE_SKILLS = [
 ]
 
 export default function PreferencesPage() {
+  const { theme } = useTheme()
+  const colors = getColors(theme)
+  const styles = getStyles(colors)
   const router = useRouter()
 
   // States
@@ -340,7 +346,7 @@ export default function PreferencesPage() {
   )
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: ReturnType<typeof getColors>) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg.primary },
 
   header: {

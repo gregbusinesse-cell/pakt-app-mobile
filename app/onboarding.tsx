@@ -1,5 +1,8 @@
 ﻿import { useState, useRef, useCallback, useEffect } from 'react'
 import { profileStore } from '@/lib/profileStore'
+import { useTheme } from '@/lib/ThemeContext'
+import { getColors } from '@/lib/themeColors'
+
 import { readAsStringAsync } from 'expo-file-system/legacy'
 import {
   View,
@@ -39,6 +42,9 @@ type CityResult = {
 }
 
 export default function OnboardingPage() {
+  const { theme } = useTheme()
+  const colors = getColors(theme)
+  const styles = getStyles(colors)
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -1101,7 +1107,7 @@ function decode(base64: string): Uint8Array {
 }
 
 // ─── Main Styles ─────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
+const getStyles = (colors: ReturnType<typeof getColors>) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.bg.primary,

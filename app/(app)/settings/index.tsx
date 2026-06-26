@@ -15,7 +15,7 @@ function ComingSoon({ icon, title, subtitle }: { icon: string; title: string; su
   return (
     <View style={csStyles.container}>
       <View style={csStyles.iconCircle}>
-        <Ionicons name={icon as any} size={40} color="#d4a853" />
+        <Ionicons name={icon as any} size={40} color=colors.primary />
       </View>
       <Text style={csStyles.label}>Bientôt disponible</Text>
       <Text style={csStyles.title}>{title}</Text>
@@ -79,6 +79,9 @@ const csStyles = StyleSheet.create({
 })
 
 export default function SettingsPage() {
+  const { theme } = useTheme()
+  const colors = getColors(theme)
+  const styles = getStyles(colors)
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { scroll } = useLocalSearchParams<{ scroll?: string }>()
@@ -795,7 +798,7 @@ export default function SettingsPage() {
                 value={theme === 'light'}
                 onValueChange={toggleTheme}
                 trackColor={{ false: '#333', true: colors.primary }}
-                thumbColor={theme === 'light' ? '#ffffff' : '#999'}
+                thumbColor={theme === 'light' ? colors.text.primary : '#999'}
               />
             </View>
 
@@ -932,7 +935,7 @@ export default function SettingsPage() {
   )
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: ReturnType<typeof getColors>) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg.primary },
 
   header: {
@@ -1572,7 +1575,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   codeBox: {
-    backgroundColor: '#0a0a0a',
+    backgroundColor: colors.bg.primary,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,

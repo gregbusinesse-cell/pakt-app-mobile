@@ -1,4 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
+import { useTheme } from '@/lib/ThemeContext'
+import { getColors } from '@/lib/themeColors'
+
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, Animated } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
@@ -8,6 +11,9 @@ import { Ionicons } from '@expo/vector-icons'
 import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme'
 
 export default function MessagesPage() {
+  const { theme } = useTheme()
+  const colors = getColors(theme)
+  const styles = getStyles(colors)
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { conversations, loading, error } = useConversations()
@@ -173,7 +179,7 @@ export default function MessagesPage() {
   )
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: ReturnType<typeof getColors>) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bg.primary,

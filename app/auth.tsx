@@ -1,4 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, ScrollView, SafeAreaView, Alert, Modal, Image, Animated, KeyboardAvoidingView, Platform } from 'react-native'
+import { useTheme } from '@/lib/ThemeContext'
+import { getColors } from '@/lib/themeColors'
+
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'expo-router'
@@ -10,6 +13,9 @@ import { colors, spacing, borderRadius, shadows, typography, transitions } from 
 WebBrowser.maybeCompleteAuthSession()
 
 export default function AuthPage() {
+  const { theme } = useTheme()
+  const colors = getColors(theme)
+  const styles = getStyles(colors)
   const router = useRouter()
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [email, setEmail] = useState('')
@@ -312,7 +318,7 @@ export default function AuthPage() {
   )
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: ReturnType<typeof getColors>) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bg.primary,

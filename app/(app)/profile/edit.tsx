@@ -1,5 +1,8 @@
 ﻿import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme'
 import { useEffect, useRef, useState } from 'react'
+import { useTheme } from '@/lib/ThemeContext'
+import { getColors } from '@/lib/themeColors'
+
 import {
   View, Text, StyleSheet, ScrollView, TextInput,
   TouchableOpacity, ActivityIndicator, Alert, Image, Modal,
@@ -54,6 +57,9 @@ function getExtAndMime(asset: ImagePicker.ImagePickerAsset): { ext: string; cont
 
 // ─── Composant principal ───────────────────────────────────────────────────────
 export default function EditProfilePage() {
+  const { theme } = useTheme()
+  const colors = getColors(theme)
+  const styles = getStyles(colors)
   const router = useRouter()
 
   // ── États du formulaire ──
@@ -522,7 +528,7 @@ export default function EditProfilePage() {
             <View key={`photo-${idx}`} style={styles.photoCell}>
               <Image source={{ uri: p }} style={styles.photoCellImg} resizeMode="cover" />
               <TouchableOpacity style={styles.photoCellRemove} onPress={() => removePhoto(idx)} hitSlop={6}>
-                <Ionicons name="close-circle" size={26} color="#ef4444" />
+                <Ionicons name="close-circle" size={26} color=colors.error />
               </TouchableOpacity>
             </View>
           ))}
@@ -634,7 +640,7 @@ export default function EditProfilePage() {
               <View style={styles.skillCardHeader}>
                 <Text style={styles.skillCardName}>{skill.name}</Text>
                 <TouchableOpacity onPress={() => removeSkill(idx)} hitSlop={10}>
-                  <Ionicons name="close-circle" size={20} color="#ef4444" />
+                  <Ionicons name="close-circle" size={20} color=colors.error />
                 </TouchableOpacity>
               </View>
               <Text style={styles.levelLabel}>Niveau : <Text style={styles.levelValue}>{skill.level}/10</Text></Text>
@@ -723,7 +729,7 @@ export default function EditProfilePage() {
                       hitSlop={10}
                       disabled={userPlan !== 'business_pro'}
                     >
-                      <Ionicons name="close-circle" size={20} color={userPlan === 'business_pro' ? '#ef4444' : '#666'} />
+                      <Ionicons name="close-circle" size={20} color={userPlan === 'business_pro' ? colors.error : '#666'} />
                     </TouchableOpacity>
                   </View>
                   <Text style={styles.levelLabel}>Niveau minimum: <Text style={styles.levelValue}>{skill.level}/10</Text></Text>
@@ -836,7 +842,7 @@ export default function EditProfilePage() {
 }
 
 // ─── Styles ────────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
+const getStyles = (colors: ReturnType<typeof getColors>) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg.primary },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.bg.tertiary },

@@ -1,4 +1,7 @@
 import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme'
+import { useTheme } from '@/lib/ThemeContext'
+import { getColors } from '@/lib/themeColors'
+
 import { useEffect, useState, useRef } from 'react'
 import {
   View,
@@ -50,6 +53,9 @@ interface Toast {
 }
 
 export default function ChatDetailPage() {
+  const { theme } = useTheme()
+  const colors = getColors(theme)
+  const styles = getStyles(colors)
   const router = useRouter()
   const { id } = useLocalSearchParams()
   const conversationId = id as string
@@ -1145,14 +1151,14 @@ export default function ChatDetailPage() {
                       <Ionicons
                         name={playingUrl === (msg as any).file_url ? 'pause-circle' : 'play-circle'}
                         size={32}
-                        color={isOwn ? '#0a0a0a' : '#ffd700'}
+                        color={isOwn ? colors.bg.primary : '#ffd700'}
                       />
                       <View style={{ flex: 1 }}>
                         {/* Progress bar */}
                         <View style={{ height: 3, backgroundColor: isOwn ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)', borderRadius: 2, marginBottom: 2 }}>
                           {playingUrl === (msg as any).file_url && (() => {
                             const total = parseInt(displayContent?.replace('[AUDIO ', '').replace('s]', '') || '1')
-                            return <View style={{ height: 3, width: `${Math.min(100, (playbackPosition / total) * 100)}%` as any, backgroundColor: isOwn ? '#0a0a0a' : '#ffd700', borderRadius: 2 }} />
+                            return <View style={{ height: 3, width: `${Math.min(100, (playbackPosition / total) * 100)}%` as any, backgroundColor: isOwn ? colors.bg.primary : '#ffd700', borderRadius: 2 }} />
                           })()}
                         </View>
                         <Text style={{ fontSize: 11, color: isOwn ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.6)' }}>
@@ -1463,7 +1469,7 @@ export default function ChatDetailPage() {
   )
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: ReturnType<typeof getColors>) => StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   centerContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
@@ -1473,7 +1479,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
+    borderBottomColor: colors.bg.tertiary,
     gap: 12,
   },
   backButton: {
@@ -1593,7 +1599,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   messageBubbleOther: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.bg.tertiary,
     borderBottomLeftRadius: 4,
   },
   messageBubbleOwn: {
@@ -1630,7 +1636,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: '#1a1a1a',
+    borderTopColor: colors.bg.tertiary,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -1639,7 +1645,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.bg.tertiary,
     color: '#fff',
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -1663,7 +1669,7 @@ const styles = StyleSheet.create({
 
   // More Menu
   moreMenu: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.bg.tertiary,
     borderRadius: 12,
     marginHorizontal: 16,
     marginBottom: 12,
@@ -1690,7 +1696,7 @@ const styles = StyleSheet.create({
   restrictedMessageBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.bg.tertiary,
     borderRadius: 12,
     marginHorizontal: 16,
     marginBottom: 12,
@@ -1757,7 +1763,7 @@ const styles = StyleSheet.create({
 
   // Encouragement styles
   encouragementBox: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.bg.tertiary,
     borderRadius: 12,
     padding: 16,
     gap: 12,
@@ -1820,7 +1826,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalContent: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.bg.tertiary,
     borderRadius: 20,
     padding: 24,
     width: '100%',
@@ -1853,7 +1859,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalTextInput: {
-    backgroundColor: '#0a0a0a',
+    backgroundColor: colors.bg.primary,
     borderRadius: 12,
     padding: 14,
     color: '#fff',
@@ -1962,7 +1968,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.bg.tertiary,
     borderRadius: 12,
     marginBottom: 12,
   },

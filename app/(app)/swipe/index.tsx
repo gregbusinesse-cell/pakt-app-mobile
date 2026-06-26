@@ -1,4 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useTheme } from '@/lib/ThemeContext'
+import { getColors } from '@/lib/themeColors'
+
 import { useFocusEffect } from 'expo-router'
 import {
   View,
@@ -32,6 +35,9 @@ const LEVEL_LABELS: Record<number, string> = {
 }
 
 export default function SwipePage() {
+  const { theme } = useTheme()
+  const colors = getColors(theme)
+  const styles = getStyles(colors)
   const router = useRouter()
 
   const [userId, setUserId] = useState<string | null>(null)
@@ -713,7 +719,7 @@ export default function SwipePage() {
 }
 
 // ─────────────────────────────────────────────
-const styles = StyleSheet.create({
+const getStyles = (colors: ReturnType<typeof getColors>) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg.primary },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: spacing.lg },
   loadingText: { color: colors.text.secondary, marginTop: spacing.lg, fontSize: 14, fontWeight: '500' },
