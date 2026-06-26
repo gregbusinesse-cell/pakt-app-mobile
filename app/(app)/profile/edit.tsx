@@ -528,7 +528,7 @@ export default function EditProfilePage() {
             <View key={`photo-${idx}`} style={styles.photoCell}>
               <Image source={{ uri: p }} style={styles.photoCellImg} resizeMode="cover" />
               <TouchableOpacity style={styles.photoCellRemove} onPress={() => removePhoto(idx)} hitSlop={6}>
-                <Ionicons name="close-circle" size={26} color=colors.error />
+                <Ionicons name="close-circle" size={26} color={colors.error} />
               </TouchableOpacity>
             </View>
           ))}
@@ -640,7 +640,7 @@ export default function EditProfilePage() {
               <View style={styles.skillCardHeader}>
                 <Text style={styles.skillCardName}>{skill.name}</Text>
                 <TouchableOpacity onPress={() => removeSkill(idx)} hitSlop={10}>
-                  <Ionicons name="close-circle" size={20} color=colors.error />
+                  <Ionicons name="close-circle" size={20} color={colors.error} />
                 </TouchableOpacity>
               </View>
               <Text style={styles.levelLabel}>Niveau : <Text style={styles.levelValue}>{skill.level}/10</Text></Text>

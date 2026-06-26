@@ -15,7 +15,7 @@ function ComingSoon({ icon, title, subtitle }: { icon: string; title: string; su
   return (
     <View style={csStyles.container}>
       <View style={csStyles.iconCircle}>
-        <Ionicons name={icon as any} size={40} color=colors.primary />
+        <Ionicons name={icon as any} size={40} color={colors.primary} />
       </View>
       <Text style={csStyles.label}>Bientôt disponible</Text>
       <Text style={csStyles.title}>{title}</Text>
