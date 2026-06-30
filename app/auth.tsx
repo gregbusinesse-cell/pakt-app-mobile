@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import * as WebBrowser from 'expo-web-browser'
 import * as Linking from 'expo-linking'
+import * as AppleAuthentication from 'expo-apple-authentication'
 import { colors, spacing, borderRadius, shadows, typography, transitions } from '@/lib/theme'
 
 WebBrowser.maybeCompleteAuthSession()
@@ -24,6 +25,7 @@ export default function AuthPage() {
   const [signingIn, setSigningIn] = useState(false)
   const [showCGU, setShowCGU] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
+  const [appleAvailable, setAppleAvailable] = useState(false)
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current
@@ -74,6 +76,8 @@ export default function AuthPage() {
         if (session) {
           await redirectAfterAuth()
         }
+        const isAppleAvailable = await AppleAuthentication.isAvailableAsync()
+        setAppleAvailable(isAppleAvailable)
         setLoading(false)
       } catch (err) {
         setLoading(false)
@@ -167,6 +171,58 @@ export default function AuthPage() {
     } catch (err: any) {
       if (!err?.message?.includes('cancel') && !err?.message?.includes('dismiss')) {
         Alert.alert('Erreur Google', err?.message || 'Impossible de se connecter avec Google')
+      }
+    } finally {
+      setSigningIn(false)
+    }
+  }
+
+  const handleAppleSignIn = async () => {
+    try {
+      setSigningIn(true)
+      const isAvailable = await AppleAuthentication.isAvailableAsync()
+      if (!isAvailable) {
+        Alert.alert('Non disponible', 'Sign in with Apple n\'est pas disponible sur cet appareil')
+        return
+      }
+
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [AppleAuthentication.AppleAuthenticationScope.FULL_NAME, AppleAuthentication.AppleAuthenticationScope.EMAIL],
+      })
+
+      if (!credential.identityToken) {
+        throw new Error('Pas de token reçu d\'Apple')
+      }
+
+      // Appeler edge function Supabase pour valider et créer session
+      const SUPA_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
+      const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
+
+      const res = await fetch(`${SUPA_URL}/functions/v1/sign-in-apple`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
+        body: JSON.stringify({ identityToken: credential.identityToken }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data?.message || 'Erreur lors de la connexion Apple')
+      }
+
+      if (data.session?.access_token && data.session?.refresh_token) {
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        })
+        if (sessionError) throw sessionError
+      } else {
+        throw new Error('Pas de session reçue')
+      }
+      // onAuthStateChange in _layout.tsx will handle the redirect to swipe/onboarding
+    } catch (err: any) {
+      if (!err?.message?.includes('cancel') && !err?.message?.includes('dismiss')) {
+        Alert.alert('Erreur Apple', err?.message || 'Impossible de se connecter avec Apple')
       }
     } finally {
       setSigningIn(false)
@@ -268,6 +324,19 @@ export default function AuthPage() {
               <Image source={require('../assets/google-logo.png')} style={{ width: 20, height: 20 }} />
               <Text style={styles.googleButtonText}>Continuer avec Google</Text>
             </TouchableOpacity>
+
+            {/* Apple Button */}
+            {appleAvailable && (
+              <TouchableOpacity
+                style={[styles.appleButton, signingIn && { opacity: 0.6 }]}
+                onPress={handleAppleSignIn}
+                disabled={signingIn}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="logo-apple" size={20} color={colors.text.primary} />
+                <Text style={styles.appleButtonText}>Continuer avec Apple</Text>
+              </TouchableOpacity>
+            )}
 
             {/* Disclaimer */}
             <View style={styles.disclaimerContainer}>
@@ -463,6 +532,26 @@ const getStyles = (colors: ReturnType<typeof getColors>) => StyleSheet.create({
     ...shadows.glow,
   },
   googleButtonText: {
+    color: colors.text.primary,
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+
+  // Apple Button
+  appleButton: {
+    flexDirection: 'row',
+    backgroundColor: colors.bg.tertiary,
+    borderWidth: 1.5,
+    borderColor: colors.text.primary,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing.md,
+    ...shadows.glow,
+  },
+  appleButtonText: {
     color: colors.text.primary,
     fontSize: 15,
     fontWeight: '600',
