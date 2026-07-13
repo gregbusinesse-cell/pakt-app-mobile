@@ -20,36 +20,52 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Setup Expo
+      - name: Setup Expo (for prebuild only, NO EAS BUILD)
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Prebuild iOS
+      - name: Prebuild iOS (creates Xcode project)
         run: npx expo prebuild --platform ios --clean
 
-      - name: Setup Ruby
+      - name: Setup Ruby & Fastlane
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.0'
+          bundler-cache: true
 
       - name: Install Fastlane
         run: gem install fastlane
 
-      - name: Build and Upload to TestFlight
+      - name: Decode signing certificate
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo $CERTIFICATE_BASE64 | base64 --decode > Certificate.p12
+
+      - name: Build and Upload to TestFlight with Fastlane
         env:
           FASTLANE_USER: ${{ secrets.APPLE_ID }}
           FASTLANE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          FASTLANE_SKIP_UPDATE_CHECK: 'true'
         run: |
           cd ios
           fastlane beta
 
-      - name: Print Build Info
+      - name: ✅ Build Success
         if: success()
         run: |
-          echo "✅ Build completed successfully!"
+          echo "✅ Build completed successfully (NO EAS costs!)"
           echo "Check App Store Connect → TestFlight for the new build"
+
+      - name: ❌ Build Failed
+        if: failure()
+        run: |
+          echo "Build failed. Check logs above for details."
+          exit 1
