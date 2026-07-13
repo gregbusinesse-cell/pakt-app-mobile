@@ -19,3 +19,4 @@ android/
 expo-env.d.ts
 # @end expo-cli
 .vercel
+.match-password-DO-NOT-COMMIT.txt
