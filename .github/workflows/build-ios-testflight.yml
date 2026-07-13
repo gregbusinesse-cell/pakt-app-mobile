@@ -12,6 +12,16 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Select latest available Xcode (Apple now requires iOS 26 SDK+)
+        run: |
+          LATEST_XCODE=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -n1)
+          echo "Available Xcode installs:"
+          ls -d /Applications/Xcode_*.app 2>/dev/null || true
+          if [ -n "$LATEST_XCODE" ]; then
+            sudo xcode-select -s "$LATEST_XCODE"
+          fi
+          xcodebuild -version
+
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
