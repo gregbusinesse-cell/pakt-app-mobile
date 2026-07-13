@@ -33,11 +33,15 @@ function NavButton({
   isActive,
   badgeCount,
   onPress,
+  colors,
+  styles,
 }: {
   item: NavItem
   isActive: boolean
   badgeCount: number
   onPress: () => void
+  colors: ReturnType<typeof getColors>
+  styles: ReturnType<typeof getStyles>
 }) {
   const scaleAnim = useRef(new Animated.Value(isActive ? 1 : 0)).current
 
@@ -134,6 +138,8 @@ export default function AppLayout() {
                 isActive={isActive}
                 badgeCount={badgeCount}
                 onPress={() => { if (!isActive) router.push(item.href as any) }}
+                colors={colors}
+                styles={styles}
               />
             )
           })}
