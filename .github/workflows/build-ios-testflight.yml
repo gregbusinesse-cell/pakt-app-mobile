@@ -53,6 +53,17 @@ jobs:
           cd ios
           fastlane beta
 
+      - name: Upload raw build logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            ios/build_logs
+            ~/Library/Logs/gym
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: ✅ Build Success
         if: success()
         run: |
