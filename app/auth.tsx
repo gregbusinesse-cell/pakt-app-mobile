@@ -18,8 +18,6 @@ import { isAvailableAsync, signInAsync } from 'expo-apple-authentication/build/A
 import { AppleAuthenticationScope } from 'expo-apple-authentication/build/AppleAuthentication.types'
 import { colors, spacing, borderRadius, shadows, typography, transitions } from '@/lib/theme'
 
-WebBrowser.maybeCompleteAuthSession()
-
 export default function AuthPage() {
   const { theme } = useTheme()
   const colors = getColors(theme)
@@ -37,6 +35,19 @@ export default function AuthPage() {
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current
   const slideAnim = useRef(new Animated.Value(50)).current
+
+  // Deferred to after mount (not module top-level) so the native bridge is
+  // fully initialized before this native call runs - calling it at module
+  // eval time crashed the app on launch (SIGABRT, same
+  // ObjCTurboModule::performVoidMethodInvocation pattern as the
+  // expo-apple-authentication AppleAuthenticationButton crash fixed earlier).
+  useEffect(() => {
+    try {
+      WebBrowser.maybeCompleteAuthSession()
+    } catch (e) {
+      console.log('maybeCompleteAuthSession error:', e)
+    }
+  }, [])
 
   useEffect(() => {
     Animated.parallel([
