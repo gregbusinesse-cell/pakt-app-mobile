@@ -64,6 +64,35 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+      - name: Inspect built .app (Info.plist + entitlements) for debugging
+        if: always()
+        run: |
+          mkdir -p ios/debug_inspect
+          IPA=$(find ios -maxdepth 1 -name "*.ipa" | head -n1)
+          if [ -n "$IPA" ]; then
+            cp "$IPA" ios/debug_inspect/app.ipa
+            UNZIP_DIR=$(mktemp -d)
+            unzip -q "$IPA" -d "$UNZIP_DIR"
+            APP_DIR=$(find "$UNZIP_DIR/Payload" -maxdepth 1 -name "*.app" | head -n1)
+            if [ -n "$APP_DIR" ]; then
+              plutil -convert xml1 -o ios/debug_inspect/Info.plist "$APP_DIR/Info.plist" || true
+              codesign -d --entitlements :ios/debug_inspect/entitlements.plist "$APP_DIR" || true
+              codesign -dvvv "$APP_DIR" > ios/debug_inspect/codesign-info.txt 2>&1 || true
+              ls -la "$APP_DIR" > ios/debug_inspect/app_bundle_contents.txt || true
+            fi
+          else
+            echo "No .ipa found to inspect" > ios/debug_inspect/NO_IPA_FOUND.txt
+          fi
+
+      - name: Upload debug inspection artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-inspect
+          path: ios/debug_inspect
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: ✅ Build Success
         if: success()
         run: |
