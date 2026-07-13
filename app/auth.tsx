@@ -8,15 +8,11 @@ import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import * as WebBrowser from 'expo-web-browser'
 import * as Linking from 'expo-linking'
-// DIAGNOSTIC BISECTION: expo-apple-authentication is completely disabled (not
-// imported at all) to test whether it's the source of the SIGABRT crash on
-// launch (ObjCTurboModule::performVoidMethodInvocation). Two targeted fixes
-// (avoiding AppleAuthenticationButton, deferring WebBrowser.maybeCompleteAuthSession)
-// did NOT resolve the identical crash across builds 53/54/55, so this isolates
-// whether expo-apple-authentication is involved at all before investigating
-// further (e.g. react-native-reanimated/worklets, also New-Architecture-only).
-// import { isAvailableAsync, signInAsync } from 'expo-apple-authentication/build/AppleAuthentication'
-// import { AppleAuthenticationScope } from 'expo-apple-authentication/build/AppleAuthentication.types'
+// Import directly from the submodules (not the package root) to avoid pulling
+// in AppleAuthenticationButton.js, which calls requireNativeViewManager at
+// module-evaluation time even though we never render that component.
+import { isAvailableAsync, signInAsync } from 'expo-apple-authentication/build/AppleAuthentication'
+import { AppleAuthenticationScope } from 'expo-apple-authentication/build/AppleAuthentication.types'
 import { colors, spacing, borderRadius, shadows, typography, transitions } from '@/lib/theme'
 
 export default function AuthPage() {
@@ -95,8 +91,8 @@ export default function AuthPage() {
         if (session) {
           await redirectAfterAuth()
         }
-        // Apple Sign In disabled for diagnostic bisection (see import comment above)
-        setAppleAvailable(false)
+        const isAppleAvailable = await isAvailableAsync()
+        setAppleAvailable(isAppleAvailable)
         setLoading(false)
       } catch (err) {
         setLoading(false)
@@ -196,10 +192,56 @@ export default function AuthPage() {
     }
   }
 
-  // Stubbed out for diagnostic bisection (see import comment above) - button
-  // that triggers this is hidden since appleAvailable is forced to false.
   const handleAppleSignIn = async () => {
-    Alert.alert('Non disponible', 'Sign in with Apple est temporairement désactivé')
+    try {
+      setSigningIn(true)
+      const isAvailable = await isAvailableAsync()
+      if (!isAvailable) {
+        Alert.alert('Non disponible', 'Sign in with Apple n\'est pas disponible sur cet appareil')
+        return
+      }
+
+      const credential = await signInAsync({
+        requestedScopes: [AppleAuthenticationScope.FULL_NAME, AppleAuthenticationScope.EMAIL],
+      })
+
+      if (!credential.identityToken) {
+        throw new Error('Pas de token reçu d\'Apple')
+      }
+
+      // Appeler edge function Supabase pour valider et créer session
+      const SUPA_URL = 'https://cpgnczuqhwdoalgyezvr.supabase.co'
+      const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZ25jenVxaHdkb2FsZ3llenZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjA2NDcsImV4cCI6MjA5NTE5NjY0N30.GagM-CyNkl9YJmor26eepk3DF3EWcRsa7xnFIZyBeFY'
+
+      const res = await fetch(`${SUPA_URL}/functions/v1/sign-in-apple`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
+        body: JSON.stringify({ identityToken: credential.identityToken }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data?.message || 'Erreur lors de la connexion Apple')
+      }
+
+      if (data.session?.access_token && data.session?.refresh_token) {
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        })
+        if (sessionError) throw sessionError
+      } else {
+        throw new Error('Pas de session reçue')
+      }
+      // onAuthStateChange in _layout.tsx will handle the redirect to swipe/onboarding
+    } catch (err: any) {
+      if (!err?.message?.includes('cancel') && !err?.message?.includes('dismiss')) {
+        Alert.alert('Erreur Apple', err?.message || 'Impossible de se connecter avec Apple')
+      }
+    } finally {
+      setSigningIn(false)
+    }
   }
 
   if (loading) {

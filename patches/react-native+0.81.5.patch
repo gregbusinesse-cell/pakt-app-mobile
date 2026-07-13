@@ -1,0 +1,23 @@
+diff --git a/node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios/ReactCommon/RCTTurboModule.mm b/node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios/ReactCommon/RCTTurboModule.mm
+index 2a67797..cde59b6 100644
+--- a/node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios/ReactCommon/RCTTurboModule.mm
++++ b/node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios/ReactCommon/RCTTurboModule.mm
+@@ -435,7 +435,17 @@ void ObjCTurboModule::performVoidMethodInvocation(
+     @try {
+       [inv invokeWithTarget:strongModule];
+     } @catch (NSException *exception) {
+-      throw convertNSExceptionToJSError(runtime, exception, std::string{moduleName}, methodNameStr);
++      // PATCHED (facebook/react-native#54859, #53960): void TurboModule methods
++      // have no promise/callback path back to JS, so converting the NSException
++      // to a jsi::JSError and (re)throwing it here is fatal - on iOS 26 SDK
++      // builds this crashes the whole app with SIGABRT, since void methods are
++      // commonly dispatched onto a background queue (nativeMethodCallInvoker_->
++      // invokeAsync) with no enclosing catch. Log instead of rethrowing.
++      RCTLogError(
++          @"[patched] Exception thrown invoking void method -[%s %s]: %@",
++          moduleName,
++          methodName,
++          exception);
+     } @finally {
+       [retainedObjectsForInvocation removeAllObjects];
+     }
