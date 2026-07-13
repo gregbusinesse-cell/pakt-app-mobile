@@ -23,11 +23,17 @@ jobs:
       - name: Generate iOS project with expo prebuild
         run: npx expo prebuild --platform ios --clean
 
+      - name: Restore Fastlane config (prebuild --clean wipes ios/)
+        run: |
+          mkdir -p ios/fastlane
+          cp ios-fastlane-config/Fastfile ios/fastlane/Fastfile
+          cp ios-fastlane-config/Matchfile ios/fastlane/Matchfile
+
       - name: Setup Ruby & Fastlane
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.0'
-          bundler-cache: true
+          ruby-version: '3.3'
+          bundler-cache: false
 
       - name: Install Fastlane
         run: gem install fastlane
@@ -39,7 +45,9 @@ jobs:
           FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          GIT_AUTHORIZATION: ${{ secrets.CERT_REPO_TOKEN }}
           FASTLANE_SKIP_UPDATE_CHECK: 'true'
+          FASTLANE_HIDE_CHANGELOG: 'true'
         run: |
           cd ios
           fastlane beta
@@ -49,10 +57,10 @@ jobs:
         run: |
           echo "✅ iOS build uploaded to TestFlight"
           echo "Tech: GitHub Actions + Xcode + Fastlane"
-          echo "Cost: $0"
+          echo "Cost: \$0"
 
       - name: ❌ Build Failed
         if: failure()
         run: |
-          echo "Build failed. Check logs for details."
+          echo "Build failed. Check logs above for details."
           exit 1

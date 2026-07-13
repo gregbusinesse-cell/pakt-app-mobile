@@ -1,0 +1,43 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Push a new beta build to TestFlight"
+  lane :beta do
+    setup_ci if is_ci
+
+    # Fetch certificates and provisioning profiles with match
+    match(
+      type: "appstore",
+      app_identifier: "com.pakt.app",
+      git_url: "https://github.com/gregbusinesse-cell/pakt-certificates.git",
+      git_basic_authorization: Base64.strict_encode64("#{ENV['GIT_AUTHORIZATION']}:x-oauth-basic"),
+      readonly: is_ci,
+      verbose: true
+    )
+
+    # Build the app
+    build_app(
+      workspace: "pakt.xcworkspace",
+      scheme: "pakt",
+      configuration: "Release",
+      platform: "ios",
+      export_method: "app-store",
+      build_for_testing: false,
+      export_options: {
+        provisioningProfiles: {
+          "com.pakt.app" => "match AppStore com.pakt.app"
+        }
+      }
+    )
+
+    # Upload to TestFlight
+    upload_to_testflight(
+      apple_id: ENV['FASTLANE_USER'],
+      app_identifier: "com.pakt.app",
+      skip_waiting_for_build_processing: true,
+      skip_submission: false
+    )
+
+    puts "✅ Build uploaded to TestFlight!"
+  end
+end
