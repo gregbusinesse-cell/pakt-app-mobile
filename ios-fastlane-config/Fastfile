@@ -29,9 +29,7 @@ platform :ios do
       workspace: "pakt.xcworkspace",
       scheme: "pakt",
       configuration: "Release",
-      platform: "ios",
       export_method: "app-store",
-      build_for_testing: false,
       export_options: {
         provisioningProfiles: {
           "com.pakt.app" => "match AppStore com.pakt.app"
