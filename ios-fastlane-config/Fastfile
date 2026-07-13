@@ -13,21 +13,10 @@ platform :ios do
       in_house: false
     )
 
-    # Ensure the App ID has Sign In with Apple enabled, otherwise match's
-    # generated provisioning profile won't include the required entitlement.
-    begin
-      produce(
-        username: ENV["APPLE_ID"],
-        app_identifier: "com.pakt.app",
-        team_id: ENV["TEAM_ID"],
-        skip_itc: true,
-        enable_services: {
-          sign_in_with_apple: "on"
-        }
-      )
-    rescue => e
-      UI.important("produce enable_services failed (#{e.message}) - continuing, this may need to be enabled manually at developer.apple.com")
-    end
+    # NOTE: Sign In with Apple must be enabled on the com.pakt.app App ID at
+    # https://developer.apple.com/account/resources/identifiers/list (one-time,
+    # manual - Apple's Developer Portal capability API requires a 2FA-authenticated
+    # session that cannot run non-interactively in CI).
 
     # Fetch (or generate, on first run) certificates and provisioning profiles with match.
     # Using the App Store Connect API key means no Apple ID password / 2FA prompt is ever needed.
