@@ -17,8 +17,8 @@ platform :ios do
     # generated provisioning profile won't include the required entitlement.
     begin
       produce(
-        api_key: api_key,
         app_identifier: "com.pakt.app",
+        team_id: ENV["TEAM_ID"],
         skip_itc: true,
         enable_services: {
           apple_sign_in: "on"
