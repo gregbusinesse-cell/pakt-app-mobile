@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase/client'
 import { LEGAL_SECTIONS, SUPPORT_EMAIL, LEGAL_CONTENT } from '@/lib/constants/legal-content'
 import { colors, spacing, borderRadius, shadows, transitions } from '@/lib/theme'
 import { useTheme } from '@/lib/ThemeContext'
+import { getColors } from '@/lib/themeColors'
 
 // ─── Coming Soon component ────────────────────────────────────────────────────
 function ComingSoon({ icon, title, subtitle }: { icon: string; title: string; subtitle: string }) {
@@ -79,7 +80,7 @@ const csStyles = StyleSheet.create({
 })
 
 export default function SettingsPage() {
-  const { theme } = useTheme()
+  const { theme, toggleTheme } = useTheme()
   const colors = getColors(theme)
   const styles = getStyles(colors)
   const router = useRouter()
@@ -88,7 +89,6 @@ export default function SettingsPage() {
   const scrollViewRef = useRef<ScrollView>(null)
   const proCardRef = useRef<View>(null)
   const proCardY = useRef<number>(0)
-  const { theme, toggleTheme } = useTheme()
 
   // IAP Hook - Disabled for MVP
   // const { loading: iapLoading, error: iapError, requestPurchase } = useInAppPurchases()
