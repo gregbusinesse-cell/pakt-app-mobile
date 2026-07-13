@@ -13,6 +13,21 @@ platform :ios do
       in_house: false
     )
 
+    # Ensure the App ID has Sign In with Apple enabled, otherwise match's
+    # generated provisioning profile won't include the required entitlement.
+    begin
+      produce(
+        api_key: api_key,
+        app_identifier: "com.pakt.app",
+        skip_itc: true,
+        enable_services: {
+          apple_sign_in: "on"
+        }
+      )
+    rescue => e
+      UI.important("produce enable_services failed (#{e.message}) - continuing, this may need to be enabled manually at developer.apple.com")
+    end
+
     # Fetch (or generate, on first run) certificates and provisioning profiles with match.
     # Using the App Store Connect API key means no Apple ID password / 2FA prompt is ever needed.
     match(
@@ -22,6 +37,7 @@ platform :ios do
       git_basic_authorization: Base64.strict_encode64("#{ENV['GIT_AUTHORIZATION']}:x-oauth-basic"),
       api_key: api_key,
       readonly: false,
+      force: true,
       verbose: true
     )
 
