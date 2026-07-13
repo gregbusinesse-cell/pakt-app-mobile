@@ -12,22 +12,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Setup Node
+      - name: Setup Node (for dependencies only, NO Expo)
         uses: actions/setup-node@v3
         with:
           node-version: '18'
 
-      - name: Install dependencies
+      - name: Install npm dependencies
         run: npm install
-
-      - name: Setup Expo (for prebuild only, NO EAS BUILD)
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-
-      - name: Prebuild iOS (creates Xcode project)
-        run: npx expo prebuild --platform ios --clean
 
       - name: Setup Ruby & Fastlane
         uses: ruby/setup-ruby@v1
@@ -37,14 +28,6 @@ jobs:
 
       - name: Install Fastlane
         run: gem install fastlane
-
-      - name: Decode signing certificate
-        env:
-          CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
-          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-        run: |
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo $CERTIFICATE_BASE64 | base64 --decode > Certificate.p12
 
       - name: Build and Upload to TestFlight with Fastlane
         env:
@@ -61,11 +44,12 @@ jobs:
       - name: ✅ Build Success
         if: success()
         run: |
-          echo "✅ Build completed successfully (NO EAS costs!)"
-          echo "Check App Store Connect → TestFlight for the new build"
+          echo "✅ iOS build uploaded to TestFlight"
+          echo "Tech: GitHub Actions + Xcode + Fastlane"
+          echo "Cost: $0"
 
       - name: ❌ Build Failed
         if: failure()
         run: |
-          echo "Build failed. Check logs above for details."
+          echo "Build failed. Check logs for details."
           exit 1
