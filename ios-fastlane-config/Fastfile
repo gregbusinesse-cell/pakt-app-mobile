@@ -25,11 +25,21 @@ platform :ios do
       verbose: true
     )
 
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "PAKT.xcodeproj",
+      team_id: ENV["TEAM_ID"],
+      code_sign_identity: "Apple Distribution",
+      profile_name: "match AppStore com.pakt.app",
+      targets: ["PAKT"]
+    )
+
     build_app(
       workspace: "pakt.xcworkspace",
-      scheme: "pakt",
+      scheme: "PAKT",
       configuration: "Release",
       export_method: "app-store",
+      export_team_id: ENV["TEAM_ID"],
       export_options: {
         provisioningProfiles: {
           "com.pakt.app" => "match AppStore com.pakt.app"
