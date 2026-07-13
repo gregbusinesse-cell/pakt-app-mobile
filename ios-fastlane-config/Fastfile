@@ -21,7 +21,7 @@ platform :ios do
         team_id: ENV["TEAM_ID"],
         skip_itc: true,
         enable_services: {
-          apple_sign_in: "on"
+          sign_in_with_apple: "on"
         }
       )
     rescue => e
