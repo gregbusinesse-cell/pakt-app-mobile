@@ -74,7 +74,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-      - name: Inspect built .app (Info.plist + entitlements) for debugging
+      - name: Inspect built .app (Info.plist + entitlements + dSYM) for debugging
         if: always()
         run: |
           mkdir -p ios/debug_inspect
@@ -92,6 +92,9 @@ jobs:
             fi
           else
             echo "No .ipa found to inspect" > ios/debug_inspect/NO_IPA_FOUND.txt
+          fi
+          if [ -f ios/PAKT.app.dSYM.zip ]; then
+            cp ios/PAKT.app.dSYM.zip ios/debug_inspect/PAKT.app.dSYM.zip
           fi
 
       - name: Upload debug inspection artifacts

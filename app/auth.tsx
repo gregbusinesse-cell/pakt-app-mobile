@@ -8,7 +8,14 @@ import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import * as WebBrowser from 'expo-web-browser'
 import * as Linking from 'expo-linking'
-import * as AppleAuthentication from 'expo-apple-authentication'
+// Import directly from the submodules that only touch isAvailableAsync/signInAsync.
+// Importing the package root ('expo-apple-authentication') also pulls in
+// AppleAuthenticationButton.js, which calls requireNativeViewManager('ExpoAppleAuthentication')
+// unconditionally at module-evaluation time (before any component renders) - this crashed
+// the app on launch (SIGABRT in ObjCTurboModule::performVoidMethodInvocation) even though
+// we never render that button component.
+import { isAvailableAsync, signInAsync } from 'expo-apple-authentication/build/AppleAuthentication'
+import { AppleAuthenticationScope } from 'expo-apple-authentication/build/AppleAuthentication.types'
 import { colors, spacing, borderRadius, shadows, typography, transitions } from '@/lib/theme'
 
 WebBrowser.maybeCompleteAuthSession()
@@ -76,7 +83,7 @@ export default function AuthPage() {
         if (session) {
           await redirectAfterAuth()
         }
-        const isAppleAvailable = await AppleAuthentication.isAvailableAsync()
+        const isAppleAvailable = await isAvailableAsync()
         setAppleAvailable(isAppleAvailable)
         setLoading(false)
       } catch (err) {
@@ -180,14 +187,14 @@ export default function AuthPage() {
   const handleAppleSignIn = async () => {
     try {
       setSigningIn(true)
-      const isAvailable = await AppleAuthentication.isAvailableAsync()
+      const isAvailable = await isAvailableAsync()
       if (!isAvailable) {
         Alert.alert('Non disponible', 'Sign in with Apple n\'est pas disponible sur cet appareil')
         return
       }
 
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [AppleAuthentication.AppleAuthenticationScope.FULL_NAME, AppleAuthentication.AppleAuthenticationScope.EMAIL],
+      const credential = await signInAsync({
+        requestedScopes: [AppleAuthenticationScope.FULL_NAME, AppleAuthenticationScope.EMAIL],
       })
 
       if (!credential.identityToken) {
