@@ -17,6 +17,7 @@ platform :ios do
     # generated provisioning profile won't include the required entitlement.
     begin
       produce(
+        username: ENV["APPLE_ID"],
         app_identifier: "com.pakt.app",
         team_id: ENV["TEAM_ID"],
         skip_itc: true,

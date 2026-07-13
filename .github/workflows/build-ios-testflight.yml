@@ -46,6 +46,7 @@ jobs:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           GIT_AUTHORIZATION: ${{ secrets.CERT_REPO_TOKEN }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
           FASTLANE_SKIP_UPDATE_CHECK: 'true'
           FASTLANE_HIDE_CHANGELOG: 'true'
         run: |
