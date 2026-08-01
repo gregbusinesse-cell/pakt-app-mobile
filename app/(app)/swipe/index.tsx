@@ -130,9 +130,9 @@ export default function SwipePage() {
         return
       }
 
-      // Filter: exclude swiped, recently viewed, AND suspended accounts
+      // Filter: exclude swiped, recently viewed, suspended, and hidden (test/demo) accounts
       let eligible = (data || []).filter(
-        (p: any) => !swipedIds.has(p.id) && !recentViewIds.has(p.id) && p.is_suspended !== true
+        (p: any) => !swipedIds.has(p.id) && !recentViewIds.has(p.id) && p.is_suspended !== true && p.hide_from_swipe !== true
       )
 
       // Haversine distance (km) entre deux points GPS
